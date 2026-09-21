@@ -5,7 +5,6 @@ import { MagnifyingGlass } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import {
   Autocomplete,
-  Collection,
   Dialog,
   Header,
   Input,
@@ -157,13 +156,17 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
                   {titles.length > 0 && (
                     <Header {...stylex.props(styles.header)}>Your library</Header>
                   )}
-                  <Collection items={items}>{(item) => <ItemResult item={item} />}</Collection>
+                  {items.map((item) => (
+                    <ItemResult key={item.Id} item={item} />
+                  ))}
                 </ListBoxSection>
               )}
               {titles.length > 0 && (
                 <ListBoxSection id="discover">
                   <Header {...stylex.props(styles.header)}>Not in your library</Header>
-                  <Collection items={titles}>{(title) => <TitleResult title={title} />}</Collection>
+                  {titles.map((title) => (
+                    <TitleResult key={titleKey(title)} title={title} />
+                  ))}
                 </ListBoxSection>
               )}
             </ListBox>
