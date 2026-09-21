@@ -27,7 +27,7 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
         {linkTo ? (
           <Link to={linkTo} params={linkParams} {...stylex.props(styles.titleLink)}>
             <h2 {...stylex.props(styles.title)}>{title}</h2>
-            <ChevronRight size={18} {...stylex.props(styles.titleChevron)} />
+            <ChevronRight size={16} {...stylex.props(styles.titleChevron)} />
           </Link>
         ) : (
           <h2 {...stylex.props(styles.title)}>{title}</h2>
@@ -85,9 +85,11 @@ const styles = stylex.create({
     outlineOffset: 4,
   },
   title: {
-    fontSize: 18,
-    fontWeight: 700,
-    letterSpacing: '-0.01em',
+    fontSize: 13,
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    color: colors.textMuted,
   },
   titleChevron: {
     color: colors.textFaint,
@@ -130,7 +132,7 @@ const styles = stylex.create({
   },
   scroller: {
     display: 'flex',
-    gap: space.lg,
+    gap: space.md,
     overflowX: 'auto',
     overflowY: 'hidden',
     scrollSnapType: 'x proximity',
@@ -140,7 +142,7 @@ const styles = stylex.create({
       default: sizes.pageGutter,
       '@media (max-width: 720px)': sizes.pageGutterMobile,
     },
-    paddingBlock: space.xs,
+    paddingBlock: space.sm,
     scrollPaddingInline: {
       default: sizes.pageGutter,
       '@media (max-width: 720px)': sizes.pageGutterMobile,

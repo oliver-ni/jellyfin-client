@@ -30,13 +30,13 @@ npm run generate
 
 ## Scripts
 
-| Command             | Purpose                        |
-| ------------------- | ------------------------------ |
-| `npm run dev`       | Vite dev server                |
-| `npm run build`     | Typecheck + production build   |
-| `npm run typecheck` | `tsc -b`                       |
-| `npm run lint`      | oxlint                         |
-| `npm run fmt`       | oxfmt (write)                  |
-| `npm run fmt:check` | oxfmt (check)                  |
-| `npm run test`      | Vitest                         |
-| `npm run generate`  | Regenerate `src/api/gen`       |
+| Command             | Purpose                      |
+| ------------------- | ---------------------------- |
+| `npm run dev`       | Vite dev server              |
+| `npm run build`     | Typecheck + production build |
+| `npm run typecheck` | `tsc -b`                     |
+| `npm run lint`      | oxlint                       |
+| `npm run fmt`       | oxfmt (write)                |
+| `npm run fmt:check` | oxfmt (check)                |
+| `npm run test`      | Vitest                       |
+| `npm run generate`  | Regenerate `src/api/gen`     |

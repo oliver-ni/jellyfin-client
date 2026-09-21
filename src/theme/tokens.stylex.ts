@@ -1,24 +1,46 @@
 import * as stylex from '@stylexjs/stylex'
 
+/**
+ * Design tokens. The defaults below are the "Cinema" theme (dark, near-monochrome,
+ * artwork supplies the color). Other themes override these via `createTheme` in
+ * `themes.stylex.ts`; components must only ever reference tokens, never raw colors.
+ */
 export const colors = stylex.defineVars({
-  bg: '#0b0c0f',
-  bgElevated: '#12141a',
-  bgHover: '#1a1d25',
-  surface: 'rgba(255, 255, 255, 0.04)',
-  surfaceHover: 'rgba(255, 255, 255, 0.08)',
+  scheme: 'dark',
+
+  bg: '#0a0a0c',
+  bgElevated: '#141417',
+  bgHover: '#1c1c21',
+  surface: 'rgba(255, 255, 255, 0.06)',
+  surfaceHover: 'rgba(255, 255, 255, 0.11)',
   border: 'rgba(255, 255, 255, 0.08)',
   borderStrong: 'rgba(255, 255, 255, 0.16)',
-  text: '#f2f3f5',
-  textMuted: '#9aa0ad',
-  textFaint: '#5f6673',
-  accent: '#a78bfa',
-  accentHover: '#b8a1fb',
-  accentText: '#0b0c0f',
+
+  text: '#f5f5f7',
+  textMuted: '#9b9ba3',
+  textFaint: '#5c5c66',
+
+  accent: '#f5f5f7',
+  accentHover: '#ffffff',
+  accentText: '#0a0a0c',
+  progress: '#f5f5f7',
+  focusRing: 'rgba(255, 255, 255, 0.55)',
+  selection: 'rgba(255, 255, 255, 0.2)',
+
   danger: '#f87171',
   success: '#4ade80',
-  focusRing: 'rgba(167, 139, 250, 0.6)',
-  overlay: 'rgba(11, 12, 15, 0.7)',
+
+  scrim: 'rgba(0, 0, 0, 0.45)',
+  navBg: 'rgba(10, 10, 12, 0.7)',
+  navScrim: 'rgba(0, 0, 0, 0.5)',
+  glow: 'rgba(255, 255, 255, 0.06)',
   skeleton: 'rgba(255, 255, 255, 0.06)',
+  heroText: '#ffffff',
+  heroTextMuted: 'rgba(255, 255, 255, 0.72)',
+  heroSurface: 'rgba(255, 255, 255, 0.14)',
+  heroBorder: 'rgba(255, 255, 255, 0.25)',
+  onMediaBg: 'rgba(255, 255, 255, 0.92)',
+  onMediaText: '#0a0a0c',
 })
 
 export const fonts = stylex.defineVars({
@@ -27,6 +49,7 @@ export const fonts = stylex.defineVars({
 })
 
 export const radii = stylex.defineVars({
+  xs: '4px',
   sm: '6px',
   md: '10px',
   lg: '14px',
@@ -46,15 +69,15 @@ export const space = stylex.defineVars({
 })
 
 export const sizes = stylex.defineVars({
-  navHeight: '56px',
-  pageGutter: '40px',
+  navHeight: '60px',
+  pageGutter: '48px',
   pageGutterMobile: '16px',
-  maxContent: '1600px',
+  maxContent: '1720px',
 })
 
 export const shadows = stylex.defineVars({
-  card: '0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35)',
-  cardHover: '0 2px 4px rgba(0,0,0,0.5), 0 16px 40px rgba(0,0,0,0.5)',
+  card: 'none',
+  cardHover: '0 12px 32px rgba(0,0,0,0.45)',
   popover: '0 12px 40px rgba(0,0,0,0.6)',
 })
 

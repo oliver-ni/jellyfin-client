@@ -7,7 +7,7 @@ import { Button } from '@/components/Button'
 import { TextField } from '@/components/TextField'
 import { AuthError, login, probeServer } from '@/lib/auth'
 import { getSession } from '@/lib/session'
-import { colors, radii, space } from '@/theme/tokens.stylex'
+import { colors, radii, shadows, space } from '@/theme/tokens.stylex'
 
 const RECENT_SERVER_KEY = 'jf.recentServer'
 
@@ -166,8 +166,7 @@ const styles = stylex.create({
     width: 800,
     height: 600,
     transform: 'translateX(-50%)',
-    backgroundImage:
-      'radial-gradient(ellipse at center, rgba(167,139,250,0.18) 0%, rgba(167,139,250,0) 60%)',
+    backgroundImage: `radial-gradient(ellipse at center, ${colors.glow} 0%, transparent 60%)`,
     pointerEvents: 'none',
   },
   card: {
@@ -183,7 +182,7 @@ const styles = stylex.create({
     borderStyle: 'solid',
     borderColor: colors.border,
     borderRadius: radii.xl,
-    boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+    boxShadow: shadows.popover,
   },
   header: {
     display: 'flex',
@@ -191,11 +190,11 @@ const styles = stylex.create({
     gap: space.xs,
   },
   logo: {
-    width: 40,
-    height: 40,
+    width: 14,
+    height: 14,
     marginBottom: space.md,
-    borderRadius: radii.md,
-    backgroundImage: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)',
+    borderRadius: radii.full,
+    backgroundColor: colors.accent,
   },
   title: {
     fontSize: 22,

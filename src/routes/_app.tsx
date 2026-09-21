@@ -1,12 +1,24 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { LogOut, Search } from 'lucide-react'
-import { Menu, MenuItem, MenuTrigger, Popover, Button as AriaButton } from 'react-aria-components'
+import { Check, LogOut, Search } from 'lucide-react'
+import {
+  Header,
+  Menu,
+  MenuItem,
+  MenuSection,
+  MenuTrigger,
+  Popover,
+  Separator,
+  Button as AriaButton,
+} from 'react-aria-components'
 import { getUserViewsOptions } from '@/api/gen/@tanstack/react-query.gen'
+import { useScrolled } from '@/hooks/useScrolled'
 import { useSession } from '@/hooks/useSession'
+import { useThemeId } from '@/hooks/useTheme'
 import { logout } from '@/lib/auth'
 import { getSession, type Session } from '@/lib/session'
+import { THEMES, setThemeId, type ThemeId } from '@/lib/theme'
 import { colors, motion, radii, shadows, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app')({
@@ -33,15 +45,18 @@ function AppLayout() {
 
 function TopNav({ session }: { session: Session }) {
   const navigate = useNavigate()
+  const scrolled = useScrolled()
+  const themeId = useThemeId()
   const views = useQuery(getUserViewsOptions({ query: { userId: session.userId } }))
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
 
   return (
-    <header {...stylex.props(styles.nav)}>
+    <header {...stylex.props(styles.nav, scrolled && styles.navScrolled)}>
       <div {...stylex.props(styles.navInner)}>
         <nav {...stylex.props(styles.links)}>
           <Link to="/" {...stylex.props(styles.brand)} activeOptions={{ exact: true }}>
             <span {...stylex.props(styles.brandMark)} />
+            <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
           </Link>
           <Link
             to="/"
@@ -78,6 +93,11 @@ function TopNav({ session }: { session: Session }) {
               {session.userName.slice(0, 1).toUpperCase()}
             </AriaButton>
             <Popover placement="bottom end" offset={8} {...stylex.props(styles.popover)}>
+              <div {...stylex.props(styles.menuHeader)}>
+                <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
+                <span {...stylex.props(styles.menuServer)}>{session.serverName}</span>
+              </div>
+              <div {...stylex.props(styles.separator)} />
               <Menu
                 {...stylex.props(styles.menu)}
                 onAction={async (key) => {
@@ -87,14 +107,40 @@ function TopNav({ session }: { session: Session }) {
                   }
                 }}
               >
-                <MenuItem id="user" isDisabled {...stylex.props(styles.menuHeader)}>
-                  <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
-                  <span {...stylex.props(styles.menuServer)}>{session.serverName}</span>
-                </MenuItem>
-                <MenuItem id="logout" {...stylex.props(styles.menuItem)}>
-                  <LogOut size={14} />
-                  Sign out
-                </MenuItem>
+                <MenuSection
+                  selectionMode="single"
+                  selectedKeys={[themeId]}
+                  shouldCloseOnSelect={false}
+                  onSelectionChange={(keys) => {
+                    if (keys === 'all') return
+                    const [next] = keys
+                    if (typeof next === 'string') setThemeId(next as ThemeId)
+                  }}
+                  {...stylex.props(styles.menuSection)}
+                >
+                  <Header {...stylex.props(styles.sectionLabel)}>Theme</Header>
+                  {THEMES.map((t) => (
+                    <MenuItem key={t.id} id={t.id} {...stylex.props(styles.menuItem)}>
+                      {({ isSelected }) => (
+                        <>
+                          <span {...stylex.props(styles.check)}>
+                            {isSelected && <Check size={14} />}
+                          </span>
+                          {t.label}
+                        </>
+                      )}
+                    </MenuItem>
+                  ))}
+                </MenuSection>
+                <Separator {...stylex.props(styles.separator)} />
+                <MenuSection {...stylex.props(styles.menuSection)}>
+                  <MenuItem id="logout" {...stylex.props(styles.menuItem)}>
+                    <span {...stylex.props(styles.check)}>
+                      <LogOut size={14} />
+                    </span>
+                    Sign out
+                  </MenuItem>
+                </MenuSection>
               </Menu>
             </Popover>
           </MenuTrigger>
@@ -111,14 +157,26 @@ const styles = stylex.create({
     flexDirection: 'column',
   },
   nav: {
-    position: 'sticky',
+    position: 'fixed',
     top: 0,
+    left: 0,
+    right: 0,
     zIndex: 50,
     height: sizes.navHeight,
-    backgroundColor: 'rgba(11, 12, 15, 0.72)',
-    backdropFilter: 'blur(16px) saturate(1.4)',
+    backgroundColor: 'transparent',
+    backgroundImage: `linear-gradient(to bottom, ${colors.navScrim}, transparent)`,
+    backgroundOrigin: 'border-box',
     borderBottomWidth: 1,
     borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
+    transitionProperty: 'background-color, border-color',
+    transitionDuration: motion.slow,
+    transitionTimingFunction: motion.ease,
+  },
+  navScrolled: {
+    backgroundColor: colors.navBg,
+    backgroundImage: 'none',
+    backdropFilter: 'blur(20px) saturate(1.4)',
     borderBottomColor: colors.border,
   },
   navInner: {
@@ -137,19 +195,31 @@ const styles = stylex.create({
     gap: space.xs,
   },
   brand: {
-    display: 'grid',
-    placeItems: 'center',
-    marginRight: space.md,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: space.sm,
+    marginRight: space.lg,
+    color: colors.text,
     borderRadius: radii.sm,
     outlineStyle: { default: 'none', ':focus-visible': 'solid' },
     outlineWidth: 2,
     outlineColor: colors.focusRing,
+    outlineOffset: 4,
   },
   brandMark: {
-    width: 24,
-    height: 24,
-    borderRadius: radii.sm,
-    backgroundImage: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)',
+    width: 10,
+    height: 10,
+    borderRadius: radii.full,
+    backgroundColor: colors.accent,
+  },
+  brandName: {
+    fontSize: 14,
+    fontWeight: 600,
+    letterSpacing: '-0.01em',
+    display: {
+      default: 'inline',
+      '@media (max-width: 720px)': 'none',
+    },
   },
   link: {
     height: 32,
@@ -162,10 +232,6 @@ const styles = stylex.create({
       default: colors.textMuted,
       ':hover': colors.text,
     },
-    backgroundColor: {
-      default: 'transparent',
-      ':hover': colors.surface,
-    },
     borderRadius: radii.sm,
     transitionProperty: 'color, background-color',
     transitionDuration: motion.fast,
@@ -176,7 +242,6 @@ const styles = stylex.create({
   },
   linkActive: {
     color: colors.text,
-    backgroundColor: colors.surfaceHover,
   },
   right: {
     display: 'flex',
@@ -240,9 +305,16 @@ const styles = stylex.create({
     display: 'grid',
     placeItems: 'center',
     fontSize: 13,
-    fontWeight: 700,
-    color: colors.accentText,
-    backgroundImage: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)',
+    fontWeight: 600,
+    color: colors.text,
+    backgroundColor: {
+      default: colors.surface,
+      '[data-hovered]': colors.surfaceHover,
+    },
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: colors.borderStrong,
+    backdropFilter: 'blur(12px)',
     borderRadius: radii.full,
     outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
     outlineWidth: 2,
@@ -266,17 +338,37 @@ const styles = stylex.create({
     flexDirection: 'column',
     gap: 2,
   },
+  menuSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
   menuHeader: {
     display: 'flex',
     flexDirection: 'column',
     paddingInline: space.md,
     paddingBlock: space.sm,
-    borderBottomWidth: 1,
-    borderBottomStyle: 'solid',
-    borderBottomColor: colors.border,
-    marginBottom: space.xs,
-    outline: 'none',
-    cursor: 'default',
+  },
+  sectionLabel: {
+    paddingInline: space.md,
+    paddingTop: space.sm,
+    paddingBottom: space.xs,
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: colors.textFaint,
+  },
+  separator: {
+    height: 1,
+    marginBlock: space.xs,
+    backgroundColor: colors.border,
+  },
+  check: {
+    display: 'grid',
+    placeItems: 'center',
+    width: 16,
+    color: colors.textMuted,
   },
   menuUser: {
     fontSize: 14,
@@ -305,5 +397,7 @@ const styles = stylex.create({
   },
   main: {
     flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
 })

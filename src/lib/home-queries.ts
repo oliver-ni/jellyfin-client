@@ -4,9 +4,11 @@ import {
   getResumeItemsOptions,
   getUserViewsOptions,
 } from '@/api/gen/@tanstack/react-query.gen'
-import type { ItemFields } from '@/api/gen/types.gen'
+import type { ImageType, ItemFields } from '@/api/gen/types.gen'
 
 export const CARD_FIELDS: ItemFields[] = ['PrimaryImageAspectRatio', 'MediaSourceCount']
+export const HERO_FIELDS: ItemFields[] = [...CARD_FIELDS, 'Overview', 'Genres']
+const IMAGE_TYPES: ImageType[] = ['Primary', 'Backdrop', 'Thumb', 'Logo']
 
 export const homeQueries = {
   views: (userId: string) => getUserViewsOptions({ query: { userId } }),
@@ -15,9 +17,9 @@ export const homeQueries = {
       query: {
         userId,
         limit: 12,
-        fields: CARD_FIELDS,
+        fields: HERO_FIELDS,
         mediaTypes: ['Video'],
-        enableImageTypes: ['Primary', 'Backdrop', 'Thumb'],
+        enableImageTypes: IMAGE_TYPES,
       },
     }),
   nextUp: (userId: string) =>
@@ -25,8 +27,8 @@ export const homeQueries = {
       query: {
         userId,
         limit: 16,
-        fields: CARD_FIELDS,
-        enableImageTypes: ['Primary', 'Backdrop', 'Thumb'],
+        fields: HERO_FIELDS,
+        enableImageTypes: IMAGE_TYPES,
         enableResumable: false,
       },
     }),
@@ -36,8 +38,8 @@ export const homeQueries = {
         userId,
         parentId,
         limit: 16,
-        fields: CARD_FIELDS,
-        enableImageTypes: ['Primary', 'Backdrop', 'Thumb'],
+        fields: HERO_FIELDS,
+        enableImageTypes: IMAGE_TYPES,
       },
     }),
 }

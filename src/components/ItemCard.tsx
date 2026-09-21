@@ -2,6 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
 import { Play } from 'lucide-react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
+import { episodeLabel } from '@/lib/format'
 import { itemImage, landscapeImage } from '@/lib/images'
 import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
@@ -62,13 +63,6 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
   )
 }
 
-function episodeLabel(item: BaseItemDto): string {
-  const s = item.ParentIndexNumber
-  const e = item.IndexNumber
-  const code = s != null && e != null ? `S${s}:E${e}` : ''
-  return [code, item.Name].filter(Boolean).join(' · ')
-}
-
 const styles = stylex.create({
   card: {
     display: 'flex',
@@ -76,20 +70,20 @@ const styles = stylex.create({
     gap: space.sm,
     flexShrink: 0,
     outline: 'none',
-    borderRadius: radii.md,
+    borderRadius: radii.xs,
   },
   media: {
     position: 'relative',
     width: '100%',
-    borderRadius: radii.md,
+    borderRadius: radii.xs,
     overflow: 'hidden',
     boxShadow: {
       default: shadows.card,
       [stylex.when.ancestor(':hover')]: shadows.cardHover,
     },
     transform: {
-      default: 'translateY(0)',
-      [stylex.when.ancestor(':hover')]: 'translateY(-2px)',
+      default: 'scale(1)',
+      [stylex.when.ancestor(':hover')]: 'scale(1.035)',
     },
     transitionProperty: 'transform, box-shadow',
     transitionDuration: motion.base,
@@ -115,7 +109,7 @@ const styles = stylex.create({
     inset: 0,
     display: 'grid',
     placeItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.scrim,
     opacity: {
       default: 0,
       [stylex.when.ancestor(':hover')]: 1,
@@ -130,8 +124,8 @@ const styles = stylex.create({
     width: 44,
     height: 44,
     borderRadius: radii.full,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    color: '#0b0c0f',
+    backgroundColor: colors.onMediaBg,
+    color: colors.onMediaText,
     paddingLeft: 3,
   },
   count: {
@@ -145,8 +139,8 @@ const styles = stylex.create({
     placeItems: 'center',
     fontSize: 11,
     fontWeight: 700,
-    color: colors.accentText,
-    backgroundColor: colors.accent,
+    color: colors.onMediaText,
+    backgroundColor: colors.onMediaBg,
     borderRadius: radii.full,
   },
   progressTrack: {
@@ -154,12 +148,12 @@ const styles = stylex.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    height: 3,
+    backgroundColor: colors.scrim,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: colors.accent,
+    backgroundColor: colors.progress,
   },
   meta: {
     display: 'flex',
@@ -169,15 +163,20 @@ const styles = stylex.create({
   },
   title: {
     fontSize: 13,
-    fontWeight: 600,
-    color: colors.text,
+    fontWeight: 500,
+    color: {
+      default: colors.textMuted,
+      [stylex.when.ancestor(':hover')]: colors.text,
+    },
+    transitionProperty: 'color',
+    transitionDuration: motion.fast,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   subtitle: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: colors.textFaint,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
