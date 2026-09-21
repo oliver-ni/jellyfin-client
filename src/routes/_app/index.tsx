@@ -1,8 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import { Hero } from '@/components/Hero'
+import { HeroCarousel, type HeroSlide } from '@/components/HeroCarousel'
 import { ItemCard, type CardShape } from '@/components/ItemCard'
 import { Rail } from '@/components/Rail'
 import { useRequiredSession } from '@/hooks/useSession'
@@ -40,14 +40,17 @@ function HomePage() {
   const resume = useQuery(homeQueries.resume(userId))
   const nextUp = useQuery(homeQueries.nextUp(userId))
   const libraries = views.data?.Items?.filter(isMediaLibrary) ?? []
+  const latest = useQueries({
+    queries: libraries.map((lib) => homeQueries.latest(userId, lib.Id ?? '')),
+  })
 
-  const hero = pickHero(resume.data?.Items, nextUp.data?.Items)
-  const heroPending = !hero && (resume.isPending || nextUp.isPending)
+  const slides = heroSlides(resume.data?.Items, nextUp.data?.Items, latest)
+  const heroPending = slides.length === 0 && [resume, nextUp, ...latest].some((q) => q.isPending)
 
   return (
     <div {...stylex.props(styles.page)}>
-      {hero ? (
-        <Hero item={hero.item} eyebrow={hero.eyebrow} />
+      {slides.length > 0 ? (
+        <HeroCarousel slides={slides} />
       ) : (
         <div {...stylex.props(styles.heroPlaceholder, heroPending && styles.heroSkeleton)} />
       )}
@@ -65,35 +68,45 @@ function HomePage() {
           loading={nextUp.isPending}
           shape="landscape"
         />
-        {libraries.map((lib) => (
-          <LatestRail key={lib.Id} library={lib} userId={userId} />
+        {libraries.map((lib, i) => (
+          <MediaRail
+            key={lib.Id}
+            title={`Recently added in ${lib.Name}`}
+            items={latest[i]?.data}
+            loading={latest[i]?.isPending ?? true}
+            shape="poster"
+            linkTo="/library/$libraryId"
+            linkParams={{ libraryId: lib.Id ?? '' }}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function pickHero(
+const MAX_SLIDES = 5
+
+/** What's in progress first, then what's next; recently added only when neither exists. */
+function heroSlides(
   resume: BaseItemDto[] | null | undefined,
   nextUp: BaseItemDto[] | null | undefined,
-): { item: BaseItemDto; eyebrow: string } | null {
-  if (resume?.[0]) return { item: resume[0], eyebrow: 'Continue watching' }
-  if (nextUp?.[0]) return { item: nextUp[0], eyebrow: 'Next up' }
-  return null
-}
-
-function LatestRail({ library, userId }: { library: BaseItemDto; userId: string }) {
-  const latest = useQuery(homeQueries.latest(userId, library.Id ?? ''))
-  return (
-    <MediaRail
-      title={`Recently added in ${library.Name}`}
-      items={latest.data}
-      loading={latest.isPending}
-      shape="poster"
-      linkTo="/library/$libraryId"
-      linkParams={{ libraryId: library.Id ?? '' }}
-    />
-  )
+  latest: { data?: BaseItemDto[] }[],
+): HeroSlide[] {
+  const slides: HeroSlide[] = []
+  const shows = new Set<string>()
+  const add = (items: BaseItemDto[] | null | undefined, eyebrow: string) => {
+    for (const item of items ?? []) {
+      if (slides.length === MAX_SLIDES) return
+      const show = item.SeriesId ?? item.Id
+      if (!show || shows.has(show)) continue
+      shows.add(show)
+      slides.push({ item, eyebrow })
+    }
+  }
+  add(resume, 'Continue watching')
+  add(nextUp, 'Next up')
+  if (slides.length === 0) for (const q of latest) add(q.data, 'Recently added')
+  return slides
 }
 
 interface MediaRailProps {

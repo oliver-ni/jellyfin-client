@@ -1,22 +1,34 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
 import { Info, Play } from '@phosphor-icons/react'
-import { motion as m } from 'motion/react'
+import { AnimatePresence, motion as m } from 'motion/react'
+import type { ReactNode } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeCode, formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
 import { backdropImage, logoImage } from '@/lib/images'
-import { fadeUp, stagger } from '@/lib/motion'
+import { fadeUp, stagger, vanish } from '@/lib/motion'
 import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
 export interface HeroProps {
   item: BaseItemDto
-  /** Small tracked label above the title, e.g. "Continue watching". */
+  /** Small label above the title, e.g. "Continue watching". */
   eyebrow?: string
+  /** Overlaid at the bottom centre, e.g. carousel controls. */
+  children?: ReactNode
 }
 
-export function Hero({ item, eyebrow }: HeroProps) {
+const BACKDROP_FADE = 0.6
+
+/** The outgoing backdrop stays put underneath until the incoming one has fully faded in. */
+const releaseBackdrop = { opacity: 0, transition: { duration: 0.1, delay: BACKDROP_FADE } }
+
+/**
+ * Full-bleed backdrop with title treatment and actions. Changing `item` crossfades: the new
+ * backdrop fades in over the old one, and the copy swaps with a short exit and staggered entry.
+ */
+export function Hero({ item, eyebrow, children }: HeroProps) {
   const backdrop = backdropImage(item, 1920)
   const logo = logoImage(item, 800)
   const isEpisode = item.Type === 'Episode'
@@ -39,78 +51,96 @@ export function Hero({ item, eyebrow }: HeroProps) {
   return (
     <section {...stylex.props(styles.hero)}>
       <div {...stylex.props(styles.art)}>
-        <BlurImage
-          src={backdrop?.url}
-          blurhash={backdrop?.blurhash}
-          alt=""
-          loading="eager"
-          fetchPriority="high"
-          style={styles.image}
-        />
+        <AnimatePresence initial={false}>
+          <m.div
+            key={itemId}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: BACKDROP_FADE } }}
+            exit={releaseBackdrop}
+            {...stylex.props(styles.image)}
+          >
+            <BlurImage
+              src={backdrop?.url}
+              blurhash={backdrop?.blurhash}
+              alt=""
+              loading="eager"
+              fetchPriority="high"
+              style={styles.image}
+            />
+          </m.div>
+        </AnimatePresence>
         <div {...stylex.props(styles.fadeBottom)} />
         <div {...stylex.props(styles.fadeLeft)} />
       </div>
 
-      <m.div
-        key={itemId}
-        initial="hidden"
-        animate="show"
-        variants={stagger()}
-        {...stylex.props(styles.content)}
-      >
-        {eyebrow && (
-          <m.span variants={fadeUp} {...stylex.props(styles.eyebrow)}>
-            {eyebrow}
-          </m.span>
-        )}
-        {logo ? (
-          <m.img
-            variants={fadeUp}
-            src={logo}
-            alt={title ?? ''}
-            {...stylex.props(styles.logo)}
-            draggable={false}
-          />
-        ) : (
-          <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
-            {title}
-          </m.h1>
-        )}
-        {episodeLine && (
-          <m.p variants={fadeUp} {...stylex.props(styles.episode)}>
-            {episodeLine}
-          </m.p>
-        )}
-        {meta.length > 0 && (
-          <m.p variants={fadeUp} {...stylex.props(styles.meta)}>
-            {meta.map((part, i) => (
-              <span key={i}>
-                {i > 0 && <span {...stylex.props(styles.dot)}>·</span>}
-                {part}
-              </span>
-            ))}
-          </m.p>
-        )}
-        {item.Overview && (
-          <m.p variants={fadeUp} {...stylex.props(styles.overview)}>
-            {item.Overview}
-          </m.p>
-        )}
-        <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
-          <Link to="/items/$itemId" params={{ itemId }} {...stylex.props(focus.ring, styles.play)}>
-            <Play size={18} weight="fill" />
-            {remaining ? 'Resume' : 'Play'}
-          </Link>
-          <Link
-            to="/items/$itemId"
-            params={{ itemId }}
-            aria-label="More info"
-            {...stylex.props(focus.ring, styles.info)}
-          >
-            <Info size={20} />
-          </Link>
+      <AnimatePresence>
+        <m.div
+          key={itemId}
+          initial="hidden"
+          animate="show"
+          exit={vanish}
+          variants={stagger()}
+          {...stylex.props(styles.content)}
+        >
+          {eyebrow && (
+            <m.span variants={fadeUp} {...stylex.props(styles.eyebrow)}>
+              {eyebrow}
+            </m.span>
+          )}
+          {logo ? (
+            <m.img
+              variants={fadeUp}
+              src={logo}
+              alt={title ?? ''}
+              {...stylex.props(styles.logo)}
+              draggable={false}
+            />
+          ) : (
+            <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
+              {title}
+            </m.h1>
+          )}
+          {episodeLine && (
+            <m.p variants={fadeUp} {...stylex.props(styles.episode)}>
+              {episodeLine}
+            </m.p>
+          )}
+          {meta.length > 0 && (
+            <m.p variants={fadeUp} {...stylex.props(styles.meta)}>
+              {meta.map((part, i) => (
+                <span key={i}>
+                  {i > 0 && <span {...stylex.props(styles.dot)}>·</span>}
+                  {part}
+                </span>
+              ))}
+            </m.p>
+          )}
+          {item.Overview && (
+            <m.p variants={fadeUp} {...stylex.props(styles.overview)}>
+              {item.Overview}
+            </m.p>
+          )}
+          <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
+            <Link
+              to="/items/$itemId"
+              params={{ itemId }}
+              {...stylex.props(focus.ring, styles.play)}
+            >
+              <Play size={18} weight="fill" />
+              {remaining ? 'Resume' : 'Play'}
+            </Link>
+            <Link
+              to="/items/$itemId"
+              params={{ itemId }}
+              aria-label="More info"
+              {...stylex.props(focus.ring, styles.info)}
+            >
+              <Info size={20} />
+            </Link>
+          </m.div>
         </m.div>
-      </m.div>
+      </AnimatePresence>
+      {children && <div {...stylex.props(styles.footer)}>{children}</div>}
     </section>
   )
 }
@@ -120,8 +150,8 @@ const styles = stylex.create({
     position: 'relative',
     width: '100%',
     height: 'clamp(520px, 78vh, 860px)',
-    display: 'flex',
-    alignItems: 'flex-end',
+    display: 'grid',
+    alignItems: 'end',
   },
   art: {
     position: 'absolute',
@@ -145,6 +175,8 @@ const styles = stylex.create({
     backgroundImage: `linear-gradient(to right, ${colors.scrim} 0%, transparent 65%)`,
   },
   content: {
+    // Outgoing and incoming copy share one cell so they crossfade in place.
+    gridArea: '1 / 1',
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
@@ -157,6 +189,12 @@ const styles = stylex.create({
       '@media (max-width: 720px)': sizes.pageGutterMobile,
     },
     paddingBottom: space.xxxl,
+  },
+  footer: {
+    gridArea: '1 / 1',
+    position: 'relative',
+    justifySelf: 'center',
+    marginBottom: space.xl,
   },
   eyebrow: {
     fontSize: 14,

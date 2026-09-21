@@ -12,7 +12,8 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "test": "vitest run",
-    "generate": "openapi-ts"
+    "generate": "openapi-ts",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -26,7 +27,7 @@
     "hls.js": "^1.7.3",
     "idb-keyval": "^6.3.0",
     "jassub": "^2.5.16",
-    "motion": "^13.2.0",
+    "motion": "^13.4.0",
     "react": "^19.2.8",
     "react-aria-components": "^1.21.1",
     "react-dom": "^19.2.8",
@@ -42,6 +43,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.81.0",
+    "patch-package": "^8.0.1",
     "typescript": "~6.0.2",
     "unplugin": "^2.3.11",
     "vite": "^8.3.0",

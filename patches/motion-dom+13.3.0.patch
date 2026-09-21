@@ -1,0 +1,42 @@
+diff --git a/node_modules/motion-dom/dist/cjs/index.js b/node_modules/motion-dom/dist/cjs/index.js
+index 6b8092d..2d0d1ab 100644
+--- a/node_modules/motion-dom/dist/cjs/index.js
++++ b/node_modules/motion-dom/dist/cjs/index.js
+@@ -2783,7 +2783,8 @@ class NativeAnimationExtended extends NativeAnimation {
+          * Under CPU load, WAAPI's currentTime may not reflect actual
+          * elapsed time, causing incorrect sampling and visual jumps.
+          */
+-        const sampleTime = Math.max(sampleDelta, time.now() - this.startTime);
++        const startTime = this.manualStartTime ?? this.animation.startTime;
++        const sampleTime = Math.max(sampleDelta, startTime === null ? 0 : time.now() - Number(startTime));
+         const delta = motionUtils.clamp(0, sampleDelta, sampleTime - sampleDelta);
+         const current = sampleAnimation.sample(sampleTime).value;
+         /**
+diff --git a/node_modules/motion-dom/dist/es/animation/NativeAnimationExtended.mjs b/node_modules/motion-dom/dist/es/animation/NativeAnimationExtended.mjs
+index 06ece95..6527fda 100644
+--- a/node_modules/motion-dom/dist/es/animation/NativeAnimationExtended.mjs
++++ b/node_modules/motion-dom/dist/es/animation/NativeAnimationExtended.mjs
+@@ -68,7 +68,8 @@ class NativeAnimationExtended extends NativeAnimation {
+          * Under CPU load, WAAPI's currentTime may not reflect actual
+          * elapsed time, causing incorrect sampling and visual jumps.
+          */
+-        const sampleTime = Math.max(sampleDelta, time.now() - this.startTime);
++        const startTime = this.manualStartTime ?? this.animation.startTime;
++        const sampleTime = Math.max(sampleDelta, startTime === null ? 0 : time.now() - Number(startTime));
+         const delta = clamp(0, sampleDelta, sampleTime - sampleDelta);
+         const current = sampleAnimation.sample(sampleTime).value;
+         /**
+diff --git a/node_modules/motion-dom/dist/motion-dom.dev.js b/node_modules/motion-dom/dist/motion-dom.dev.js
+index b0635b0..550cf4b 100644
+--- a/node_modules/motion-dom/dist/motion-dom.dev.js
++++ b/node_modules/motion-dom/dist/motion-dom.dev.js
+@@ -2782,7 +2782,8 @@
+              * Under CPU load, WAAPI's currentTime may not reflect actual
+              * elapsed time, causing incorrect sampling and visual jumps.
+              */
+-            const sampleTime = Math.max(sampleDelta, time.now() - this.startTime);
++            const startTime = this.manualStartTime ?? this.animation.startTime;
++        const sampleTime = Math.max(sampleDelta, startTime === null ? 0 : time.now() - Number(startTime));
+             const delta = motionUtils.clamp(0, sampleDelta, sampleTime - sampleDelta);
+             const current = sampleAnimation.sample(sampleTime).value;
+             /**
