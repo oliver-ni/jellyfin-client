@@ -1,12 +1,13 @@
 import * as stylex from '@stylexjs/stylex'
-import { Link } from '@tanstack/react-router'
+import { createLink, Link } from '@tanstack/react-router'
 import { Check, Play } from 'lucide-react'
 import { motion as m } from 'motion/react'
 import { useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
+import { useMorphTarget } from '@/hooks/useMorphTarget'
 import { formatDate, formatRuntime, plainText } from '@/lib/format'
 import { landscapeImage } from '@/lib/images'
-import { fadeUp, setMorphSource, stagger } from '@/lib/motion'
+import { fadeUp, rectOf, setMorphSource, stagger } from '@/lib/motion'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
@@ -17,6 +18,8 @@ export interface EpisodeListProps {
 }
 
 const STILL_WIDTH = 224
+
+const MotionLink = createLink(m.a)
 
 export function EpisodeList({ episodes, currentId }: EpisodeListProps) {
   return (
@@ -38,14 +41,14 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
     .filter(Boolean)
     .join('  ·  ')
   const stillRef = useRef<HTMLAnchorElement>(null)
+  const morph = useMorphTarget(id, 'landscape', stillRef)
 
   function handOffStill() {
     if (!id || !stillRef.current) return
-    const { x, y, width, height } = stillRef.current.getBoundingClientRect()
     setMorphSource({
       itemId: id,
       shape: 'landscape',
-      rect: { x, y, width, height },
+      rect: rectOf(stillRef.current),
       src: still?.url ?? null,
     })
   }
@@ -53,14 +56,16 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
   return (
     <m.li
       variants={fadeUp}
+      initial={morph.morphing ? false : undefined}
       {...stylex.props(styles.row, current && styles.rowCurrent, stylex.defaultMarker())}
     >
-      <Link
+      <MotionLink
         ref={stillRef}
         data-morph={id}
         to="/play/$itemId"
         params={{ itemId: id }}
         aria-label={`Play ${episode.Name ?? 'episode'}`}
+        style={{ opacity: morph.opacity }}
         {...stylex.props(styles.still)}
       >
         <BlurImage src={still?.url} blurhash={still?.blurhash} alt="" style={styles.image} />
@@ -79,7 +84,7 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
             <span {...stylex.props(styles.progressBar)} style={{ width: `${progress}%` }} />
           </span>
         )}
-      </Link>
+      </MotionLink>
       <div {...stylex.props(styles.body)}>
         <Link
           to="/items/$itemId"

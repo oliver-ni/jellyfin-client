@@ -7,7 +7,16 @@ import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
 import { episodeCode, formatRuntime, remainingMinutes } from '@/lib/format'
 import { backdropImage, itemImage, landscapeImage, logoImage } from '@/lib/images'
-import { fadeUp, playMorph, pop, stagger, takeMorphSource } from '@/lib/motion'
+import {
+  concealMorphOrigin,
+  fadeUp,
+  playMorph,
+  pop,
+  rectOf,
+  setMorphSource,
+  stagger,
+  takeMorphSource,
+} from '@/lib/motion'
 import { colors, motion, radii, shadows, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 import { IconToggle } from './IconButton'
@@ -67,10 +76,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
       ? landscapeImage(item, TILE_LANDSCAPE_W * 2)
       : itemImage(item, 'Primary', { width: TILE_POSTER_W * 2 })
   // Consumed once on mount: the card that navigated here, if its shape matches this tile.
-  const [morph] = useState(() => {
-    const source = takeMorphSource(itemId)
-    return source?.shape === tileShape ? source : null
-  })
+  const [morph] = useState(() => takeMorphSource(itemId, tileShape))
   const tileRef = useRef<HTMLDivElement>(null)
   const tileX = useMotionValue(0)
   const tileY = useMotionValue(0)
@@ -80,9 +86,26 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
     if (!morph || !tileRef.current) return
     // Match the scroll reset the router is about to do so the measurement is final.
     window.scrollTo(0, 0)
-    const to = tileRef.current.getBoundingClientRect()
+    concealMorphOrigin(morph)
+    const to = rectOf(tileRef.current)
     return playMorph({ x: tileX, y: tileY, scaleX: tileScaleX, scaleY: tileScaleY }, morph.rect, to)
   }, [morph, tileX, tileY, tileScaleX, tileScaleY])
+  // On the way out, offer the tile to whichever card the next page shows for this item.
+  const tileSrc = tile?.url ?? null
+  const handBack = useRef({ itemId, tileShape, src: tileSrc })
+  useEffect(() => {
+    handBack.current = { itemId, tileShape, src: tileSrc }
+  }, [itemId, tileShape, tileSrc])
+  useLayoutEffect(() => {
+    const el = tileRef.current
+    return () => {
+      const { itemId, tileShape, src } = handBack.current
+      if (!el?.isConnected || !itemId) return
+      const rect = rectOf(el)
+      if (rect.width === 0) return
+      setMorphSource({ itemId, shape: tileShape, rect, src })
+    }
+  }, [])
   // While morphing, sit above the outgoing page's fading ghost instead of under it.
   const [elevated, setElevated] = useState(morph !== null)
   useEffect(() => {
@@ -146,6 +169,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
         {tile && (
           <m.div
             ref={tileRef}
+            data-morph={itemId}
             initial={morph ? false : 'hidden'}
             animate="show"
             variants={pop}

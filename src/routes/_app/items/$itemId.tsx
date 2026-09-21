@@ -52,7 +52,7 @@ function ItemPage() {
   }
   if (!item.data) return <div {...stylex.props(styles.heroSkeleton)} />
 
-  return <ItemDetail item={item.data} userId={userId} />
+  return <ItemDetail key={itemId} item={item.data} userId={userId} />
 }
 
 function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {

@@ -4,13 +4,14 @@ import { Play } from 'lucide-react'
 import { motion as m } from 'motion/react'
 import { useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
+import { useMorphTarget } from '@/hooks/useMorphTarget'
 import { episodeLabel } from '@/lib/format'
 import { itemImage, landscapeImage } from '@/lib/images'
-import { fadeUp, setMorphSource, springs } from '@/lib/motion'
+import { fadeUp, rectOf, setMorphSource, springs, type MorphShape } from '@/lib/motion'
 import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
-export type CardShape = 'poster' | 'landscape'
+export type CardShape = MorphShape
 
 export interface ItemCardProps {
   item: BaseItemDto
@@ -37,19 +38,24 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
   const progress = showProgress ? (item.UserData?.PlayedPercentage ?? 0) : 0
   const unplayed = item.UserData?.UnplayedItemCount
   const media = useRef<HTMLDivElement>(null)
+  const morph = useMorphTarget(item.Id, shape, media)
 
   return (
-    <m.div variants={fadeUp} {...stylex.props(styles.root)} style={{ width }}>
+    <m.div
+      variants={fadeUp}
+      initial={morph.morphing ? false : undefined}
+      {...stylex.props(styles.root)}
+      style={{ width }}
+    >
       <Link
         to="/items/$itemId"
         params={{ itemId: item.Id ?? '' }}
         onClick={() => {
           if (!item.Id || !media.current) return
-          const { x, y, width: w, height: h } = media.current.getBoundingClientRect()
           setMorphSource({
             itemId: item.Id,
             shape,
-            rect: { x, y, width: w, height: h },
+            rect: rectOf(media.current),
             src: image?.url ?? null,
           })
         }}
@@ -61,6 +67,7 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
           transition={springs.snappy}
           whileHover={{ scale: 1.035 }}
           whileTap={{ scale: 0.97 }}
+          style={{ opacity: morph.opacity }}
           {...stylex.props(styles.media, shape === 'poster' ? styles.poster : styles.landscape)}
         >
           <BlurImage src={image?.url} blurhash={image?.blurhash} alt="" style={styles.image} />

@@ -13,11 +13,14 @@ export function useElementLayout(ref: RefObject<HTMLElement | null>): ElementLay
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      const width = Math.floor(entry.contentRect.width)
+    const update = (width: number) => {
       const top = Math.round(el.getBoundingClientRect().top + window.scrollY)
       setLayout((prev) => (prev.width === width && prev.top === top ? prev : { width, top }))
-    })
+    }
+    // Measure synchronously so the first committed frame already has its final height;
+    // the router restores scroll right after commit and would otherwise clamp to a short page.
+    update(Math.floor(el.clientWidth))
+    const ro = new ResizeObserver(([entry]) => update(Math.floor(entry.contentRect.width)))
     ro.observe(el)
     return () => ro.disconnect()
   }, [ref])
