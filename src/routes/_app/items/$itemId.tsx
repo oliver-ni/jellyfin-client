@@ -1,7 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Link, createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion as m } from 'motion/react'
+import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { Button } from '@/components/Button'
 import { CastRail } from '@/components/CastRail'
@@ -137,6 +138,7 @@ function sortSeasons(seasons: readonly BaseItemDto[]): BaseItemDto[] {
 
 function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: string }) {
   const { season: selected, episode } = Route.useSearch()
+  const navigate = useNavigate()
   const seriesId = series.Id ?? ''
   const seasons = useQuery(itemQueries.seasons(userId, seriesId))
   const list = sortSeasons(seasons.data?.Items ?? [])
@@ -150,18 +152,24 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
   if (list.length === 0) return null
 
   return (
-    <section {...stylex.props(styles.section)}>
-      <div {...stylex.props(styles.seasons)} role="tablist" aria-label="Seasons">
+    <Tabs
+      selectedKey={active?.Id ?? undefined}
+      onSelectionChange={(key) =>
+        void navigate({
+          to: '/items/$itemId',
+          params: { itemId: seriesId },
+          search: { season: String(key) },
+          replace: true,
+          resetScroll: false,
+        })
+      }
+      {...stylex.props(styles.section)}
+    >
+      <TabList aria-label="Seasons" {...stylex.props(styles.seasons)}>
         {list.map((s) => (
-          <Link
+          <Tab
             key={s.Id}
-            role="tab"
-            aria-selected={s.Id === active?.Id}
-            to="/items/$itemId"
-            params={{ itemId: seriesId }}
-            search={{ season: s.Id ?? undefined }}
-            replace
-            resetScroll={false}
+            id={s.Id ?? undefined}
             {...stylex.props(
               focus.ring,
               styles.seasonTab,
@@ -186,13 +194,15 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
                 />
               )}
             </span>
-          </Link>
+          </Tab>
         ))}
-      </div>
+      </TabList>
       {active?.Id && (
-        <Episodes userId={userId} seriesId={seriesId} seasonId={active.Id} expandedId={episode} />
+        <TabPanel id={active.Id}>
+          <Episodes userId={userId} seriesId={seriesId} seasonId={active.Id} expandedId={episode} />
+        </TabPanel>
       )}
-    </section>
+    </Tabs>
   )
 }
 
@@ -297,6 +307,7 @@ const styles = stylex.create({
     position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
+    cursor: 'pointer',
     height: 34,
     paddingInline: space.md,
     borderRadius: radii.full,
