@@ -91,7 +91,11 @@ export function Controls({
             <ControlButton label="Back 10 seconds" shortcut="J" onPress={() => engine.seekBy(-10)}>
               <ArrowCounterClockwise size={20} />
             </ControlButton>
-            <ControlButton label="Forward 10 seconds" shortcut="L" onPress={() => engine.seekBy(10)}>
+            <ControlButton
+              label="Forward 10 seconds"
+              shortcut="L"
+              onPress={() => engine.seekBy(10)}
+            >
               <ArrowClockwise size={20} />
             </ControlButton>
           </div>

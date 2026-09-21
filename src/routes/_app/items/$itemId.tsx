@@ -6,10 +6,10 @@ import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { Button } from '@/components/Button'
 import { CastRail } from '@/components/CastRail'
-import { DetailHero } from '@/components/DetailHero'
 import { EpisodeList } from '@/components/EpisodeList'
 import { FactSheet } from '@/components/FactSheet'
 import { ItemCard } from '@/components/ItemCard'
+import { ItemHero } from '@/components/ItemHero'
 import { Notice } from '@/components/Notice'
 import { Rail } from '@/components/Rail'
 import { useSettled } from '@/hooks/useSettled'
@@ -101,7 +101,7 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
 
   return (
     <article {...stylex.props(styles.page)}>
-      <DetailHero item={item} userId={userId} />
+      <ItemHero item={item} userId={userId} />
 
       <m.div
         initial="hidden"

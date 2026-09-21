@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { Check, MagnifyingGlass, SignOut } from '@phosphor-icons/react'
+import { Check, MagnifyingGlass, Plugs, PlugsConnected, SignOut } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
@@ -22,6 +22,8 @@ import { queries } from '@/lib/queries'
 import { getSession, useSession, type Session } from '@/lib/session'
 import { THEMES, setThemeId, useTheme } from '@/lib/theme'
 import { brandMark } from '@/brand'
+import { ConnectDialog } from '@/seerr/ConnectDialog'
+import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
 import { glass, overlay } from '@/theme/glass'
 import { menu } from '@/theme/menu'
 import { focus } from '@/theme/focus'
@@ -67,6 +69,8 @@ function TopNav({ session }: { session: Session }) {
   const views = useQuery(queries.views(session.userId))
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
   const [searchOpen, setSearchOpen] = useState(false)
+  const seerr = useSeerr()
+  const [connectOpen, setConnectOpen] = useState(false)
 
   useEffect(() => {
     if (searchOpen) return
@@ -83,6 +87,13 @@ function TopNav({ session }: { session: Session }) {
   return (
     <header {...stylex.props(styles.nav)}>
       <SearchPalette userId={session.userId} isOpen={searchOpen} onOpenChange={setSearchOpen} />
+      {seerr !== 'unavailable' && (
+        <ConnectDialog
+          userName={session.userName}
+          isOpen={connectOpen}
+          onOpenChange={setConnectOpen}
+        />
+      )}
       <Link
         to="/"
         aria-label={session.serverName}
@@ -122,14 +133,19 @@ function TopNav({ session }: { session: Session }) {
           >
             <div {...stylex.props(styles.menuHeader)}>
               <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
-              <span {...stylex.props(styles.menuServer)}>{session.serverName}</span>
+              <span {...stylex.props(styles.menuServer)}>
+                {session.serverName}
+                {seerr === 'signedIn' && ' · Seerr'}
+              </span>
             </div>
             <div {...stylex.props(menu.separator)} />
             <Menu
               {...stylex.props(menu.list)}
               onAction={async (key) => {
+                if (key === 'seerr-connect') setConnectOpen(true)
+                if (key === 'seerr-disconnect') await seerrSignOut()
                 if (key === 'logout') {
-                  await logout()
+                  await Promise.all([logout(), seerrSignOut()])
                   await navigate({ to: '/login', replace: true })
                 }
               }}
@@ -161,6 +177,22 @@ function TopNav({ session }: { session: Session }) {
               </MenuSection>
               <Separator {...stylex.props(menu.separator)} />
               <MenuSection {...stylex.props(menu.list)}>
+                {seerr === 'signedOut' && (
+                  <MenuItem id="seerr-connect" {...stylex.props(menu.item)}>
+                    <span {...stylex.props(menu.check)}>
+                      <PlugsConnected size={14} />
+                    </span>
+                    Connect Seerr
+                  </MenuItem>
+                )}
+                {seerr === 'signedIn' && (
+                  <MenuItem id="seerr-disconnect" {...stylex.props(menu.item)}>
+                    <span {...stylex.props(menu.check)}>
+                      <Plugs size={14} />
+                    </span>
+                    Disconnect Seerr
+                  </MenuItem>
+                )}
                 <MenuItem id="logout" {...stylex.props(menu.item)}>
                   <span {...stylex.props(menu.check)}>
                     <SignOut size={14} />

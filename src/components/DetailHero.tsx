@@ -1,67 +1,50 @@
 import * as stylex from '@stylexjs/stylex'
-import { Link } from '@tanstack/react-router'
-import { Check, Heart, Play, Star } from '@phosphor-icons/react'
+import { Star } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
-import { useRef } from 'react'
-import type { BaseItemDto } from '@/api/gen/types.gen'
+import { useRef, type ReactNode } from 'react'
 import { useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
-import { useUserDataToggles } from '@/hooks/useUserDataToggles'
-import { formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
-import { backdropImage, itemImage, logoImage } from '@/lib/images'
+import type { ResolvedImage } from '@/lib/images'
 import { fadeUp, pop, stagger } from '@/lib/motion'
-import { focus } from '@/theme/focus'
-import { media, playPill } from '@/theme/media'
+import { media } from '@/theme/media'
 import { colors, radii, shadows, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 import { Facts } from './Facts'
-import { IconToggle } from './IconButton'
 
 const TILE_W = 190
 
 export interface DetailHeroProps {
-  item: BaseItemDto
-  userId: string
+  backdrop?: ResolvedImage | null
+  tile?: ResolvedImage | null
+  /** Item whose poster card the tile morphs from and back to. */
+  morphId?: string
+  logo?: string | null
+  title: string
+  tagline?: string | null
+  /** Short facts under the title; falsy entries are skipped. */
+  meta: readonly ReactNode[]
+  /** Community rating out of 10, shown after `meta`. */
+  rating?: number | null
+  genres?: readonly string[]
+  /** Actions row. */
+  children?: ReactNode
 }
 
-export function DetailHero({ item, userId }: DetailHeroProps) {
-  const backdrop = backdropImage(item, 1920)
-  const logo = logoImage(item, 800)
-  const remaining = remainingMinutes(item)
-  const itemId = item.Id ?? ''
-  const toggles = useUserDataToggles(userId, item)
-
-  const tile = itemImage(item, 'Primary', TILE_W * 2)
+/** Full-bleed artwork with a poster tile and title block; the top of every detail page. */
+export function DetailHero({
+  backdrop,
+  tile,
+  morphId = '',
+  logo,
+  title,
+  tagline,
+  meta,
+  rating,
+  genres = [],
+  children,
+}: DetailHeroProps) {
   const tileRef = useRef<HTMLDivElement>(null)
-  const morph = useMorphTarget(itemId, 'poster', tileRef)
-  useMorphHandoff(tileRef, itemId, 'poster', tile?.url)
-
-  const years =
-    item.Type === 'Series' && item.ProductionYear
-      ? item.Status === 'Continuing'
-        ? `${item.ProductionYear}–`
-        : item.EndDate && new Date(item.EndDate).getFullYear() !== item.ProductionYear
-          ? `${item.ProductionYear}–${new Date(item.EndDate).getFullYear()}`
-          : String(item.ProductionYear)
-      : item.ProductionYear
-
-  const meta = [
-    itemKindLabel(item),
-    years,
-    item.OfficialRating,
-    item.Type === 'Series'
-      ? item.ChildCount
-        ? `${item.ChildCount} ${item.ChildCount === 1 ? 'season' : 'seasons'}`
-        : null
-      : formatRuntime(item.RunTimeTicks),
-    item.CommunityRating ? (
-      <span key="rating" {...stylex.props(styles.rating)}>
-        <Star size={12} weight="fill" />
-        {item.CommunityRating.toFixed(1)}
-      </span>
-    ) : null,
-  ]
-
-  const canPlay = item.Type === 'Movie' || item.Type === 'Series'
+  const morph = useMorphTarget(morphId, 'poster', tileRef)
+  useMorphHandoff(tileRef, morphId, 'poster', tile?.url)
 
   return (
     <section {...stylex.props(styles.hero)}>
@@ -82,7 +65,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
         {tile && (
           <m.div
             ref={tileRef}
-            data-morph={itemId}
+            data-morph={morphId || undefined}
             variants={pop}
             initial={morph.source ? false : 'hidden'}
             animate="show"
@@ -104,54 +87,43 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
             <m.img
               variants={fadeUp}
               src={logo}
-              alt={item.Name ?? ''}
+              alt={title}
               {...stylex.props(styles.logo)}
               draggable={false}
             />
           ) : (
             <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
-              {item.Name}
+              {title}
             </m.h1>
           )}
-          {item.Taglines?.[0] && (
+          {tagline && (
             <m.p variants={fadeUp} {...stylex.props(styles.tagline)}>
-              {item.Taglines[0]}
+              {tagline}
             </m.p>
           )}
-          <Facts items={meta} variants={fadeUp} style={styles.meta} />
-          {item.Genres && item.Genres.length > 0 && (
+          <Facts
+            items={[
+              ...meta,
+              rating ? (
+                <span key="rating" {...stylex.props(styles.rating)}>
+                  <Star size={12} weight="fill" />
+                  {rating.toFixed(1)}
+                </span>
+              ) : null,
+            ]}
+            variants={fadeUp}
+            style={styles.meta}
+          />
+          {genres.length > 0 && (
             <m.p variants={fadeUp} {...stylex.props(styles.genres)}>
-              {item.Genres.slice(0, 4).join(', ')}
+              {genres.slice(0, 4).join(', ')}
             </m.p>
           )}
-          <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
-            {canPlay && (
-              <Link
-                to="/play/$itemId"
-                params={{ itemId }}
-                {...stylex.props(focus.ring, playPill.base)}
-              >
-                <Play size={18} weight="fill" />
-                {remaining ? `Resume · ${remaining} min left` : 'Play'}
-              </Link>
-            )}
-            <IconToggle
-              onMedia
-              aria-label={toggles.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-              isSelected={toggles.isFavorite}
-              onChange={toggles.toggleFavorite}
-            >
-              <Heart size={18} weight={toggles.isFavorite ? 'fill' : 'regular'} />
-            </IconToggle>
-            <IconToggle
-              onMedia
-              aria-label={toggles.isPlayed ? 'Mark as unwatched' : 'Mark as watched'}
-              isSelected={toggles.isPlayed}
-              onChange={toggles.togglePlayed}
-            >
-              <Check size={18} weight="bold" />
-            </IconToggle>
-          </m.div>
+          {children && (
+            <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
+              {children}
+            </m.div>
+          )}
         </m.div>
       </div>
     </section>

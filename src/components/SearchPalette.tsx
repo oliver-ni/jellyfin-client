@@ -5,10 +5,13 @@ import { MagnifyingGlass } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import {
   Autocomplete,
+  Collection,
   Dialog,
+  Header,
   Input,
   ListBox,
   ListBoxItem,
+  ListBoxSection,
   Modal,
   ModalOverlay,
   SearchField,
@@ -19,9 +22,12 @@ import { episodeCode, itemKindLabel } from '@/lib/format'
 import { itemImage } from '@/lib/images'
 import { itemLink } from '@/lib/item-link'
 import { queries } from '@/lib/queries'
-import { glass } from '@/theme/glass'
+import type { Title } from '@/seerr/api'
+import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL } from '@/seerr/labels'
+import { seerrQueries, useSeerr } from '@/seerr/queries'
+import { glass, overlay } from '@/theme/glass'
 import { text } from '@/theme/text'
-import { colors, motion, radii, space } from '@/theme/tokens.stylex'
+import { colors, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
 export interface SearchPaletteProps {
@@ -32,6 +38,7 @@ export interface SearchPaletteProps {
 
 const DEBOUNCE_MS = 120
 const THUMB_W = 40
+const MAX_TITLES = 8
 
 /** Trails `value` by `ms`; clearing is immediate so an emptied field shows no stale results. */
 function useDebounced(value: string, ms: number) {
@@ -58,19 +65,40 @@ function subtitle(item: BaseItemDto): string {
   return [itemKindLabel(item), item.ProductionYear].filter(Boolean).join(' · ')
 }
 
-/** Global search, opened with `/` or the header's search capsule. Results navigate on select. */
+const titleKey = (t: Title) => `${t.type}/${t.tmdbId}`
+
+/**
+ * Global search, opened with `/` or the header's search capsule. Library results navigate to
+ * the item; with Seerr signed in, titles the library lacks follow in a second section and
+ * open their request page. Seerr titles already matched to a library item are left to the
+ * library results, whose series page offers "Request more" for missing seasons.
+ */
 export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPaletteProps) {
   const navigate = useNavigate()
+  const seerr = useSeerr()
   const [term, setTerm] = useState('')
   const query = useDebounced(term.trim(), DEBOUNCE_MS)
+  const enabled = isOpen && query.length > 0
 
-  const results = useQuery({
+  const library = useQuery({
     ...queries.search(userId, query),
-    enabled: isOpen && query.length > 0,
+    enabled,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   })
-  const items = query ? rank(results.data?.Items ?? [], query) : []
+  const discover = useQuery({
+    ...seerrQueries.search(query),
+    enabled: enabled && seerr === 'signedIn',
+    placeholderData: keepPreviousData,
+  })
+
+  const items = query ? rank(library.data?.Items ?? [], query) : []
+  const titles = query
+    ? (discover.data ?? [])
+        .filter((t) => !t.jellyfinId && t.availability !== 'available')
+        .slice(0, MAX_TITLES)
+    : []
+  const empty = items.length === 0 && titles.length === 0
 
   const open = (next: boolean) => {
     onOpenChange(next)
@@ -82,38 +110,62 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
       isOpen={isOpen}
       onOpenChange={open}
       isDismissable
-      {...stylex.props(styles.overlay)}
+      {...stylex.props(overlay.backdrop)}
     >
-      <Modal {...stylex.props(glass.panel, styles.modal)}>
+      <Modal {...stylex.props(glass.panel, overlay.sheet, styles.modal)}>
         <Dialog aria-label="Search" {...stylex.props(styles.dialog)}>
           <Autocomplete inputValue={term} onInputChange={setTerm}>
-            <SearchField aria-label="Search your library" {...stylex.props(styles.field)}>
+            <SearchField aria-label="Search" {...stylex.props(styles.field)}>
               <MagnifyingGlass size={20} {...stylex.props(styles.fieldIcon)} />
               <Input
-                placeholder="Search films, series and episodes"
+                placeholder={
+                  seerr === 'signedIn'
+                    ? 'Search your library and everything else'
+                    : 'Search films, series and episodes'
+                }
                 autoFocus
                 {...stylex.props(styles.input)}
               />
             </SearchField>
             <ListBox
-              items={items}
               aria-label="Results"
               renderEmptyState={() =>
                 query ? (
                   <div {...stylex.props(styles.empty)}>
-                    {results.isFetching ? 'Searching…' : `Nothing matches “${query}”`}
+                    {library.isFetching || discover.isFetching
+                      ? 'Searching…'
+                      : `Nothing matches “${query}”`}
                   </div>
                 ) : null
               }
               onAction={(key) => {
                 const item = items.find((it) => it.Id === key)
-                if (!item?.Id) return
+                const title = titles.find((t) => titleKey(t) === key)
+                if (!item && !title) return
                 open(false)
-                void navigate(itemLink(item))
+                if (item) void navigate(itemLink(item))
+                if (title)
+                  void navigate({
+                    to: '/request/$type/$tmdbId',
+                    params: { type: title.type, tmdbId: title.tmdbId },
+                  })
               }}
-              {...stylex.props(styles.list, items.length > 0 && styles.listOpen)}
+              {...stylex.props(styles.list, !empty && styles.listOpen)}
             >
-              {(item) => <Result item={item} />}
+              {items.length > 0 && (
+                <ListBoxSection id="library">
+                  {titles.length > 0 && (
+                    <Header {...stylex.props(styles.header)}>Your library</Header>
+                  )}
+                  <Collection items={items}>{(item) => <ItemResult item={item} />}</Collection>
+                </ListBoxSection>
+              )}
+              {titles.length > 0 && (
+                <ListBoxSection id="discover">
+                  <Header {...stylex.props(styles.header)}>Not in your library</Header>
+                  <Collection items={titles}>{(title) => <TitleResult title={title} />}</Collection>
+                </ListBoxSection>
+              )}
             </ListBox>
           </Autocomplete>
         </Dialog>
@@ -122,7 +174,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
   )
 }
 
-function Result({ item }: { item: BaseItemDto }) {
+function ItemResult({ item }: { item: BaseItemDto }) {
   const image = itemImage(item, 'Primary', THUMB_W * 2)
   const landscape = item.Type === 'Episode'
   return (
@@ -146,46 +198,32 @@ function Result({ item }: { item: BaseItemDto }) {
   )
 }
 
-const fadeIn = stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } })
-const fadeOut = stylex.keyframes({ from: { opacity: 1 }, to: { opacity: 0 } })
-const rise = stylex.keyframes({
-  from: { opacity: 0, transform: 'translateY(-8px) scale(0.98)' },
-  to: { opacity: 1, transform: 'translateY(0) scale(1)' },
-})
-const sink = stylex.keyframes({
-  from: { opacity: 1, transform: 'translateY(0) scale(1)' },
-  to: { opacity: 0, transform: 'translateY(-6px) scale(0.99)' },
-})
+function TitleResult({ title }: { title: Title }) {
+  return (
+    <ListBoxItem id={titleKey(title)} textValue={title.name} {...stylex.props(styles.item)}>
+      <BlurImage
+        src={title.poster ?? undefined}
+        alt=""
+        loading="eager"
+        style={[styles.thumb, styles.thumbPoster]}
+      />
+      <span {...stylex.props(styles.copy)}>
+        <Text slot="label" {...stylex.props(text.ellipsis, styles.name)}>
+          {title.name}
+        </Text>
+        <Text slot="description" {...stylex.props(text.ellipsis, styles.meta)}>
+          {[MEDIA_TYPE_LABEL[title.type], title.year, AVAILABILITY_LABEL[title.availability]]
+            .filter(Boolean)
+            .join(' · ')}
+        </Text>
+      </span>
+    </ListBoxItem>
+  )
+}
 
 const styles = stylex.create({
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 100,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    paddingTop: {
-      default: '14vh',
-      '@media (max-width: 720px)': space.lg,
-    },
-    paddingInline: space.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    animationName: { default: 'none', '[data-entering]': fadeIn, '[data-exiting]': fadeOut },
-    animationDuration: { default: motion.base, '[data-exiting]': motion.fast },
-    animationTimingFunction: motion.ease,
-    animationFillMode: 'both',
-  },
   modal: {
-    width: '100%',
     maxWidth: 600,
-    borderRadius: radii.xl,
-    overflow: 'hidden',
-    transformOrigin: 'top center',
-    animationName: { default: 'none', '[data-entering]': rise, '[data-exiting]': sink },
-    animationDuration: { default: motion.base, '[data-exiting]': motion.fast },
-    animationTimingFunction: motion.ease,
-    animationFillMode: 'both',
   },
   dialog: {
     outline: 'none',
@@ -226,6 +264,14 @@ const styles = stylex.create({
     paddingBottom: space.xs,
     boxShadow: `inset 0 1px 0 ${colors.border}`,
     paddingTop: space.xs,
+  },
+  header: {
+    paddingInline: space.sm,
+    paddingTop: space.md,
+    paddingBottom: space.xs,
+    fontSize: 12,
+    fontWeight: 500,
+    color: colors.textFaint,
   },
   item: {
     display: 'flex',

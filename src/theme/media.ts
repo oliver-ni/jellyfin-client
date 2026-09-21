@@ -93,4 +93,13 @@ export const playPill = stylex.create({
     paddingInline: space.lg,
     fontSize: 14,
   },
+  /** Translucent variant for secondary actions and status pills on hero art. */
+  secondary: {
+    color: colors.heroText,
+    backgroundColor: {
+      default: colors.heroSurface,
+      ':hover': colors.heroSurface,
+    },
+    boxShadow: `inset 0 0 0 1px ${colors.heroBorder}`,
+  },
 })

@@ -7,6 +7,7 @@ import { Button } from '@/components/Button'
 import { TextField } from '@/components/TextField'
 import { AuthError, login, probeServer } from '@/lib/auth'
 import { getSession } from '@/lib/session'
+import * as seerr from '@/seerr/queries'
 import { brandMark } from '@/brand'
 import { colors, radii, shadows, space } from '@/theme/tokens.stylex'
 
@@ -65,6 +66,7 @@ function LoginPage() {
     setError(null)
     try {
       await login(step, username, password)
+      void seerr.signIn(username, password).catch(() => null)
       if (redirectTo) await navigate({ href: redirectTo, replace: true })
       else await navigate({ to: '/', replace: true })
     } catch (err) {
