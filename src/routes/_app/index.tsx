@@ -44,7 +44,10 @@ function HomePage() {
     queries: libraries.map((lib) => homeQueries.latest(userId, lib.Id ?? '')),
   })
 
-  const slides = heroSlides(resume.data?.Items, nextUp.data?.Items, latest)
+  const slides =
+    resume.isPending || nextUp.isPending
+      ? []
+      : heroSlides(resume.data?.Items, nextUp.data?.Items, latest)
   const heroPending = slides.length === 0 && [resume, nextUp, ...latest].some((q) => q.isPending)
 
   return (

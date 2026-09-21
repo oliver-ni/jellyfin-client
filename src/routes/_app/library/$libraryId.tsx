@@ -151,7 +151,11 @@ function LibraryPage() {
 
       <AnimatePresence mode="popLayout" initial={false}>
         {items.isError ? (
-          <Notice key="error" title="Couldn’t load this library" text={items.error.message}>
+          <Notice
+            key="error"
+            title="Couldn’t load this library"
+            text="Check that the server is reachable, then try again."
+          >
             <Button onPress={() => void items.refetch()}>Try again</Button>
           </Notice>
         ) : items.isSuccess && total === 0 ? (

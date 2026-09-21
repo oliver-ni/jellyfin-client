@@ -43,6 +43,14 @@ function useDebounced(value: string, ms: number) {
   return value === '' ? '' : debounced
 }
 
+/** Titles that start with the query first, then whole shows/films before single episodes. */
+function rank(items: readonly BaseItemDto[], query: string): BaseItemDto[] {
+  const q = query.toLowerCase()
+  const score = (item: BaseItemDto) =>
+    (item.Name?.toLowerCase().startsWith(q) ? 0 : 2) + (item.Type === 'Episode' ? 1 : 0)
+  return [...items].sort((a, b) => score(a) - score(b))
+}
+
 function subtitle(item: BaseItemDto): string {
   if (item.Type === 'Episode') {
     return [item.SeriesName, episodeCode(item)].filter(Boolean).join(' · ')
@@ -73,7 +81,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   })
-  const items = query ? (results.data?.Items ?? []) : []
+  const items = query ? rank(results.data?.Items ?? [], query) : []
 
   const open = (next: boolean) => {
     onOpenChange(next)

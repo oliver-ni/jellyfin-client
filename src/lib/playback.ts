@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query'
 import {
   getEpisodes,
   getItemSegments,
+  getNextUp,
   getPostedPlaybackInfo,
   reportPlaybackProgress,
   reportPlaybackStart,
@@ -284,6 +285,15 @@ export const playbackQueries = {
         return next?.Id && next.Id !== item.Id ? next : null
       },
     }),
+}
+
+/** Where a series starts playing: the next-up (or in-progress) episode, else its first. */
+export async function seriesStartEpisode(userId: string, seriesId: string) {
+  const nextUp = await getNextUp({ query: { userId, seriesId, limit: 1, enableResumable: true } })
+  const first = nextUp.data?.Items?.[0]
+  if (first) return first
+  const episodes = await getEpisodes({ path: { seriesId }, query: { userId, limit: 1 } })
+  return episodes.data?.Items?.[0] ?? null
 }
 
 export function toSegments(

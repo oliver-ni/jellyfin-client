@@ -40,13 +40,13 @@ export const Route = createFileRoute('/_app')({
 
 function AppLayout() {
   const session = useSession()
-  const page = useRef<HTMLElement>(null)
-  useRouteGhost(page)
+  const shell = useRef<HTMLDivElement>(null)
+  useRouteGhost(shell, Route.id)
   if (!session) return null
   return (
-    <div {...stylex.props(styles.shell)}>
+    <div ref={shell} {...stylex.props(styles.shell)}>
       <TopNav session={session} />
-      <main ref={page} {...stylex.props(styles.main)}>
+      <main {...stylex.props(styles.main)}>
         <Outlet />
       </main>
     </div>

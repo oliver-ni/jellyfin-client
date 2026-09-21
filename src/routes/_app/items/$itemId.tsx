@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
-import { motion as m } from 'motion/react'
+import { AnimatePresence, motion as m } from 'motion/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { Button } from '@/components/Button'
 import { CastRail } from '@/components/CastRail'
@@ -11,6 +11,7 @@ import { FactSheet } from '@/components/FactSheet'
 import { ItemCard } from '@/components/ItemCard'
 import { Rail } from '@/components/Rail'
 import { useRequiredSession } from '@/hooks/useSession'
+import { useSettled } from '@/hooks/useSettled'
 import { plainText } from '@/lib/format'
 import { itemQueries } from '@/lib/item-queries'
 import { fadeUp, springs, stagger } from '@/lib/motion'
@@ -68,7 +69,9 @@ function ItemPage() {
     return (
       <div {...stylex.props(styles.state)}>
         <p {...stylex.props(styles.stateTitle)}>Couldn’t load this title</p>
-        <p {...stylex.props(styles.stateText)}>{item.error.message}</p>
+        <p {...stylex.props(styles.stateText)}>
+          It may have been removed from the server, or the link is wrong.
+        </p>
         <Button onPress={() => void item.refetch()}>Try again</Button>
       </div>
     )
@@ -187,13 +190,7 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
         ))}
       </div>
       {active?.Id && (
-        <Episodes
-          key={active.Id}
-          userId={userId}
-          seriesId={seriesId}
-          seasonId={active.Id}
-          expandedId={episode}
-        />
+        <Episodes userId={userId} seriesId={seriesId} seasonId={active.Id} expandedId={episode} />
       )}
     </section>
   )
@@ -210,20 +207,28 @@ function Episodes({
   seasonId: string
   expandedId?: string
 }) {
-  const episodes = useQuery(itemQueries.episodes(userId, seriesId, seasonId))
+  // Switching seasons keeps the current rows on screen until the new season arrives.
+  const episodes = useQuery({
+    ...itemQueries.episodes(userId, seriesId, seasonId),
+    placeholderData: keepPreviousData,
+  })
+  const shownSeasonId = useSettled(seasonId, !episodes.isPlaceholderData)
   const list = episodes.data?.Items ?? []
 
   if (episodes.isPending) return <div {...stylex.props(styles.listSkeleton)} />
   if (episodes.isError) return <p {...stylex.props(styles.stateText)}>Couldn’t load episodes.</p>
   if (list.length === 0) return <p {...stylex.props(styles.stateText)}>No episodes.</p>
   return (
-    <EpisodeList
-      episodes={list}
-      userId={userId}
-      seriesId={seriesId}
-      seasonId={seasonId}
-      expandedId={expandedId}
-    />
+    <AnimatePresence mode="popLayout">
+      <EpisodeList
+        key={shownSeasonId}
+        episodes={list}
+        userId={userId}
+        seriesId={seriesId}
+        seasonId={shownSeasonId}
+        expandedId={expandedId}
+      />
+    </AnimatePresence>
   )
 }
 

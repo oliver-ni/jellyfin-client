@@ -6,23 +6,26 @@ import { overlayLayer } from '@/lib/motion'
 const EXIT = { duration: 0.2, ease: [0.2, 0, 0, 1] } as const
 
 /**
- * Route exit choreography without keeping the outgoing React tree mounted: just before the
- * router commits a new path, the outgoing page's DOM is cloned into a fixed, pointer-transparent
- * layer pinned to its current scroll offset and faded out while the new page reveals beneath it.
- * A navigation mid-fade simply layers a new ghost on top, so transitions stay interruptible.
- * Elements marked `data-morph` keep their attribute so a morph target can conceal its origin.
+ * Fades out a DOM clone of the outgoing page over the incoming one, so route exits animate
+ * without keeping the old React tree mounted. The header is left out while staying inside
+ * `layoutRouteId`, since the real one persists.
  */
-export function useRouteGhost(page: RefObject<HTMLElement | null>) {
+export function useRouteGhost(shell: RefObject<HTMLElement | null>, layoutRouteId: string) {
   const router = useRouter()
 
   useEffect(() => {
-    return router.subscribe('onLoad', ({ pathChanged }) => {
-      const source = page.current
+    return router.subscribe('onLoad', ({ pathChanged, toLocation }) => {
+      const source = shell.current
       if (!pathChanged || !source) return
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
       const ghost = source.cloneNode(true) as HTMLElement
       ghost.inert = true
+      const [routes] = router.getMatchedRoutes(toLocation.pathname)
+      if (routes.some((r) => r.id === layoutRouteId)) {
+        ghost.querySelector(':scope > header')?.remove()
+      }
+      for (const img of ghost.querySelectorAll('img')) img.decoding = 'sync'
       Object.assign(ghost.style, {
         position: 'absolute',
         left: '0',
@@ -33,5 +36,5 @@ export function useRouteGhost(page: RefObject<HTMLElement | null>) {
       overlayLayer().append(ghost)
       animate(ghost, { opacity: [1, 0] }, EXIT).then(() => ghost.remove())
     })
-  }, [router, page])
+  }, [router, shell, layoutRouteId])
 }

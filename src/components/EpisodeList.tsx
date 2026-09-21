@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { createLink, Link } from '@tanstack/react-router'
 import { Check, Heart, Play } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
-import { useRef } from 'react'
+import { useRef, type Ref } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useMorphTarget } from '@/hooks/useMorphTarget'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
@@ -17,7 +17,7 @@ import {
   videoStreamLabel,
 } from '@/lib/format'
 import { landscapeImage } from '@/lib/images'
-import { fadeUp, springs, stagger } from '@/lib/motion'
+import { fadeUp, springs, stagger, vanish } from '@/lib/motion'
 import { focus } from '@/theme/focus'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
@@ -30,6 +30,8 @@ export interface EpisodeListProps {
   seasonId: string
   /** Episode whose details are open in place. */
   expandedId?: string
+  /** Root element; needed by `AnimatePresence mode="popLayout"` to take an exiting list out of flow. */
+  ref?: Ref<HTMLOListElement>
 }
 
 const STILL_WIDTH = 224
@@ -42,9 +44,17 @@ export function EpisodeList({
   seriesId,
   seasonId,
   expandedId,
+  ref,
 }: EpisodeListProps) {
   return (
-    <m.ol initial="hidden" animate="show" variants={stagger()} {...stylex.props(styles.list)}>
+    <m.ol
+      ref={ref}
+      initial="hidden"
+      animate="show"
+      exit={vanish}
+      variants={stagger()}
+      {...stylex.props(styles.list)}
+    >
       {episodes.map((ep) => (
         <EpisodeRow
           key={ep.Id}

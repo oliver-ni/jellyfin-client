@@ -13,6 +13,7 @@ import {
   reportProgress,
   reportStart,
   reportStopped,
+  seriesStartEpisode,
   ticksToSeconds,
   toNextItem,
   toSegments,
@@ -30,10 +31,17 @@ export const Route = createFileRoute('/play/$itemId')({
       throw redirect({ to: '/login', search: { redirect: location.href } })
     }
   },
-  loader: ({ context, params }) => {
+  // A series has no stream of its own; play its next-up episode instead.
+  loader: async ({ context: { queryClient }, params }) => {
     const session = getSession()
-    if (session) {
-      void context.queryClient.prefetchQuery(itemQueries.item(session.userId, params.itemId))
+    if (!session) return
+    const item = await queryClient
+      .ensureQueryData(itemQueries.item(session.userId, params.itemId))
+      .catch(() => null)
+    if (item?.Type !== 'Series') return
+    const episode = await seriesStartEpisode(session.userId, params.itemId).catch(() => null)
+    if (episode?.Id) {
+      throw redirect({ to: '/play/$itemId', params: { itemId: episode.Id }, replace: true })
     }
   },
   component: PlayPage,

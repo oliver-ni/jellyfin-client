@@ -85,6 +85,7 @@ export function Player({
     const video = videoRef.current
     if (!video) return
     engine.attach(video)
+    container.current?.focus({ preventScroll: true })
     return () => engine.destroy()
   }, [engine])
 

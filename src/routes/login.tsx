@@ -7,6 +7,7 @@ import { Button } from '@/components/Button'
 import { TextField } from '@/components/TextField'
 import { AuthError, login, probeServer } from '@/lib/auth'
 import { getSession } from '@/lib/session'
+import { brandMark } from '@/brand'
 import { colors, radii, shadows, space } from '@/theme/tokens.stylex'
 
 const RECENT_SERVER_KEY = 'jf.recentServer'
@@ -77,7 +78,9 @@ function LoginPage() {
       <div {...stylex.props(styles.glow)} />
       <section {...stylex.props(styles.card)}>
         <header {...stylex.props(styles.header)}>
-          <div {...stylex.props(styles.logo)} />
+          <span aria-hidden="true" {...stylex.props(styles.logo)}>
+            {brandMark}
+          </span>
           {step.kind === 'server' ? (
             <>
               <h1 {...stylex.props(styles.title)}>Connect to Jellyfin</h1>
@@ -190,11 +193,9 @@ const styles = stylex.create({
     gap: space.xs,
   },
   logo: {
-    width: 14,
-    height: 14,
+    fontSize: 28,
+    lineHeight: 1,
     marginBottom: space.md,
-    borderRadius: radii.full,
-    backgroundColor: colors.accent,
   },
   title: {
     fontSize: 22,
