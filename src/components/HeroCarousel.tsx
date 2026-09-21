@@ -1,5 +1,10 @@
 import * as stylex from '@stylexjs/stylex'
-import { animate, motion as m, type AnimationPlaybackControls } from 'motion/react'
+import {
+  animate,
+  motion as m,
+  useReducedMotion,
+  type AnimationPlaybackControls,
+} from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { backdropImage, logoImage } from '@/lib/images'
@@ -19,6 +24,7 @@ const DWELL = 8
 /**
  * Rotates the home hero through `slides`. The active dot fills over the dwell time and that
  * fill *is* the timer, so pausing (hover, focus) and restarting (selecting a dot) stay in sync.
+ * Under reduced motion the carousel does not auto-advance; the dots still select.
  */
 export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
   const [selected, setSelected] = useState(0)
@@ -27,13 +33,15 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
   const index = selected < slides.length ? selected : 0
   const slide = slides[index]
   const count = slides.length
+  const reduceMotion = useReducedMotion()
+  const autoplay = count > 1 && !reduceMotion
 
   const fill = useRef<HTMLSpanElement>(null)
   const timer = useRef<AnimationPlaybackControls | null>(null)
 
   useEffect(() => {
     const el = fill.current
-    if (!el || count < 2) return
+    if (!el || !autoplay) return
     let live = true
     const controls = animate(el, { scaleX: [0, 1] }, { duration: DWELL, ease: 'linear' })
     timer.current = controls
@@ -42,7 +50,7 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
       live = false
       controls.stop()
     }
-  }, [index, count])
+  }, [index, count, autoplay])
 
   const paused = hovered || focused
   useEffect(() => {
@@ -85,7 +93,9 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
                     transition={springs.snappy}
                     {...stylex.props(styles.pill)}
                   >
-                    {active && <span ref={fill} {...stylex.props(styles.fill)} />}
+                    {active && (
+                      <span ref={fill} {...stylex.props(styles.fill, !autoplay && styles.full)} />
+                    )}
                   </m.span>
                 </button>
               )
@@ -106,6 +116,7 @@ const styles = stylex.create({
     display: 'grid',
     placeItems: 'center',
     height: 24,
+    minWidth: 24,
     paddingInline: space.xs,
     cursor: 'pointer',
     borderRadius: radii.full,
@@ -123,5 +134,8 @@ const styles = stylex.create({
     backgroundColor: colors.heroText,
     transformOrigin: 'left',
     transform: 'scaleX(0)',
+  },
+  full: {
+    transform: 'scaleX(1)',
   },
 })

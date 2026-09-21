@@ -87,19 +87,13 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
               {eyebrow}
             </m.span>
           )}
-          {logo ? (
-            <m.img
-              variants={fadeUp}
-              src={logo}
-              alt={title ?? ''}
-              {...stylex.props(styles.logo)}
-              draggable={false}
-            />
-          ) : (
-            <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
-              {title}
-            </m.h1>
-          )}
+          <m.h1 variants={fadeUp} {...stylex.props(logo ? styles.logoTitle : styles.title)}>
+            {logo ? (
+              <img src={logo} alt={title ?? ''} draggable={false} {...stylex.props(styles.logo)} />
+            ) : (
+              title
+            )}
+          </m.h1>
           {episodeLine && (
             <m.p variants={fadeUp} {...stylex.props(styles.episode)}>
               {episodeLine}
@@ -201,7 +195,12 @@ const styles = stylex.create({
     fontWeight: 500,
     color: colors.heroTextMuted,
   },
+  logoTitle: {
+    display: 'flex',
+    width: '100%',
+  },
   logo: {
+    display: 'block',
     maxWidth: 'min(420px, 70%)',
     maxHeight: 160,
     objectFit: 'contain',
