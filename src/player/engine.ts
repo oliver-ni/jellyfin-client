@@ -258,7 +258,8 @@ export class PlayerEngine {
     if (!this.video) return
     const v = Math.min(1, Math.max(0, volume))
     this.video.volume = v
-    if (v > 0 && this.video.muted) this.video.muted = false
+    if (v > 0) this.video.muted = false
+    this.store.setState({ volume: v, muted: this.video.muted })
   }
 
   setMuted(muted: boolean) {

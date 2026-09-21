@@ -1,6 +1,6 @@
 import { SkipForward, X } from '@phosphor-icons/react'
 import * as stylex from '@stylexjs/stylex'
-import { animate, AnimatePresence, motion as m } from 'motion/react'
+import { animate, AnimatePresence, motion as m, type AnimationPlaybackControls } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from 'react-aria-components'
 import { usePlayerContext, usePlayerState } from '../context'
@@ -76,7 +76,9 @@ interface NextUpProps {
 
 function NextUp({ next, raised, onNext, onDismiss }: NextUpProps) {
   const autoplay = usePlayerPrefs((p) => p.autoplayNext)
+  const held = usePlayerState((s) => s.paused || s.waiting)
   const fill = useRef<HTMLSpanElement>(null)
+  const countdown = useRef<AnimationPlaybackControls>(null)
 
   // The button's fill is the countdown; when it completes, the next episode starts.
   useEffect(() => {
@@ -85,11 +87,19 @@ function NextUp({ next, raised, onNext, onDismiss }: NextUpProps) {
     let live = true
     const controls = animate(el, { scaleX: [0, 1] }, { duration: COUNTDOWN_S, ease: 'linear' })
     controls.then(() => live && onNext())
+    countdown.current = controls
     return () => {
       live = false
       controls.stop()
+      countdown.current = null
     }
   }, [autoplay, onNext])
+
+  // Only count down while the credits are actually playing.
+  useEffect(() => {
+    if (held) countdown.current?.pause()
+    else countdown.current?.play()
+  }, [held])
 
   return (
     <m.div

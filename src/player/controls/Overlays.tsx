@@ -212,6 +212,7 @@ const styles = stylex.create({
     pointerEvents: 'none',
   },
   flash: {
+    gridArea: '1 / 1',
     display: 'flex',
     alignItems: 'center',
     gap: 10,
