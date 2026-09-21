@@ -25,6 +25,8 @@ function blurhashToDataUrl(hash: string): string {
 
 export interface BlurImageProps {
   src?: string | null
+  /** Already-loaded lower-res version of `src`, shown underneath until `src` decodes. */
+  placeholderSrc?: string | null
   blurhash?: string
   alt: string
   style?: stylex.StyleXStyles
@@ -34,6 +36,7 @@ export interface BlurImageProps {
 
 export function BlurImage({
   src,
+  placeholderSrc,
   blurhash,
   alt,
   style,
@@ -50,6 +53,15 @@ export function BlurImage({
       {...stylex.props(styles.wrap, style)}
       style={placeholder ? { backgroundImage: `url(${placeholder})` } : undefined}
     >
+      {placeholderSrc && placeholderSrc !== src && (
+        <img
+          src={placeholderSrc}
+          alt=""
+          decoding="sync"
+          draggable={false}
+          {...stylex.props(styles.img, styles.visible)}
+        />
+      )}
       {src && (
         <img
           key={src}

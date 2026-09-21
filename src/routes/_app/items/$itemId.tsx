@@ -1,6 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { motion as m } from 'motion/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { Button } from '@/components/Button'
 import { CastRail } from '@/components/CastRail'
@@ -12,6 +13,8 @@ import { Rail } from '@/components/Rail'
 import { useRequiredSession } from '@/hooks/useSession'
 import { plainText } from '@/lib/format'
 import { itemQueries } from '@/lib/item-queries'
+import { fadeUp, springs, stagger } from '@/lib/motion'
+import { getSession } from '@/lib/session'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 interface ItemSearch {
@@ -21,6 +24,15 @@ interface ItemSearch {
 export const Route = createFileRoute('/_app/items/$itemId')({
   validateSearch: (raw: Record<string, unknown>): ItemSearch =>
     typeof raw.season === 'string' && raw.season ? { season: raw.season } : {},
+  // Resolve the item before the route commits so the hero mounts in the same frame the
+  // previous page unmounts, which the shared-element morph depends on.
+  loader: async ({ context: { queryClient }, params }) => {
+    const session = getSession()
+    if (!session) return
+    await queryClient
+      .ensureQueryData(itemQueries.item(session.userId, params.itemId))
+      .catch(() => {})
+  },
   component: ItemPage,
 })
 
@@ -57,8 +69,13 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
     <article {...stylex.props(styles.page)}>
       <DetailHero item={item} userId={userId} />
 
-      <div {...stylex.props(styles.body)}>
-        <div {...stylex.props(styles.main)}>
+      <m.div
+        initial="hidden"
+        animate="show"
+        variants={stagger(0.08, 0.25)}
+        {...stylex.props(styles.body)}
+      >
+        <m.div variants={fadeUp} {...stylex.props(styles.main)}>
           {overview && <p {...stylex.props(styles.overview)}>{overview}</p>}
           {type === 'Series' && <SeriesEpisodes series={item} userId={userId} />}
           {type === 'Season' && item.SeriesId && item.Id && (
@@ -73,11 +90,11 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
               title={item.SeasonName ?? 'Episodes'}
             />
           )}
-        </div>
-        <aside {...stylex.props(styles.aside)}>
+        </m.div>
+        <m.aside variants={fadeUp} {...stylex.props(styles.aside)}>
           <FactSheet item={item} />
-        </aside>
-      </div>
+        </m.aside>
+      </m.div>
 
       {item.People && item.People.length > 0 && (
         <div {...stylex.props(styles.rails)}>
@@ -136,14 +153,26 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
             resetScroll={false}
             {...stylex.props(styles.seasonTab, s.Id === active?.Id && styles.seasonTabActive)}
           >
-            {s.Name}
-            {(s.UserData?.UnplayedItemCount ?? 0) > 0 && (
-              <span {...stylex.props(styles.unplayedDot)} />
+            {s.Id === active?.Id && (
+              <m.span
+                layoutId="season-pill"
+                layoutCrossfade={false}
+                transition={springs.gentle}
+                {...stylex.props(styles.seasonPill)}
+              />
             )}
+            <span {...stylex.props(styles.seasonLabel)}>
+              {s.Name}
+              {(s.UserData?.UnplayedItemCount ?? 0) > 0 && (
+                <span {...stylex.props(styles.unplayedDot)} />
+              )}
+            </span>
           </Link>
         ))}
       </div>
-      {active?.Id && <Episodes userId={userId} seriesId={seriesId} seasonId={active.Id} />}
+      {active?.Id && (
+        <Episodes key={active.Id} userId={userId} seriesId={seriesId} seasonId={active.Id} />
+      )}
     </section>
   )
 }
@@ -267,9 +296,9 @@ const styles = stylex.create({
     gap: space.xs,
   },
   seasonTab: {
+    position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: space.sm,
     height: 34,
     paddingInline: space.md,
     borderRadius: radii.full,
@@ -284,7 +313,7 @@ const styles = stylex.create({
       ':hover': colors.surface,
     },
     transitionProperty: 'background-color, color',
-    transitionDuration: motion.fast,
+    transitionDuration: motion.base,
     outlineStyle: { default: 'none', ':focus-visible': 'solid' },
     outlineWidth: 2,
     outlineColor: colors.focusRing,
@@ -293,9 +322,23 @@ const styles = stylex.create({
   seasonTabActive: {
     color: colors.accentText,
     backgroundColor: {
-      default: colors.accent,
-      ':hover': colors.accentHover,
+      default: 'transparent',
+      ':hover': 'transparent',
     },
+  },
+  seasonPill: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 0,
+    borderRadius: radii.full,
+    backgroundColor: colors.accent,
+  },
+  seasonLabel: {
+    position: 'relative',
+    zIndex: 1,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: space.sm,
   },
   unplayedDot: {
     width: 6,

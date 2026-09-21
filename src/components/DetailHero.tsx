@@ -1,13 +1,20 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
 import { Check, Heart, Play, Star } from 'lucide-react'
+import { motion as m, useMotionValue } from 'motion/react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
 import { episodeCode, formatRuntime, remainingMinutes } from '@/lib/format'
-import { backdropImage, logoImage } from '@/lib/images'
-import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
+import { backdropImage, itemImage, landscapeImage, logoImage } from '@/lib/images'
+import { fadeUp, playMorph, pop, stagger, takeMorphSource } from '@/lib/motion'
+import { colors, motion, radii, shadows, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 import { IconToggle } from './IconButton'
+import type { CardShape } from './ItemCard'
+
+const TILE_POSTER_W = 190
+const TILE_LANDSCAPE_W = 320
 
 export interface DetailHeroProps {
   item: BaseItemDto
@@ -53,6 +60,29 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
   const itemId = item.Id ?? ''
   const toggles = useUserDataToggles(userId, item)
   const trail = crumbs(item)
+
+  const tileShape: CardShape = item.Type === 'Episode' ? 'landscape' : 'poster'
+  const tile =
+    tileShape === 'landscape'
+      ? landscapeImage(item, TILE_LANDSCAPE_W * 2)
+      : itemImage(item, 'Primary', { width: TILE_POSTER_W * 2 })
+  // Consumed once on mount: the card that navigated here, if its shape matches this tile.
+  const [morph] = useState(() => {
+    const source = takeMorphSource(itemId)
+    return source?.shape === tileShape ? source : null
+  })
+  const tileRef = useRef<HTMLDivElement>(null)
+  const tileX = useMotionValue(0)
+  const tileY = useMotionValue(0)
+  const tileScaleX = useMotionValue(1)
+  const tileScaleY = useMotionValue(1)
+  useLayoutEffect(() => {
+    if (!morph || !tileRef.current) return
+    // Match the scroll reset the router is about to do so the measurement is final.
+    window.scrollTo(0, 0)
+    const to = tileRef.current.getBoundingClientRect()
+    return playMorph({ x: tileX, y: tileY, scaleX: tileScaleX, scaleY: tileScaleY }, morph.rect, to)
+  }, [morph, tileX, tileY, tileScaleX, tileScaleY])
 
   const years =
     item.Type === 'Series' && item.ProductionYear
@@ -106,65 +136,115 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
       </div>
 
       <div {...stylex.props(styles.content)}>
-        {trail.length > 0 && (
-          <nav {...stylex.props(styles.trail)} aria-label="Breadcrumb">
-            {trail.map((c, i) => (
-              <span key={c.id} {...stylex.props(styles.trailItem)}>
-                {i > 0 && <span {...stylex.props(styles.trailSep)}>/</span>}
-                <Link
-                  to="/items/$itemId"
-                  params={{ itemId: c.id }}
-                  {...stylex.props(styles.trailLink)}
-                >
-                  {c.label}
-                </Link>
-              </span>
-            ))}
-          </nav>
+        {tile && (
+          <m.div
+            ref={tileRef}
+            initial={morph ? false : 'hidden'}
+            animate="show"
+            variants={pop}
+            style={{
+              x: tileX,
+              y: tileY,
+              scaleX: tileScaleX,
+              scaleY: tileScaleY,
+              originX: 0,
+              originY: 0,
+            }}
+            {...stylex.props(
+              styles.tile,
+              tileShape === 'landscape' ? styles.tileLandscape : styles.tilePoster,
+            )}
+          >
+            <BlurImage
+              src={tile.url}
+              placeholderSrc={morph?.src}
+              blurhash={tile.blurhash}
+              alt=""
+              loading="eager"
+              style={styles.tileImage}
+            />
+          </m.div>
         )}
-        {logo ? (
-          <img src={logo} alt={item.Name ?? ''} {...stylex.props(styles.logo)} draggable={false} />
-        ) : (
-          <h1 {...stylex.props(styles.title)}>{item.Name}</h1>
-        )}
-        {item.Taglines?.[0] && <p {...stylex.props(styles.tagline)}>{item.Taglines[0]}</p>}
-        {meta.length > 0 && (
-          <p {...stylex.props(styles.meta)}>
-            {meta.map((m, i) => (
-              <span key={i} {...stylex.props(styles.metaItem)}>
-                {i > 0 && <span {...stylex.props(styles.dot)}>·</span>}
-                {m}
-              </span>
-            ))}
-          </p>
-        )}
-        {item.Genres && item.Genres.length > 0 && (
-          <p {...stylex.props(styles.genres)}>{item.Genres.slice(0, 4).join(', ')}</p>
-        )}
-        <div {...stylex.props(styles.actions)}>
-          {canPlay && (
-            <Link to="/play/$itemId" params={{ itemId }} {...stylex.props(styles.play)}>
-              <Play size={18} fill="currentColor" />
-              {remaining ? `Resume · ${remaining} min left` : 'Play'}
-            </Link>
+        <m.div
+          initial="hidden"
+          animate="show"
+          variants={stagger(0.05, 0.05)}
+          {...stylex.props(styles.text)}
+        >
+          {trail.length > 0 && (
+            <m.nav variants={fadeUp} {...stylex.props(styles.trail)} aria-label="Breadcrumb">
+              {trail.map((c, i) => (
+                <span key={c.id} {...stylex.props(styles.trailItem)}>
+                  {i > 0 && <span {...stylex.props(styles.trailSep)}>/</span>}
+                  <Link
+                    to="/items/$itemId"
+                    params={{ itemId: c.id }}
+                    {...stylex.props(styles.trailLink)}
+                  >
+                    {c.label}
+                  </Link>
+                </span>
+              ))}
+            </m.nav>
           )}
-          <IconToggle
-            onMedia
-            aria-label={toggles.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-            isSelected={toggles.isFavorite}
-            onChange={toggles.toggleFavorite}
-          >
-            <Heart size={18} fill={toggles.isFavorite ? 'currentColor' : 'none'} />
-          </IconToggle>
-          <IconToggle
-            onMedia
-            aria-label={toggles.isPlayed ? 'Mark as unwatched' : 'Mark as watched'}
-            isSelected={toggles.isPlayed}
-            onChange={toggles.togglePlayed}
-          >
-            <Check size={18} strokeWidth={2.5} />
-          </IconToggle>
-        </div>
+          {logo ? (
+            <m.img
+              variants={fadeUp}
+              src={logo}
+              alt={item.Name ?? ''}
+              {...stylex.props(styles.logo)}
+              draggable={false}
+            />
+          ) : (
+            <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
+              {item.Name}
+            </m.h1>
+          )}
+          {item.Taglines?.[0] && (
+            <m.p variants={fadeUp} {...stylex.props(styles.tagline)}>
+              {item.Taglines[0]}
+            </m.p>
+          )}
+          {meta.length > 0 && (
+            <m.p variants={fadeUp} {...stylex.props(styles.meta)}>
+              {meta.map((m, i) => (
+                <span key={i} {...stylex.props(styles.metaItem)}>
+                  {i > 0 && <span {...stylex.props(styles.dot)}>·</span>}
+                  {m}
+                </span>
+              ))}
+            </m.p>
+          )}
+          {item.Genres && item.Genres.length > 0 && (
+            <m.p variants={fadeUp} {...stylex.props(styles.genres)}>
+              {item.Genres.slice(0, 4).join(', ')}
+            </m.p>
+          )}
+          <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
+            {canPlay && (
+              <Link to="/play/$itemId" params={{ itemId }} {...stylex.props(styles.play)}>
+                <Play size={18} fill="currentColor" />
+                {remaining ? `Resume · ${remaining} min left` : 'Play'}
+              </Link>
+            )}
+            <IconToggle
+              onMedia
+              aria-label={toggles.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              isSelected={toggles.isFavorite}
+              onChange={toggles.toggleFavorite}
+            >
+              <Heart size={18} fill={toggles.isFavorite ? 'currentColor' : 'none'} />
+            </IconToggle>
+            <IconToggle
+              onMedia
+              aria-label={toggles.isPlayed ? 'Mark as unwatched' : 'Mark as watched'}
+              isSelected={toggles.isPlayed}
+              onChange={toggles.togglePlayed}
+            >
+              <Check size={18} strokeWidth={2.5} />
+            </IconToggle>
+          </m.div>
+        </m.div>
       </div>
     </section>
   )
@@ -202,17 +282,49 @@ const styles = stylex.create({
   content: {
     position: 'relative',
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: space.md,
+    alignItems: 'flex-end',
+    gap: space.xl,
     width: '100%',
-    maxWidth: 720,
+    maxWidth: 1040,
     paddingInline: {
       default: sizes.pageGutter,
       '@media (max-width: 720px)': sizes.pageGutterMobile,
     },
     paddingTop: `calc(${sizes.navHeight} + ${space.xxxl})`,
     paddingBottom: space.xl,
+  },
+  tile: {
+    position: 'relative',
+    flexShrink: 0,
+    display: {
+      default: 'block',
+      '@media (max-width: 720px)': 'none',
+    },
+    borderRadius: radii.xs,
+    overflow: 'hidden',
+    boxShadow: shadows.cardHover,
+  },
+  tilePoster: {
+    width: TILE_POSTER_W,
+    aspectRatio: '2 / 3',
+  },
+  tileLandscape: {
+    width: TILE_LANDSCAPE_W,
+    aspectRatio: '16 / 9',
+  },
+  tileImage: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+  },
+  text: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: space.md,
+    minWidth: 0,
+    maxWidth: 720,
   },
   trail: {
     display: 'flex',

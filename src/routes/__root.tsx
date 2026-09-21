@@ -1,6 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import type { QueryClient } from '@tanstack/react-query'
 import { Outlet, createRootRouteWithContext } from '@tanstack/react-router'
+import { MotionConfig } from 'motion/react'
 import { useLayoutEffect } from 'react'
 import { useThemeId } from '@/hooks/useTheme'
 import { themeStyles } from '@/lib/theme'
@@ -24,9 +25,11 @@ function Root() {
   }, [themeId])
 
   return (
-    <div {...stylex.props(styles.root)}>
-      <Outlet />
-    </div>
+    <MotionConfig reducedMotion="user">
+      <div {...stylex.props(styles.root)}>
+        <Outlet />
+      </div>
+    </MotionConfig>
   )
 }
 

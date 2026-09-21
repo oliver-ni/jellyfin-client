@@ -1,9 +1,12 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
 import { Check, Play } from 'lucide-react'
+import { motion as m } from 'motion/react'
+import { useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { formatDate, formatRuntime, plainText } from '@/lib/format'
 import { landscapeImage } from '@/lib/images'
+import { fadeUp, setMorphSource, stagger } from '@/lib/motion'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
@@ -17,11 +20,11 @@ const STILL_WIDTH = 224
 
 export function EpisodeList({ episodes, currentId }: EpisodeListProps) {
   return (
-    <ol {...stylex.props(styles.list)}>
+    <m.ol initial="hidden" animate="show" variants={stagger(0.035)} {...stylex.props(styles.list)}>
       {episodes.map((ep) => (
         <EpisodeRow key={ep.Id} episode={ep} current={ep.Id === currentId} />
       ))}
-    </ol>
+    </m.ol>
   )
 }
 
@@ -34,10 +37,26 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
   const sub = [formatRuntime(episode.RunTimeTicks), formatDate(episode.PremiereDate)]
     .filter(Boolean)
     .join('  ·  ')
+  const stillRef = useRef<HTMLAnchorElement>(null)
+
+  function handOffStill() {
+    if (!id || !stillRef.current) return
+    const { x, y, width, height } = stillRef.current.getBoundingClientRect()
+    setMorphSource({
+      itemId: id,
+      shape: 'landscape',
+      rect: { x, y, width, height },
+      src: still?.url ?? null,
+    })
+  }
 
   return (
-    <li {...stylex.props(styles.row, current && styles.rowCurrent, stylex.defaultMarker())}>
+    <m.li
+      variants={fadeUp}
+      {...stylex.props(styles.row, current && styles.rowCurrent, stylex.defaultMarker())}
+    >
       <Link
+        ref={stillRef}
         to="/play/$itemId"
         params={{ itemId: id }}
         aria-label={`Play ${episode.Name ?? 'episode'}`}
@@ -59,14 +78,19 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
         )}
       </Link>
       <div {...stylex.props(styles.body)}>
-        <Link to="/items/$itemId" params={{ itemId: id }} {...stylex.props(styles.titleLink)}>
+        <Link
+          to="/items/$itemId"
+          params={{ itemId: id }}
+          onClick={handOffStill}
+          {...stylex.props(styles.titleLink)}
+        >
           <span {...stylex.props(styles.number)}>{episode.IndexNumber ?? '–'}</span>
           <span {...stylex.props(styles.title, played && styles.titlePlayed)}>{episode.Name}</span>
         </Link>
         {sub && <p {...stylex.props(styles.sub)}>{sub}</p>}
         {overview && <p {...stylex.props(styles.overview)}>{overview}</p>}
       </div>
-    </li>
+    </m.li>
   )
 }
 

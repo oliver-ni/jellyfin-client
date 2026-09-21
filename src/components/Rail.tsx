@@ -1,7 +1,9 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link, type LinkProps } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion as m } from 'motion/react'
 import { useRef, type ReactNode } from 'react'
+import { fadeUp, stagger } from '@/lib/motion'
 import { railMarker } from '@/theme/markers.stylex'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
@@ -22,8 +24,13 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
   }
 
   return (
-    <section {...stylex.props(styles.section, railMarker)}>
-      <header {...stylex.props(styles.header)}>
+    <m.section
+      initial="hidden"
+      animate="show"
+      variants={stagger(0.03)}
+      {...stylex.props(styles.section, railMarker)}
+    >
+      <m.header variants={fadeUp} {...stylex.props(styles.header)}>
         {linkTo ? (
           <Link to={linkTo} params={linkParams} {...stylex.props(styles.titleLink)}>
             <h2 {...stylex.props(styles.title)}>{title}</h2>
@@ -50,11 +57,11 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
             <ChevronRight size={18} />
           </button>
         </div>
-      </header>
+      </m.header>
       <div ref={scroller} {...stylex.props(styles.scroller)}>
         {children}
       </div>
-    </section>
+    </m.section>
   )
 }
 

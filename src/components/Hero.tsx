@@ -1,9 +1,11 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
 import { Info, Play } from 'lucide-react'
+import { motion as m } from 'motion/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeCode, formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
 import { backdropImage, logoImage } from '@/lib/images'
+import { fadeUp, stagger } from '@/lib/motion'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
@@ -48,26 +50,52 @@ export function Hero({ item, eyebrow }: HeroProps) {
         <div {...stylex.props(styles.fadeLeft)} />
       </div>
 
-      <div {...stylex.props(styles.content)}>
-        {eyebrow && <span {...stylex.props(styles.eyebrow)}>{eyebrow}</span>}
-        {logo ? (
-          <img src={logo} alt={title ?? ''} {...stylex.props(styles.logo)} draggable={false} />
-        ) : (
-          <h1 {...stylex.props(styles.title)}>{title}</h1>
+      <m.div
+        key={itemId}
+        initial="hidden"
+        animate="show"
+        variants={stagger(0.06)}
+        {...stylex.props(styles.content)}
+      >
+        {eyebrow && (
+          <m.span variants={fadeUp} {...stylex.props(styles.eyebrow)}>
+            {eyebrow}
+          </m.span>
         )}
-        {episodeLine && <p {...stylex.props(styles.episode)}>{episodeLine}</p>}
+        {logo ? (
+          <m.img
+            variants={fadeUp}
+            src={logo}
+            alt={title ?? ''}
+            {...stylex.props(styles.logo)}
+            draggable={false}
+          />
+        ) : (
+          <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
+            {title}
+          </m.h1>
+        )}
+        {episodeLine && (
+          <m.p variants={fadeUp} {...stylex.props(styles.episode)}>
+            {episodeLine}
+          </m.p>
+        )}
         {meta.length > 0 && (
-          <p {...stylex.props(styles.meta)}>
-            {meta.map((m, i) => (
+          <m.p variants={fadeUp} {...stylex.props(styles.meta)}>
+            {meta.map((part, i) => (
               <span key={i}>
                 {i > 0 && <span {...stylex.props(styles.dot)}>·</span>}
-                {m}
+                {part}
               </span>
             ))}
-          </p>
+          </m.p>
         )}
-        {item.Overview && <p {...stylex.props(styles.overview)}>{item.Overview}</p>}
-        <div {...stylex.props(styles.actions)}>
+        {item.Overview && (
+          <m.p variants={fadeUp} {...stylex.props(styles.overview)}>
+            {item.Overview}
+          </m.p>
+        )}
+        <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
           <Link to="/items/$itemId" params={{ itemId }} {...stylex.props(styles.play)}>
             <Play size={18} fill="currentColor" />
             {remaining ? 'Resume' : 'Play'}
@@ -80,8 +108,8 @@ export function Hero({ item, eyebrow }: HeroProps) {
           >
             <Info size={20} />
           </Link>
-        </div>
-      </div>
+        </m.div>
+      </m.div>
     </section>
   )
 }

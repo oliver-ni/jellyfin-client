@@ -1,9 +1,12 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
 import { Play } from 'lucide-react'
+import { motion as m } from 'motion/react'
+import { useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeLabel } from '@/lib/format'
 import { itemImage, landscapeImage } from '@/lib/images'
+import { fadeUp, setMorphSource, springs } from '@/lib/motion'
 import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
@@ -33,42 +36,63 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
       : item.ProductionYear?.toString()
   const progress = showProgress ? (item.UserData?.PlayedPercentage ?? 0) : 0
   const unplayed = item.UserData?.UnplayedItemCount
+  const media = useRef<HTMLDivElement>(null)
 
   return (
-    <Link
-      to="/items/$itemId"
-      params={{ itemId: item.Id ?? '' }}
-      {...stylex.props(styles.card, stylex.defaultMarker())}
-      style={{ width }}
-    >
-      <div {...stylex.props(styles.media, shape === 'poster' ? styles.poster : styles.landscape)}>
-        <BlurImage src={image?.url} blurhash={image?.blurhash} alt="" style={styles.image} />
-        <div {...stylex.props(styles.overlay)}>
-          <span {...stylex.props(styles.playBadge)}>
-            <Play size={18} fill="currentColor" />
-          </span>
-        </div>
-        {unplayed ? <span {...stylex.props(styles.count)}>{unplayed}</span> : null}
-        {progress > 0 && (
-          <div {...stylex.props(styles.progressTrack)}>
-            <div {...stylex.props(styles.progressBar)} style={{ width: `${progress}%` }} />
+    <m.div variants={fadeUp} {...stylex.props(styles.root)} style={{ width }}>
+      <Link
+        to="/items/$itemId"
+        params={{ itemId: item.Id ?? '' }}
+        onClick={() => {
+          if (!item.Id || !media.current) return
+          const { x, y, width: w, height: h } = media.current.getBoundingClientRect()
+          setMorphSource({
+            itemId: item.Id,
+            shape,
+            rect: { x, y, width: w, height: h },
+            src: image?.url ?? null,
+          })
+        }}
+        {...stylex.props(styles.card, stylex.defaultMarker())}
+      >
+        <m.div
+          ref={media}
+          transition={springs.snappy}
+          whileHover={{ scale: 1.035 }}
+          whileTap={{ scale: 0.97 }}
+          {...stylex.props(styles.media, shape === 'poster' ? styles.poster : styles.landscape)}
+        >
+          <BlurImage src={image?.url} blurhash={image?.blurhash} alt="" style={styles.image} />
+          <div {...stylex.props(styles.overlay)}>
+            <span {...stylex.props(styles.playBadge)}>
+              <Play size={18} fill="currentColor" />
+            </span>
           </div>
-        )}
-      </div>
-      <div {...stylex.props(styles.meta)}>
-        <span {...stylex.props(styles.title)}>{title}</span>
-        {subtitle && <span {...stylex.props(styles.subtitle)}>{subtitle}</span>}
-      </div>
-    </Link>
+          {unplayed ? <span {...stylex.props(styles.count)}>{unplayed}</span> : null}
+          {progress > 0 && (
+            <div {...stylex.props(styles.progressTrack)}>
+              <div {...stylex.props(styles.progressBar)} style={{ width: `${progress}%` }} />
+            </div>
+          )}
+        </m.div>
+        <div {...stylex.props(styles.meta)}>
+          <span {...stylex.props(styles.title)}>{title}</span>
+          {subtitle && <span {...stylex.props(styles.subtitle)}>{subtitle}</span>}
+        </div>
+      </Link>
+    </m.div>
   )
 }
 
 const styles = stylex.create({
+  root: {
+    flexShrink: 0,
+  },
   card: {
     display: 'flex',
     flexDirection: 'column',
     gap: space.sm,
-    flexShrink: 0,
+    width: '100%',
     outline: 'none',
     borderRadius: radii.xs,
   },
@@ -81,11 +105,7 @@ const styles = stylex.create({
       default: shadows.card,
       [stylex.when.ancestor(':hover')]: shadows.cardHover,
     },
-    transform: {
-      default: 'scale(1)',
-      [stylex.when.ancestor(':hover')]: 'scale(1.035)',
-    },
-    transitionProperty: 'transform, box-shadow',
+    transitionProperty: 'box-shadow',
     transitionDuration: motion.base,
     transitionTimingFunction: motion.ease,
     outlineStyle: {

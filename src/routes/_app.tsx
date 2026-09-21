@@ -2,6 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Check, LogOut, Search } from 'lucide-react'
+import { useRef } from 'react'
 import {
   Header,
   Menu,
@@ -13,6 +14,7 @@ import {
   Button as AriaButton,
 } from 'react-aria-components'
 import { getUserViewsOptions } from '@/api/gen/@tanstack/react-query.gen'
+import { useRouteGhost } from '@/hooks/useRouteGhost'
 import { useScrolled } from '@/hooks/useScrolled'
 import { useSession } from '@/hooks/useSession'
 import { useThemeId } from '@/hooks/useTheme'
@@ -32,11 +34,13 @@ export const Route = createFileRoute('/_app')({
 
 function AppLayout() {
   const session = useSession()
+  const page = useRef<HTMLElement>(null)
+  useRouteGhost(page)
   if (!session) return null
   return (
     <div {...stylex.props(styles.shell)}>
       <TopNav session={session} />
-      <main {...stylex.props(styles.main)}>
+      <main ref={page} {...stylex.props(styles.main)}>
         <Outlet />
       </main>
     </div>

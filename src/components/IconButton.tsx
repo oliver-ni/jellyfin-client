@@ -1,5 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
+import { animate, motion as m, useMotionValue } from 'motion/react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { ToggleButton, type ToggleButtonProps } from 'react-aria-components'
+import { springs } from '@/lib/motion'
 import { colors, motion, radii } from '@/theme/tokens.stylex'
 
 export interface IconToggleProps extends Omit<
@@ -16,12 +19,35 @@ export interface IconToggleProps extends Omit<
 export function IconToggle({ onMedia, children, ...props }: IconToggleProps) {
   return (
     <ToggleButton {...props} {...stylex.props(styles.base, onMedia ? styles.media : styles.plain)}>
-      {children}
+      {({ isSelected }) => <PopIcon selected={isSelected}>{children}</PopIcon>}
     </ToggleButton>
   )
 }
 
+/** Springs the icon from small to full size whenever `selected` flips. */
+function PopIcon({ selected, children }: { selected: boolean; children: ReactNode }) {
+  const scale = useMotionValue(1)
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true
+      return
+    }
+    const controls = animate(scale, [0.55, 1], springs.bouncy)
+    return () => controls.stop()
+  }, [selected, scale])
+  return (
+    <m.span style={{ scale }} {...stylex.props(styles.icon)}>
+      {children}
+    </m.span>
+  )
+}
+
 const styles = stylex.create({
+  icon: {
+    display: 'grid',
+    placeItems: 'center',
+  },
   base: {
     display: 'grid',
     placeItems: 'center',
