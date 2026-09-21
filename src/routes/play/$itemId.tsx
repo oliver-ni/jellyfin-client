@@ -1,16 +1,39 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
-import { Link, createFileRoute, redirect } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useRequiredSession } from '@/hooks/useSession'
+import { episodeCode } from '@/lib/format'
 import { itemQueries } from '@/lib/item-queries'
+import {
+  AUTO_QUALITY,
+  negotiatePlayback,
+  playbackQueries,
+  reportProgress,
+  reportStart,
+  reportStopped,
+  ticksToSeconds,
+  toNextItem,
+  toSegments,
+  trickplayThumbnailer,
+  type PlaybackSelection,
+  type PlaybackSession,
+} from '@/lib/playback'
 import { getSession } from '@/lib/session'
-import { colors, radii, space } from '@/theme/tokens.stylex'
+import { Player, type PlaybackSnapshot, type PlayerSource, type ProgressReason } from '@/player'
+import { fonts } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/play/$itemId')({
   beforeLoad: ({ location }) => {
     if (!getSession()) {
       throw redirect({ to: '/login', search: { redirect: location.href } })
+    }
+  },
+  loader: ({ context, params }) => {
+    const session = getSession()
+    if (session) {
+      void context.queryClient.prefetchQuery(itemQueries.item(session.userId, params.itemId))
     }
   },
   component: PlayPage,
@@ -20,51 +43,252 @@ function PlayPage() {
   const { itemId } = Route.useParams()
   const { userId } = useRequiredSession()
   const item = useQuery(itemQueries.item(userId, itemId))
+  const back = useBack(itemId)
+
+  if (item.isError) {
+    return <Fallback message="This title could not be loaded." onBack={back} />
+  }
+  if (!item.data) return <Fallback />
+  return <ItemPlayer key={itemId} item={item.data} userId={userId} onBack={back} />
+}
+
+function useBack(itemId: string) {
+  const router = useRouter()
+  const navigate = useNavigate()
+  return useCallback(() => {
+    if (router.history.canGoBack()) router.history.back()
+    else void navigate({ to: '/items/$itemId', params: { itemId }, replace: true })
+  }, [router, navigate, itemId])
+}
+
+interface ItemPlayerProps {
+  item: BaseItemDto
+  userId: string
+  onBack: () => void
+}
+
+function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
+  const itemId = item.Id ?? ''
+  const mediaSourceId = item.MediaSources?.[0]?.Id ?? undefined
+  const navigate = useNavigate()
+  const segments = useQuery(playbackQueries.segments(itemId))
+  const nextEpisode = useQuery({
+    ...playbackQueries.nextEpisode(userId, item),
+    enabled: Boolean(item.SeriesId),
+  })
+
+  // Server-side selection: changing any of these opens a new play session.
+  const [selection, setSelection] = useState<PlaybackSelection>(() => ({
+    audioIndex: null,
+    subtitleIndex: null,
+    qualityId: AUTO_QUALITY,
+    startTime: ticksToSeconds(item.UserData?.PlaybackPositionTicks),
+  }))
+  // Client-rendered subtitle choice; `undefined` defers to the server's default.
+  const [subtitleId, setSubtitleId] = useState<string | null | undefined>(undefined)
+  const [session, setSession] = useState<PlaybackSession | null>(null)
+  const [failure, setFailure] = useState<{ selection: PlaybackSelection; message: string } | null>(
+    null,
+  )
+  const error = failure?.selection === selection ? failure.message : null
+
+  useEffect(() => {
+    const controller = new AbortController()
+    negotiatePlayback(itemId, mediaSourceId, userId, selection, controller.signal)
+      .then((next) => {
+        if (!controller.signal.aborted) setSession(next)
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return
+        const message = err instanceof Error ? err.message : 'Playback could not be started.'
+        setFailure({ selection, message })
+      })
+    return () => controller.abort()
+  }, [itemId, mediaSourceId, userId, selection])
+
+  const source = useMemo<PlayerSource | null>(() => {
+    if (!session) return null
+    if (subtitleId === undefined) return session.source
+    return { ...session.source, subtitleTrackId: subtitleId }
+  }, [session, subtitleId])
+
+  // Reporting reads the session through a ref so unload of the previous session reports correctly.
+  const sessionRef = useRef<PlaybackSession | null>(null)
+  const startedFor = useRef<string | null>(null)
+  const lastSnapshot = useRef<PlaybackSnapshot | null>(null)
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+
+  const onProgress = useCallback(
+    (snap: PlaybackSnapshot, reason: ProgressReason) => {
+      const s = sessionRef.current
+      if (!s) return
+      lastSnapshot.current = snap
+      if (reason === 'unload') {
+        if (startedFor.current === s.playSessionId) {
+          startedFor.current = null
+          void reportStopped(s, itemId, snap)
+        }
+        return
+      }
+      if (startedFor.current !== s.playSessionId) {
+        startedFor.current = s.playSessionId
+        void reportStart(s, itemId, snap)
+        return
+      }
+      void reportProgress(s, itemId, snap)
+    },
+    [itemId],
+  )
+
+  // Closing the tab skips React cleanup; flush a final stop so the position sticks.
+  useEffect(() => {
+    const flush = () => {
+      const s = sessionRef.current
+      const snap = lastSnapshot.current
+      if (s && snap && startedFor.current === s.playSessionId) {
+        startedFor.current = null
+        void reportStopped(s, itemId, snap)
+      }
+    }
+    window.addEventListener('pagehide', flush)
+    return () => window.removeEventListener('pagehide', flush)
+  }, [itemId])
+
+  const renegotiate = useCallback((patch: Partial<PlaybackSelection>, snap: PlaybackSnapshot) => {
+    setSubtitleId(undefined)
+    setSelection((prev) => ({
+      ...prev,
+      subtitleIndex: snap.subtitleTrackId !== null ? Number(snap.subtitleTrackId) : -1,
+      ...patch,
+      startTime: snap.time,
+    }))
+  }, [])
+
+  const onAudioChange = useCallback(
+    (id: string, snap: PlaybackSnapshot) => renegotiate({ audioIndex: Number(id) }, snap),
+    [renegotiate],
+  )
+  const onQualityChange = useCallback(
+    (id: string, snap: PlaybackSnapshot) => renegotiate({ qualityId: id }, snap),
+    [renegotiate],
+  )
+  const onSubtitleChange = useCallback(
+    (id: string | null, snap: PlaybackSnapshot) => {
+      const tracks = sessionRef.current?.source.subtitleTracks ?? []
+      const kindOf = (trackId: string | null) => tracks.find((t) => t.id === trackId)?.kind
+      // Burned-in tracks (and leaving one) need the server to start a new stream.
+      if (kindOf(id) === 'source' || kindOf(snap.subtitleTrackId) === 'source') {
+        renegotiate({ subtitleIndex: id !== null ? Number(id) : -1 }, snap)
+      } else {
+        setSubtitleId(id)
+      }
+    },
+    [renegotiate],
+  )
+
+  const next = useMemo(() => toNextItem(nextEpisode.data), [nextEpisode.data])
+  const onNext = useCallback(() => {
+    const id = nextEpisode.data?.Id
+    if (id) void navigate({ to: '/play/$itemId', params: { itemId: id }, replace: true })
+  }, [navigate, nextEpisode.data?.Id])
+
+  const playerSegments = useMemo(
+    () => toSegments(segments.data ?? [], source?.duration, Boolean(next)),
+    [segments.data, source?.duration, next],
+  )
+  const thumbnailAt = useMemo(
+    () => (session ? trickplayThumbnailer(item, session.mediaSourceId) : undefined),
+    [item, session],
+  )
+
+  if (error) return <Fallback message={error} onBack={onBack} />
+  if (!source) return <Fallback />
+
+  const isEpisode = item.Type === 'Episode'
+  const title = isEpisode ? item.SeriesName : item.Name
+  const subtitle = isEpisode
+    ? [episodeCode(item), item.Name].filter(Boolean).join(' · ')
+    : item.ProductionYear
+      ? String(item.ProductionYear)
+      : undefined
 
   return (
     <div {...stylex.props(styles.page)}>
-      <Link to="/items/$itemId" params={{ itemId }} {...stylex.props(styles.back)}>
-        <ArrowLeft size={16} />
-        Back
-      </Link>
-      <p {...stylex.props(styles.title)}>{item.data?.Name ?? '\u00a0'}</p>
-      <p {...stylex.props(styles.muted)}>Player coming next.</p>
+      <Player
+        source={source}
+        title={title}
+        subtitle={subtitle}
+        segments={playerSegments}
+        next={next}
+        thumbnailAt={thumbnailAt}
+        onBack={onBack}
+        onNext={next ? onNext : undefined}
+        onAudioChange={onAudioChange}
+        onSubtitleChange={onSubtitleChange}
+        onQualityChange={onQualityChange}
+        onProgress={onProgress}
+        style={styles.player}
+      />
+    </div>
+  )
+}
+
+interface FallbackProps {
+  message?: string
+  onBack?: () => void
+}
+
+function Fallback({ message, onBack }: FallbackProps) {
+  return (
+    <div {...stylex.props(styles.page, styles.center)}>
+      {message && (
+        <>
+          <p {...stylex.props(styles.message)}>{message}</p>
+          {onBack && (
+            <button type="button" onClick={onBack} {...stylex.props(styles.backButton)}>
+              Go back
+            </button>
+          )}
+        </>
+      )}
     </div>
   )
 }
 
 const styles = stylex.create({
   page: {
-    minHeight: '100dvh',
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: '#000',
+    color: '#fff',
+  },
+  player: {
+    fontFamily: fonts.sans,
+  },
+  center: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: space.sm,
-    backgroundColor: '#000',
-    color: '#fff',
+    gap: 16,
+    fontFamily: fonts.sans,
   },
-  back: {
-    position: 'absolute',
-    top: space.lg,
-    left: space.lg,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: space.sm,
-    color: 'rgba(255,255,255,0.7)',
+  message: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.75)',
+  },
+  backButton: {
+    appearance: 'none',
+    borderWidth: 0,
+    borderRadius: 999,
+    paddingBlock: 10,
+    paddingInline: 20,
     fontSize: 14,
-    fontWeight: 500,
-    borderRadius: radii.sm,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 3,
-  },
-  title: {
-    fontSize: 20,
     fontWeight: 600,
-  },
-  muted: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#0a0a0c',
+    backgroundColor: '#fff',
+    cursor: 'pointer',
   },
 })

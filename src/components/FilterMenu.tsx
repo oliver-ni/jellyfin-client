@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { Check, ChevronDown } from 'lucide-react'
+import { CaretDown, Check } from '@phosphor-icons/react'
 import {
   Button as AriaButton,
   Menu,
@@ -10,6 +10,7 @@ import {
   type Key,
 } from 'react-aria-components'
 import { colors, radii, space } from '@/theme/tokens.stylex'
+import { glass, overlay } from '@/theme/glass'
 import { toolbarControl } from './toolbar-styles'
 
 export interface FilterMenuProps<K extends Key> {
@@ -32,14 +33,18 @@ export function FilterMenu<K extends Key>({
   return (
     <MenuTrigger>
       <AriaButton
-        {...stylex.props(toolbarControl.trigger, active && styles.triggerActive)}
+        {...stylex.props(glass.surface, toolbarControl.trigger)}
         data-selected={active || undefined}
       >
         {label}
         {active && <span {...stylex.props(styles.badge)}>{selected.length}</span>}
-        <ChevronDown size={14} {...stylex.props(styles.chevron)} />
+        <CaretDown size={14} {...stylex.props(styles.chevron)} />
       </AriaButton>
-      <Popover placement="bottom start" offset={6} {...stylex.props(toolbarControl.popover)}>
+      <Popover
+        placement="bottom start"
+        offset={6}
+        {...stylex.props(glass.panel, overlay.popover, toolbarControl.popover)}
+      >
         {options.length === 0 ? (
           <div {...stylex.props(styles.empty)}>{emptyMessage}</div>
         ) : (
@@ -58,7 +63,7 @@ export function FilterMenu<K extends Key>({
                 {({ isSelected }) => (
                   <>
                     <span {...stylex.props(toolbarControl.check)}>
-                      {isSelected && <Check size={14} />}
+                      {isSelected && <Check size={14} weight="bold" />}
                     </span>
                     {opt.label}
                   </>
@@ -89,7 +94,7 @@ export function FilterToggle({ children, selected, onChange }: FilterToggleProps
     <ToggleButton
       isSelected={selected}
       onChange={onChange}
-      {...stylex.props(toolbarControl.trigger, selected && styles.triggerActive)}
+      {...stylex.props(glass.surface, toolbarControl.trigger)}
     >
       {children}
     </ToggleButton>
@@ -97,10 +102,6 @@ export function FilterToggle({ children, selected, onChange }: FilterToggleProps
 }
 
 const styles = stylex.create({
-  triggerActive: {
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
   badge: {
     display: 'grid',
     placeItems: 'center',

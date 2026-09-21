@@ -1,14 +1,18 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
+import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
-/** Shared styles for compact toolbar dropdowns/chips and their popovers. */
+/**
+ * Shared styles for toolbar dropdowns/chips and their popovers. Compose `trigger` over
+ * `glass.surface` and `popover` over `glass.panel`; each control is its own capsule.
+ */
 export const toolbarControl = stylex.create({
   trigger: {
+    pointerEvents: 'auto',
     display: 'inline-flex',
     alignItems: 'center',
     gap: space.xs,
-    height: 32,
-    paddingInline: space.sm,
+    height: 36,
+    paddingInline: space.md,
     fontSize: 13,
     fontWeight: 500,
     color: {
@@ -18,32 +22,29 @@ export const toolbarControl = stylex.create({
       '[data-selected]': colors.text,
     },
     backgroundColor: {
-      default: 'transparent',
-      '[data-hovered]': colors.surface,
-      '[data-selected]': colors.surface,
+      default: colors.glass,
+      '[data-hovered]': colors.glassStrong,
+      '[data-pressed]': colors.glassStrong,
+      '[data-selected]': colors.glassStrong,
     },
-    borderRadius: radii.sm,
+    borderRadius: radii.full,
     borderWidth: 0,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
-    transitionProperty: 'color, background-color',
+    transitionProperty: 'color, background-color, transform',
     transitionDuration: motion.fast,
     transitionTimingFunction: motion.ease,
+    transform: { default: 'none', '[data-pressed]': 'scale(0.97)' },
     outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
     outlineWidth: 2,
     outlineColor: colors.focusRing,
-    outlineOffset: 1,
+    outlineOffset: 2,
   },
   popover: {
     minWidth: 180,
     maxHeight: 360,
     overflowY: 'auto',
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderStrong,
     borderRadius: radii.lg,
-    boxShadow: shadows.popover,
     padding: space.xs,
     outline: 'none',
   },

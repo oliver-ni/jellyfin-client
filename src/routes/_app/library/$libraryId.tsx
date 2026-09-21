@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { ArrowDown, ArrowUp } from 'lucide-react'
+import { ArrowDown, ArrowUp } from '@phosphor-icons/react'
 import { useCallback } from 'react'
 import { getItemOptions } from '@/api/gen/@tanstack/react-query.gen'
 import { Button } from '@/components/Button'
@@ -21,6 +21,7 @@ import {
   type LibrarySearch,
   type Order,
 } from '@/lib/library'
+import { glass } from '@/theme/glass'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/library/$libraryId')({
@@ -91,66 +92,62 @@ function LibraryPage() {
       </header>
 
       <div {...stylex.props(styles.toolbar)}>
-        <div {...stylex.props(styles.group)}>
-          <Select
-            label="Sort"
-            aria-label="Sort by"
-            value={sort.key}
-            options={SORT_CHOICES}
-            onChange={(key) => update({ sort: key, order: undefined })}
-          />
-          {sort.key !== 'random' && (
-            <button
-              type="button"
-              aria-label={
-                order === 'asc'
-                  ? 'Ascending, click for descending'
-                  : 'Descending, click for ascending'
-              }
-              onClick={() => update({ order: order === 'asc' ? 'desc' : 'asc' })}
-              {...stylex.props(styles.orderButton)}
-            >
-              {order === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-            </button>
-          )}
-        </div>
-        <span {...stylex.props(styles.divider)} />
-        <div {...stylex.props(styles.group)}>
-          <FilterMenu
-            label="Genre"
-            options={genres}
-            selected={search.genre ?? []}
-            onChange={(genre) => update({ genre })}
-          />
-          <FilterMenu
-            label="Year"
-            options={years}
-            selected={search.year ?? []}
-            onChange={(year) => update({ year })}
-          />
-          <FilterToggle selected={!!search.unplayed} onChange={(v) => update({ unplayed: v })}>
-            Unplayed
-          </FilterToggle>
-          <FilterToggle selected={!!search.favorite} onChange={(v) => update({ favorite: v })}>
-            Favorites
-          </FilterToggle>
-          {filterCount > 0 && (
-            <button
-              type="button"
-              onClick={() =>
-                update({
-                  genre: undefined,
-                  year: undefined,
-                  unplayed: undefined,
-                  favorite: undefined,
-                })
-              }
-              {...stylex.props(styles.clear)}
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
+        <Select
+          label="Sort"
+          aria-label="Sort by"
+          value={sort.key}
+          options={SORT_CHOICES}
+          onChange={(key) => update({ sort: key, order: undefined })}
+        />
+        {sort.key !== 'random' && (
+          <button
+            type="button"
+            aria-label={
+              order === 'asc'
+                ? 'Ascending, click for descending'
+                : 'Descending, click for ascending'
+            }
+            onClick={() => update({ order: order === 'asc' ? 'desc' : 'asc' })}
+            {...stylex.props(glass.surface, styles.orderButton)}
+          >
+            {order === 'asc' ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
+          </button>
+        )}
+        <span {...stylex.props(styles.gap)} />
+        <FilterMenu
+          label="Genre"
+          options={genres}
+          selected={search.genre ?? []}
+          onChange={(genre) => update({ genre })}
+        />
+        <FilterMenu
+          label="Year"
+          options={years}
+          selected={search.year ?? []}
+          onChange={(year) => update({ year })}
+        />
+        <FilterToggle selected={!!search.unplayed} onChange={(v) => update({ unplayed: v })}>
+          Unplayed
+        </FilterToggle>
+        <FilterToggle selected={!!search.favorite} onChange={(v) => update({ favorite: v })}>
+          Favorites
+        </FilterToggle>
+        {filterCount > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              update({
+                genre: undefined,
+                year: undefined,
+                unplayed: undefined,
+                favorite: undefined,
+              })
+            }
+            {...stylex.props(styles.clear)}
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {items.isError ? (
@@ -217,48 +214,38 @@ const styles = stylex.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: space.xs,
-    marginInline: `calc(-1 * ${space.sm})`,
-    paddingInline: space.sm,
-    paddingBlock: space.sm,
-    backgroundColor: colors.bg,
-    borderBottomWidth: 1,
-    borderBottomStyle: 'solid',
-    borderBottomColor: colors.border,
+    pointerEvents: 'none',
   },
-  group: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: space.xxs,
-  },
-  divider: {
-    width: 1,
-    height: 18,
-    marginInline: space.sm,
-    backgroundColor: colors.border,
+  gap: {
+    width: space.sm,
   },
   orderButton: {
+    pointerEvents: 'auto',
     display: 'grid',
     placeItems: 'center',
-    width: 28,
-    height: 28,
+    width: 36,
+    height: 36,
     color: {
       default: colors.textMuted,
       ':hover': colors.text,
     },
     backgroundColor: {
-      default: 'transparent',
-      ':hover': colors.surface,
+      default: colors.glass,
+      ':hover': colors.glassStrong,
     },
-    borderRadius: radii.sm,
+    borderRadius: radii.full,
     cursor: 'pointer',
-    transitionProperty: 'color, background-color',
+    transitionProperty: 'color, background-color, transform',
     transitionDuration: motion.fast,
+    transform: { default: 'none', ':active': 'scale(0.97)' },
     outlineStyle: { default: 'none', ':focus-visible': 'solid' },
     outlineWidth: 2,
     outlineColor: colors.focusRing,
+    outlineOffset: 2,
   },
   clear: {
-    height: 32,
+    pointerEvents: 'auto',
+    height: 36,
     paddingInline: space.sm,
     fontSize: 13,
     fontWeight: 500,

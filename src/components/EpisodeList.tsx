@@ -1,37 +1,72 @@
 import * as stylex from '@stylexjs/stylex'
 import { createLink, Link } from '@tanstack/react-router'
-import { Check, Play } from 'lucide-react'
-import { motion as m } from 'motion/react'
-import { useRef } from 'react'
+import { Check, Heart, Play } from '@phosphor-icons/react'
+import { AnimatePresence, motion as m } from 'motion/react'
+import { useLayoutEffect, useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useMorphTarget } from '@/hooks/useMorphTarget'
-import { formatDate, formatRuntime, plainText } from '@/lib/format'
+import { useUserDataToggles } from '@/hooks/useUserDataToggles'
+import {
+  audioStreamLabel,
+  formatDate,
+  formatRuntime,
+  languageName,
+  plainText,
+  remainingMinutes,
+  unique,
+  videoStreamLabel,
+} from '@/lib/format'
 import { landscapeImage } from '@/lib/images'
-import { fadeUp, rectOf, setMorphSource, stagger } from '@/lib/motion'
+import { fadeUp, springs, stagger } from '@/lib/motion'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
+import { IconToggle } from './IconButton'
 
 export interface EpisodeListProps {
   episodes: readonly BaseItemDto[]
-  /** Episode to visually highlight (the one whose page we're on). */
-  currentId?: string
+  userId: string
+  seriesId: string
+  seasonId: string
+  /** Episode whose details are open in place. */
+  expandedId?: string
 }
 
 const STILL_WIDTH = 224
 
 const MotionLink = createLink(m.a)
 
-export function EpisodeList({ episodes, currentId }: EpisodeListProps) {
+export function EpisodeList({
+  episodes,
+  userId,
+  seriesId,
+  seasonId,
+  expandedId,
+}: EpisodeListProps) {
   return (
     <m.ol initial="hidden" animate="show" variants={stagger(0.035)} {...stylex.props(styles.list)}>
       {episodes.map((ep) => (
-        <EpisodeRow key={ep.Id} episode={ep} current={ep.Id === currentId} />
+        <EpisodeRow
+          key={ep.Id}
+          episode={ep}
+          userId={userId}
+          seriesId={seriesId}
+          seasonId={seasonId}
+          expanded={ep.Id === expandedId}
+        />
       ))}
     </m.ol>
   )
 }
 
-function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boolean }) {
+interface EpisodeRowProps {
+  episode: BaseItemDto
+  userId: string
+  seriesId: string
+  seasonId: string
+  expanded: boolean
+}
+
+function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRowProps) {
   const id = episode.Id ?? ''
   const still = landscapeImage(episode, STILL_WIDTH * 2)
   const progress = episode.UserData?.PlayedPercentage ?? 0
@@ -40,24 +75,28 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
   const sub = [formatRuntime(episode.RunTimeTicks), formatDate(episode.PremiereDate)]
     .filter(Boolean)
     .join('  ·  ')
+  const rowRef = useRef<HTMLLIElement>(null)
   const stillRef = useRef<HTMLAnchorElement>(null)
-  const morph = useMorphTarget(id, 'landscape', stillRef)
 
-  function handOffStill() {
-    if (!id || !stillRef.current) return
-    setMorphSource({
-      itemId: id,
-      shape: 'landscape',
-      rect: rectOf(stillRef.current),
-      src: still?.url ?? null,
+  // Opened from a deep link (Continue watching, search, an old episode URL): bring it into
+  // view a frame later, after the router's scroll reset. Registered before the morph target so
+  // the still is measured where it ends up.
+  const openedOnMount = useRef(expanded)
+  useLayoutEffect(() => {
+    if (!openedOnMount.current) return
+    const frame = requestAnimationFrame(() => {
+      rowRef.current?.scrollIntoView({ block: 'center', behavior: 'instant' })
     })
-  }
+    return () => cancelAnimationFrame(frame)
+  }, [])
+  const morph = useMorphTarget(id, 'landscape', stillRef)
 
   return (
     <m.li
+      ref={rowRef}
       variants={fadeUp}
       initial={morph.morphing ? false : undefined}
-      {...stylex.props(styles.row, current && styles.rowCurrent, stylex.defaultMarker())}
+      {...stylex.props(styles.row, expanded && styles.rowExpanded, stylex.defaultMarker())}
     >
       <MotionLink
         ref={stillRef}
@@ -71,12 +110,12 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
         <BlurImage src={still?.url} blurhash={still?.blurhash} alt="" style={styles.image} />
         <span {...stylex.props(styles.stillOverlay)}>
           <span {...stylex.props(styles.playBadge)}>
-            <Play size={18} fill="currentColor" />
+            <Play size={18} weight="fill" />
           </span>
         </span>
         {played && !progress && (
           <span {...stylex.props(styles.playedBadge)}>
-            <Check size={12} strokeWidth={3} />
+            <Check size={12} weight="bold" />
           </span>
         )}
         {progress > 0 && (
@@ -88,17 +127,88 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
       <div {...stylex.props(styles.body)}>
         <Link
           to="/items/$itemId"
-          params={{ itemId: id }}
-          onClick={handOffStill}
+          params={{ itemId: seriesId }}
+          search={{ season: seasonId, episode: expanded ? undefined : id }}
+          replace
+          resetScroll={false}
+          aria-expanded={expanded}
           {...stylex.props(styles.titleLink)}
         >
           <span {...stylex.props(styles.number)}>{episode.IndexNumber ?? '–'}</span>
           <span {...stylex.props(styles.title, played && styles.titlePlayed)}>{episode.Name}</span>
         </Link>
         {sub && <p {...stylex.props(styles.sub)}>{sub}</p>}
-        {overview && <p {...stylex.props(styles.overview)}>{overview}</p>}
+        {overview && (
+          <p {...stylex.props(styles.overview, !expanded && styles.overviewClamped)}>{overview}</p>
+        )}
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <m.div
+              key="details"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={springs.gentle}
+              {...stylex.props(styles.details)}
+            >
+              <EpisodeDetails episode={episode} userId={userId} />
+            </m.div>
+          )}
+        </AnimatePresence>
       </div>
     </m.li>
+  )
+}
+
+function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: string }) {
+  const id = episode.Id ?? ''
+  const toggles = useUserDataToggles(userId, episode)
+  const remaining = remainingMinutes(episode)
+  const streams = episode.MediaStreams ?? []
+  const video = streams.find((s) => s.Type === 'Video')
+  const audio = unique(streams.filter((s) => s.Type === 'Audio').map(audioStreamLabel))
+  const subs = unique(
+    streams.filter((s) => s.Type === 'Subtitle').map((s) => languageName(s.Language) ?? s.Title),
+  )
+  const facts = [
+    video ? videoStreamLabel(video) : null,
+    audio.length ? audio.join(', ') : null,
+    subs.length ? `Subtitles: ${subs.join(', ')}` : null,
+  ].filter(Boolean)
+
+  return (
+    <div {...stylex.props(styles.detailsInner)}>
+      <div {...stylex.props(styles.actions)}>
+        <Link to="/play/$itemId" params={{ itemId: id }} {...stylex.props(styles.play)}>
+          <Play size={16} weight="fill" />
+          {remaining ? `Resume · ${remaining} min left` : 'Play'}
+        </Link>
+        <IconToggle
+          aria-label={toggles.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          isSelected={toggles.isFavorite}
+          onChange={toggles.toggleFavorite}
+        >
+          <Heart size={16} weight={toggles.isFavorite ? 'fill' : 'regular'} />
+        </IconToggle>
+        <IconToggle
+          aria-label={toggles.isPlayed ? 'Mark as unwatched' : 'Mark as watched'}
+          isSelected={toggles.isPlayed}
+          onChange={toggles.togglePlayed}
+        >
+          <Check size={16} weight="bold" />
+        </IconToggle>
+      </div>
+      {facts.length > 0 && (
+        <p {...stylex.props(styles.facts)}>
+          {facts.map((f, i) => (
+            <span key={i}>
+              {i > 0 && <span {...stylex.props(styles.dot)}>·</span>}
+              {f}
+            </span>
+          ))}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -132,7 +242,7 @@ const styles = stylex.create({
     transitionProperty: 'background-color',
     transitionDuration: motion.fast,
   },
-  rowCurrent: {
+  rowExpanded: {
     backgroundColor: colors.surface,
   },
   still: {
@@ -248,10 +358,64 @@ const styles = stylex.create({
     fontSize: 14,
     lineHeight: 1.5,
     color: colors.textMuted,
+    marginTop: space.xs,
+    whiteSpace: 'pre-line',
+  },
+  overviewClamped: {
     display: '-webkit-box',
     WebkitBoxOrient: 'vertical',
     WebkitLineClamp: 2,
     overflow: 'hidden',
-    marginTop: space.xs,
+    whiteSpace: 'normal',
+  },
+  details: {
+    overflow: 'hidden',
+  },
+  detailsInner: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: space.sm,
+    paddingTop: space.md,
+  },
+  actions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  play: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: space.sm,
+    height: 36,
+    paddingInline: space.lg,
+    borderRadius: radii.full,
+    fontSize: 14,
+    fontWeight: 600,
+    color: colors.accentText,
+    backgroundColor: {
+      default: colors.accent,
+      ':hover': colors.accentHover,
+    },
+    transitionProperty: 'background-color, transform',
+    transitionDuration: motion.fast,
+    transitionTimingFunction: motion.ease,
+    transform: {
+      default: 'none',
+      ':active': 'scale(0.98)',
+    },
+    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
+    outlineWidth: 2,
+    outlineColor: colors.focusRing,
+    outlineOffset: 3,
+  },
+  facts: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    fontSize: 13,
+    color: colors.textFaint,
+  },
+  dot: {
+    marginInline: space.sm,
+    opacity: 0.5,
   },
 })

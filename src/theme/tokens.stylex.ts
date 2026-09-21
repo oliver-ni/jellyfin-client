@@ -31,8 +31,11 @@ export const colors = stylex.defineVars({
   success: '#4ade80',
 
   scrim: 'rgba(0, 0, 0, 0.45)',
-  navBg: 'rgba(10, 10, 12, 0.7)',
-  navScrim: 'rgba(0, 0, 0, 0.5)',
+  glass: 'rgba(22, 22, 26, 0.62)',
+  glassStrong: 'rgba(22, 22, 26, 0.78)',
+  glassRim: 'rgba(255, 255, 255, 0.1)',
+  glassHighlight: 'rgba(255, 255, 255, 0.16)',
+  glassShadow: 'rgba(0, 0, 0, 0.35)',
   glow: 'rgba(255, 255, 255, 0.06)',
   skeleton: 'rgba(255, 255, 255, 0.06)',
   heroText: '#ffffff',
@@ -69,7 +72,8 @@ export const space = stylex.defineVars({
 })
 
 export const sizes = stylex.defineVars({
-  navHeight: '60px',
+  navHeight: '64px',
+  navControl: '40px',
   pageGutter: '48px',
   pageGutterMobile: '16px',
   maxContent: '1720px',

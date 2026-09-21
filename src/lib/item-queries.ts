@@ -7,7 +7,7 @@ import {
 import type { ImageType, ItemFields } from '@/api/gen/types.gen'
 import { CARD_FIELDS } from './home-queries'
 
-const EPISODE_FIELDS: ItemFields[] = [...CARD_FIELDS, 'Overview']
+const EPISODE_FIELDS: ItemFields[] = [...CARD_FIELDS, 'Overview', 'MediaStreams']
 const EPISODE_IMAGES: ImageType[] = ['Primary']
 
 export const itemQueries = {

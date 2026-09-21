@@ -1,13 +1,13 @@
 import * as stylex from '@stylexjs/stylex'
-import { ArrowUpRight } from 'lucide-react'
-import type { BaseItemDto, MediaStream } from '@/api/gen/types.gen'
+import { ArrowUpRight } from '@phosphor-icons/react'
+import type { BaseItemDto } from '@/api/gen/types.gen'
 import {
-  channelLabel,
-  codecLabel,
+  audioStreamLabel,
   formatDate,
   formatRuntime,
   languageName,
-  resolutionLabel,
+  unique,
+  videoStreamLabel,
 } from '@/lib/format'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
@@ -16,30 +16,12 @@ interface Fact {
   value: React.ReactNode
 }
 
-function unique<T>(xs: readonly (T | null | undefined)[]): T[] {
-  return [...new Set(xs.filter((x): x is T => x != null))]
-}
-
-function videoLabel(s: MediaStream): string {
-  const parts = [resolutionLabel(s.Width, s.Height), codecLabel(s.Codec)]
-  if (s.VideoRangeType && s.VideoRangeType !== 'SDR' && s.VideoRangeType !== 'Unknown') {
-    parts.push(s.VideoRangeType.replace('DOVI', 'Dolby Vision'))
-  }
-  return parts.filter(Boolean).join(' · ')
-}
-
-function audioLabel(s: MediaStream): string {
-  return [languageName(s.Language), codecLabel(s.Codec), channelLabel(s.Channels, s.ChannelLayout)]
-    .filter(Boolean)
-    .join(' · ')
-}
-
 function facts(item: BaseItemDto): Fact[] {
   const people = item.People ?? []
   const names = (type: string) => unique(people.filter((p) => p.Type === type).map((p) => p.Name))
   const streams = item.MediaStreams ?? []
   const video = streams.find((s) => s.Type === 'Video')
-  const audio = unique(streams.filter((s) => s.Type === 'Audio').map(audioLabel))
+  const audio = unique(streams.filter((s) => s.Type === 'Audio').map(audioStreamLabel))
   const subs = unique(
     streams.filter((s) => s.Type === 'Subtitle').map((s) => languageName(s.Language) ?? s.Title),
   )
@@ -51,11 +33,11 @@ function facts(item: BaseItemDto): Fact[] {
     list('Studio', unique((item.Studios ?? []).map((s) => s.Name))),
     item.PremiereDate ? { label: dateLabel(item), value: formatDate(item.PremiereDate) } : null,
     item.Type === 'Series' && item.Status ? { label: 'Status', value: item.Status } : null,
-    item.RunTimeTicks && item.Type !== 'Series' && item.Type !== 'Season'
+    item.RunTimeTicks && item.Type !== 'Series'
       ? { label: 'Runtime', value: formatRuntime(item.RunTimeTicks) }
       : null,
     item.OfficialRating ? { label: 'Rated', value: item.OfficialRating } : null,
-    video ? { label: 'Video', value: videoLabel(video) } : null,
+    video ? { label: 'Video', value: videoStreamLabel(video) } : null,
     list('Audio', audio, true),
     list('Subtitles', subs),
     item.ExternalUrls && item.ExternalUrls.length > 0
@@ -87,7 +69,6 @@ function facts(item: BaseItemDto): Fact[] {
 
 function dateLabel(item: BaseItemDto): string {
   if (item.Type === 'Series') return 'First aired'
-  if (item.Type === 'Season' || item.Type === 'Episode') return 'Aired'
   return 'Released'
 }
 
@@ -131,16 +112,15 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.xxs,
-    paddingBlock: space.md,
-    borderTopWidth: 1,
+    paddingTop: { default: space.md, ':first-child': 0 },
+    paddingBottom: space.md,
+    borderTopWidth: { default: 1, ':first-child': 0 },
     borderTopStyle: 'solid',
     borderTopColor: colors.border,
   },
   label: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
+    fontSize: 13,
+    fontWeight: 500,
     color: colors.textFaint,
   },
   value: {

@@ -1,6 +1,49 @@
+import { useRouter } from '@tanstack/react-router'
 import { useMotionValue } from 'motion/react'
-import { useLayoutEffect, useState, type RefObject } from 'react'
-import { concealMorphOrigin, flyMorph, takeMorphSource, type MorphShape } from '@/lib/motion'
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import {
+  concealMorphOrigin,
+  flyMorph,
+  rectOf,
+  setMorphSource,
+  takeMorphSource,
+  type MorphShape,
+} from '@/lib/motion'
+
+/**
+ * Lets a card hand its rect to the page that replaces it whenever that page is this item's,
+ * whether the card was clicked or the route arrived via history, so forward and back
+ * navigations morph alike. Measured before the navigation commits, while the card is still
+ * where the user sees it.
+ */
+export function useMorphHandoff(
+  itemId: string | undefined,
+  shape: MorphShape,
+  ref: RefObject<HTMLElement | null>,
+  src: string | null | undefined,
+) {
+  const router = useRouter()
+  const latest = useRef({ itemId, shape, src })
+  useEffect(() => {
+    latest.current = { itemId, shape, src }
+  }, [itemId, shape, src])
+  useEffect(
+    () =>
+      router.subscribe('onBeforeNavigate', ({ toLocation }) => {
+        const { itemId, shape, src } = latest.current
+        const el = ref.current
+        if (!el || !itemId) return
+        const { pathname, search } = toLocation
+        const opensThisItem =
+          pathname === `/items/${itemId}` || ('episode' in search && search.episode === itemId)
+        if (!opensThisItem) return
+        const rect = rectOf(el)
+        if (rect.width === 0) return
+        setMorphSource({ itemId, shape, rect, src: src ?? null })
+      }),
+    [ref, router],
+  )
+}
 
 /**
  * Lets a card receive the shared-element handoff from the page that navigated here (the

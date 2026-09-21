@@ -1,12 +1,12 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
-import { Check, Heart, Play, Star } from 'lucide-react'
-import { motion as m, useMotionValue } from 'motion/react'
+import { Check, Heart, Play, Star } from '@phosphor-icons/react'
+import { motion as m } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
-import { episodeCode, formatRuntime, remainingMinutes } from '@/lib/format'
-import { backdropImage, itemImage, landscapeImage, logoImage } from '@/lib/images'
+import { formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
+import { backdropImage, itemImage, logoImage } from '@/lib/images'
 import {
   concealMorphOrigin,
   fadeUp,
@@ -20,90 +20,48 @@ import {
 import { colors, motion, radii, shadows, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 import { IconToggle } from './IconButton'
-import type { CardShape } from './ItemCard'
 
-const TILE_POSTER_W = 190
-const TILE_LANDSCAPE_W = 320
+const TILE_W = 190
 
 export interface DetailHeroProps {
   item: BaseItemDto
   userId: string
 }
 
-interface Crumb {
-  id: string
-  label: string
-}
-
-function crumbs(item: BaseItemDto): Crumb[] {
-  const out: Crumb[] = []
-  if ((item.Type === 'Season' || item.Type === 'Episode') && item.SeriesId && item.SeriesName) {
-    out.push({ id: item.SeriesId, label: item.SeriesName })
-  }
-  if (item.Type === 'Episode' && item.SeasonId && item.SeasonName) {
-    out.push({ id: item.SeasonId, label: item.SeasonName })
-  }
-  return out
-}
-
-function kindLabel(item: BaseItemDto): string | null {
-  switch (item.Type) {
-    case 'Movie':
-      return 'Film'
-    case 'Series':
-      return 'Series'
-    case 'Season':
-      return 'Season'
-    case 'Episode':
-      return episodeCode(item)
-    default:
-      return null
-  }
-}
-
 export function DetailHero({ item, userId }: DetailHeroProps) {
   const backdrop = backdropImage(item, 1920)
-  const useLogo = item.Type === 'Movie' || item.Type === 'Series'
-  const logo = useLogo ? logoImage(item, 800) : null
+  const logo = logoImage(item, 800)
   const remaining = remainingMinutes(item)
   const itemId = item.Id ?? ''
   const toggles = useUserDataToggles(userId, item)
-  const trail = crumbs(item)
 
-  const tileShape: CardShape = item.Type === 'Episode' ? 'landscape' : 'poster'
-  const tile =
-    tileShape === 'landscape'
-      ? landscapeImage(item, TILE_LANDSCAPE_W * 2)
-      : itemImage(item, 'Primary', { width: TILE_POSTER_W * 2 })
-  // Consumed once on mount: the card that navigated here, if its shape matches this tile.
-  const [morph] = useState(() => takeMorphSource(itemId, tileShape))
+  const tile = itemImage(item, 'Primary', { width: TILE_W * 2 })
+  // Consumed once on mount: the card that navigated here, if it was a poster.
+  const [morph] = useState(() => takeMorphSource(itemId, 'poster'))
   const tileRef = useRef<HTMLDivElement>(null)
-  const tileX = useMotionValue(0)
-  const tileY = useMotionValue(0)
-  const tileScaleX = useMotionValue(1)
-  const tileScaleY = useMotionValue(1)
   useLayoutEffect(() => {
-    if (!morph || !tileRef.current) return
+    const el = tileRef.current
+    if (!morph || !el) return
     // Match the scroll reset the router is about to do so the measurement is final.
     window.scrollTo(0, 0)
     concealMorphOrigin(morph)
-    const to = rectOf(tileRef.current)
-    return playMorph({ x: tileX, y: tileY, scaleX: tileScaleX, scaleY: tileScaleY }, morph.rect, to)
-  }, [morph, tileX, tileY, tileScaleX, tileScaleY])
+    const controls = playMorph(el, morph.rect, rectOf(el))
+    return () => controls.stop()
+  }, [morph])
   // On the way out, offer the tile to whichever card the next page shows for this item.
   const tileSrc = tile?.url ?? null
-  const handBack = useRef({ itemId, tileShape, src: tileSrc })
+  const handBack = useRef({ itemId, src: tileSrc })
   useEffect(() => {
-    handBack.current = { itemId, tileShape, src: tileSrc }
-  }, [itemId, tileShape, tileSrc])
+    handBack.current = { itemId, src: tileSrc }
+  }, [itemId, tileSrc])
   useLayoutEffect(() => {
     const el = tileRef.current
     return () => {
-      const { itemId, tileShape, src } = handBack.current
+      const { itemId, src } = handBack.current
       if (!el?.isConnected || !itemId) return
       const rect = rectOf(el)
       if (rect.width === 0) return
-      setMorphSource({ itemId, shape: tileShape, rect, src })
+      setMorphSource({ itemId, shape: 'poster', rect, src })
     }
   }, [])
   // While morphing, sit above the outgoing page's fading ghost instead of under it.
@@ -124,31 +82,23 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
       : item.ProductionYear
 
   const meta: React.ReactNode[] = [
-    kindLabel(item),
+    itemKindLabel(item),
     years,
     item.OfficialRating,
     item.Type === 'Series'
       ? item.ChildCount
         ? `${item.ChildCount} ${item.ChildCount === 1 ? 'season' : 'seasons'}`
         : null
-      : item.Type === 'Season'
-        ? item.ChildCount
-          ? `${item.ChildCount} episodes`
-          : null
-        : formatRuntime(item.RunTimeTicks),
+      : formatRuntime(item.RunTimeTicks),
     item.CommunityRating ? (
       <span key="rating" {...stylex.props(styles.rating)}>
-        <Star size={12} fill="currentColor" />
+        <Star size={12} weight="fill" />
         {item.CommunityRating.toFixed(1)}
       </span>
     ) : null,
   ].filter(Boolean)
 
-  const canPlay =
-    item.Type === 'Movie' ||
-    item.Type === 'Episode' ||
-    item.Type === 'Series' ||
-    item.Type === 'Season'
+  const canPlay = item.Type === 'Movie' || item.Type === 'Series'
 
   return (
     <section {...stylex.props(styles.hero)}>
@@ -171,21 +121,10 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
             ref={tileRef}
             data-morph={itemId}
             initial={morph ? false : 'hidden'}
-            animate="show"
-            variants={pop}
-            style={{
-              x: tileX,
-              y: tileY,
-              scaleX: tileScaleX,
-              scaleY: tileScaleY,
-              originX: 0,
-              originY: 0,
-              zIndex: elevated ? 45 : undefined,
-            }}
-            {...stylex.props(
-              styles.tile,
-              tileShape === 'landscape' ? styles.tileLandscape : styles.tilePoster,
-            )}
+            animate={morph ? undefined : 'show'}
+            variants={morph ? undefined : pop}
+            style={{ zIndex: elevated ? 45 : undefined }}
+            {...stylex.props(styles.tile)}
           >
             <BlurImage
               src={tile.url}
@@ -203,22 +142,6 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
           variants={stagger(0.05, 0.05)}
           {...stylex.props(styles.text)}
         >
-          {trail.length > 0 && (
-            <m.nav variants={fadeUp} {...stylex.props(styles.trail)} aria-label="Breadcrumb">
-              {trail.map((c, i) => (
-                <span key={c.id} {...stylex.props(styles.trailItem)}>
-                  {i > 0 && <span {...stylex.props(styles.trailSep)}>/</span>}
-                  <Link
-                    to="/items/$itemId"
-                    params={{ itemId: c.id }}
-                    {...stylex.props(styles.trailLink)}
-                  >
-                    {c.label}
-                  </Link>
-                </span>
-              ))}
-            </m.nav>
-          )}
           {logo ? (
             <m.img
               variants={fadeUp}
@@ -255,7 +178,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
           <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
             {canPlay && (
               <Link to="/play/$itemId" params={{ itemId }} {...stylex.props(styles.play)}>
-                <Play size={18} fill="currentColor" />
+                <Play size={18} weight="fill" />
                 {remaining ? `Resume · ${remaining} min left` : 'Play'}
               </Link>
             )}
@@ -265,7 +188,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
               isSelected={toggles.isFavorite}
               onChange={toggles.toggleFavorite}
             >
-              <Heart size={18} fill={toggles.isFavorite ? 'currentColor' : 'none'} />
+              <Heart size={18} weight={toggles.isFavorite ? 'fill' : 'regular'} />
             </IconToggle>
             <IconToggle
               onMedia
@@ -273,7 +196,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
               isSelected={toggles.isPlayed}
               onChange={toggles.togglePlayed}
             >
-              <Check size={18} strokeWidth={2.5} />
+              <Check size={18} weight="bold" />
             </IconToggle>
           </m.div>
         </m.div>
@@ -335,14 +258,8 @@ const styles = stylex.create({
     borderRadius: radii.xs,
     overflow: 'hidden',
     boxShadow: shadows.cardHover,
-  },
-  tilePoster: {
-    width: TILE_POSTER_W,
+    width: TILE_W,
     aspectRatio: '2 / 3',
-  },
-  tileLandscape: {
-    width: TILE_LANDSCAPE_W,
-    aspectRatio: '16 / 9',
   },
   tileImage: {
     position: 'absolute',
@@ -357,37 +274,6 @@ const styles = stylex.create({
     gap: space.md,
     minWidth: 0,
     maxWidth: 720,
-  },
-  trail: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    fontSize: 13,
-    fontWeight: 600,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: colors.heroTextMuted,
-  },
-  trailItem: {
-    display: 'inline-flex',
-    alignItems: 'center',
-  },
-  trailSep: {
-    marginInline: space.sm,
-    opacity: 0.5,
-  },
-  trailLink: {
-    color: {
-      default: colors.heroTextMuted,
-      ':hover': colors.heroText,
-    },
-    borderRadius: radii.xs,
-    transitionProperty: 'color',
-    transitionDuration: motion.fast,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 3,
   },
   logo: {
     maxWidth: 'min(460px, 75%)',

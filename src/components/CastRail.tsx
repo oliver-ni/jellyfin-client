@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { User } from 'lucide-react'
+import { User } from '@phosphor-icons/react'
 import type { BaseItemPerson } from '@/api/gen/types.gen'
 import { imageUrl } from '@/lib/images'
 import { colors, radii, space } from '@/theme/tokens.stylex'

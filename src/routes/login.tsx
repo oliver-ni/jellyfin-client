@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
 import { Form } from 'react-aria-components'
 import { Button } from '@/components/Button'

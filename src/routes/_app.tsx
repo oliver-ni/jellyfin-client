@@ -1,8 +1,9 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { Check, LogOut, Search } from 'lucide-react'
-import { useRef } from 'react'
+import { Check, MagnifyingGlass, SignOut } from '@phosphor-icons/react'
+import { motion as m } from 'motion/react'
+import { useRef, type ReactNode } from 'react'
 import {
   Header,
   Menu,
@@ -15,13 +16,15 @@ import {
 } from 'react-aria-components'
 import { getUserViewsOptions } from '@/api/gen/@tanstack/react-query.gen'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
-import { useScrolled } from '@/hooks/useScrolled'
 import { useSession } from '@/hooks/useSession'
 import { useThemeId } from '@/hooks/useTheme'
 import { logout } from '@/lib/auth'
+import { springs } from '@/lib/motion'
 import { getSession, type Session } from '@/lib/session'
 import { THEMES, setThemeId, type ThemeId } from '@/lib/theme'
-import { colors, motion, radii, shadows, sizes, space } from '@/theme/tokens.stylex'
+import { brandMark } from '@/brand'
+import { glass, overlay } from '@/theme/glass'
+import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: ({ location }) => {
@@ -49,108 +52,121 @@ function AppLayout() {
 
 function TopNav({ session }: { session: Session }) {
   const navigate = useNavigate()
-  const scrolled = useScrolled()
   const themeId = useThemeId()
   const views = useQuery(getUserViewsOptions({ query: { userId: session.userId } }))
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
 
   return (
-    <header {...stylex.props(styles.nav, scrolled && styles.navScrolled)}>
-      <div {...stylex.props(styles.navInner)}>
-        <nav {...stylex.props(styles.links)}>
-          <Link to="/" {...stylex.props(styles.brand)} activeOptions={{ exact: true }}>
-            <span {...stylex.props(styles.brandMark)} />
-            <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
-          </Link>
-          <Link
-            to="/"
-            activeOptions={{ exact: true }}
-            {...stylex.props(styles.link)}
-            activeProps={{ className: stylex.props(styles.link, styles.linkActive).className }}
+    <header {...stylex.props(styles.nav)}>
+      <Link to="/" aria-label={session.serverName} {...stylex.props(glass.surface, styles.brand)}>
+        <span aria-hidden="true">{brandMark}</span>
+      </Link>
+      <nav aria-label="Libraries" {...stylex.props(glass.surface, styles.links)}>
+        <NavLink to="/">Home</NavLink>
+        {libraries.map((lib) => (
+          <NavLink key={lib.Id} to="/library/$libraryId" libraryId={lib.Id ?? ''}>
+            {lib.Name}
+          </NavLink>
+        ))}
+      </nav>
+      <div {...stylex.props(styles.right)}>
+        <button type="button" aria-label="Search" {...stylex.props(glass.surface, styles.search)}>
+          <MagnifyingGlass size={16} />
+          <span {...stylex.props(styles.searchLabel)}>Search</span>
+          <kbd {...stylex.props(styles.kbd)}>/</kbd>
+        </button>
+        <MenuTrigger>
+          <AriaButton aria-label="Account" {...stylex.props(glass.surface, styles.avatar)}>
+            {session.userName.slice(0, 1).toUpperCase()}
+          </AriaButton>
+          <Popover
+            placement="bottom end"
+            offset={8}
+            {...stylex.props(glass.panel, overlay.popover, styles.popover)}
           >
-            Home
-          </Link>
-          {libraries.map((lib) => (
-            <Link
-              key={lib.Id}
-              to="/library/$libraryId"
-              params={{ libraryId: lib.Id ?? '' }}
-              {...stylex.props(styles.link)}
-              activeProps={{ className: stylex.props(styles.link, styles.linkActive).className }}
+            <div {...stylex.props(styles.menuHeader)}>
+              <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
+              <span {...stylex.props(styles.menuServer)}>{session.serverName}</span>
+            </div>
+            <div {...stylex.props(styles.separator)} />
+            <Menu
+              {...stylex.props(styles.menu)}
+              onAction={async (key) => {
+                if (key === 'logout') {
+                  await logout()
+                  await navigate({ to: '/login', replace: true })
+                }
+              }}
             >
-              {lib.Name}
-            </Link>
-          ))}
-        </nav>
-        <div {...stylex.props(styles.right)}>
-          <button
-            type="button"
-            aria-label="Search"
-            {...stylex.props(styles.iconButton, styles.searchButton)}
-          >
-            <Search size={16} />
-            <span {...stylex.props(styles.searchHint)}>Search</span>
-            <kbd {...stylex.props(styles.kbd)}>⌘K</kbd>
-          </button>
-          <MenuTrigger>
-            <AriaButton aria-label="Account" {...stylex.props(styles.avatar)}>
-              {session.userName.slice(0, 1).toUpperCase()}
-            </AriaButton>
-            <Popover placement="bottom end" offset={8} {...stylex.props(styles.popover)}>
-              <div {...stylex.props(styles.menuHeader)}>
-                <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
-                <span {...stylex.props(styles.menuServer)}>{session.serverName}</span>
-              </div>
-              <div {...stylex.props(styles.separator)} />
-              <Menu
-                {...stylex.props(styles.menu)}
-                onAction={async (key) => {
-                  if (key === 'logout') {
-                    await logout()
-                    await navigate({ to: '/login', replace: true })
-                  }
+              <MenuSection
+                selectionMode="single"
+                selectedKeys={[themeId]}
+                shouldCloseOnSelect={false}
+                onSelectionChange={(keys) => {
+                  if (keys === 'all') return
+                  const [next] = keys
+                  if (typeof next === 'string') setThemeId(next as ThemeId)
                 }}
+                {...stylex.props(styles.menuSection)}
               >
-                <MenuSection
-                  selectionMode="single"
-                  selectedKeys={[themeId]}
-                  shouldCloseOnSelect={false}
-                  onSelectionChange={(keys) => {
-                    if (keys === 'all') return
-                    const [next] = keys
-                    if (typeof next === 'string') setThemeId(next as ThemeId)
-                  }}
-                  {...stylex.props(styles.menuSection)}
-                >
-                  <Header {...stylex.props(styles.sectionLabel)}>Theme</Header>
-                  {THEMES.map((t) => (
-                    <MenuItem key={t.id} id={t.id} {...stylex.props(styles.menuItem)}>
-                      {({ isSelected }) => (
-                        <>
-                          <span {...stylex.props(styles.check)}>
-                            {isSelected && <Check size={14} />}
-                          </span>
-                          {t.label}
-                        </>
-                      )}
-                    </MenuItem>
-                  ))}
-                </MenuSection>
-                <Separator {...stylex.props(styles.separator)} />
-                <MenuSection {...stylex.props(styles.menuSection)}>
-                  <MenuItem id="logout" {...stylex.props(styles.menuItem)}>
-                    <span {...stylex.props(styles.check)}>
-                      <LogOut size={14} />
-                    </span>
-                    Sign out
+                <Header {...stylex.props(styles.sectionLabel)}>Theme</Header>
+                {THEMES.map((t) => (
+                  <MenuItem key={t.id} id={t.id} {...stylex.props(styles.menuItem)}>
+                    {({ isSelected }) => (
+                      <>
+                        <span {...stylex.props(styles.check)}>
+                          {isSelected && <Check size={14} weight="bold" />}
+                        </span>
+                        {t.label}
+                      </>
+                    )}
                   </MenuItem>
-                </MenuSection>
-              </Menu>
-            </Popover>
-          </MenuTrigger>
-        </div>
+                ))}
+              </MenuSection>
+              <Separator {...stylex.props(styles.separator)} />
+              <MenuSection {...stylex.props(styles.menuSection)}>
+                <MenuItem id="logout" {...stylex.props(styles.menuItem)}>
+                  <span {...stylex.props(styles.check)}>
+                    <SignOut size={14} />
+                  </span>
+                  Sign out
+                </MenuItem>
+              </MenuSection>
+            </Menu>
+          </Popover>
+        </MenuTrigger>
       </div>
     </header>
+  )
+}
+
+type NavLinkProps = { children: ReactNode } & (
+  | { to: '/'; libraryId?: undefined }
+  | { to: '/library/$libraryId'; libraryId: string }
+)
+
+function NavLink({ children, ...target }: NavLinkProps) {
+  const link =
+    target.to === '/'
+      ? ({ to: '/', activeOptions: { exact: true } } as const)
+      : ({ to: '/library/$libraryId', params: { libraryId: target.libraryId } } as const)
+  return (
+    <Link {...link} {...stylex.props(styles.link)}>
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <m.span
+              layoutId="nav-active"
+              transition={springs.gentle}
+              {...stylex.props(styles.linkActive)}
+            />
+          )}
+          <span {...stylex.props(styles.linkLabel, isActive && styles.linkLabelActive)}>
+            {children}
+          </span>
+        </>
+      )}
+    </Link>
   )
 }
 
@@ -166,121 +182,135 @@ const styles = stylex.create({
     left: 0,
     right: 0,
     zIndex: 50,
-    height: sizes.navHeight,
-    backgroundColor: 'transparent',
-    backgroundImage: `linear-gradient(to bottom, ${colors.navScrim}, transparent)`,
-    backgroundOrigin: 'border-box',
-    borderBottomWidth: 1,
-    borderBottomStyle: 'solid',
-    borderBottomColor: 'transparent',
-    transitionProperty: 'background-color, border-color',
-    transitionDuration: motion.slow,
-    transitionTimingFunction: motion.ease,
-  },
-  navScrolled: {
-    backgroundColor: colors.navBg,
-    backgroundImage: 'none',
-    backdropFilter: 'blur(20px) saturate(1.4)',
-    borderBottomColor: colors.border,
-  },
-  navInner: {
-    height: '100%',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: space.sm,
+    height: sizes.navHeight,
     paddingInline: {
       default: sizes.pageGutter,
       '@media (max-width: 720px)': sizes.pageGutterMobile,
     },
-  },
-  links: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: space.xs,
+    pointerEvents: 'none',
   },
   brand: {
+    pointerEvents: 'auto',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: space.sm,
-    marginRight: space.lg,
-    color: colors.text,
-    borderRadius: radii.sm,
+    justifyContent: 'center',
+    width: sizes.navControl,
+    height: sizes.navControl,
+    fontSize: 18,
+    lineHeight: 1,
+    borderRadius: radii.full,
     outlineStyle: { default: 'none', ':focus-visible': 'solid' },
     outlineWidth: 2,
     outlineColor: colors.focusRing,
-    outlineOffset: 4,
+    outlineOffset: 2,
   },
-  brandMark: {
-    width: 10,
-    height: 10,
+  links: {
+    pointerEvents: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: space.xxs,
+    height: sizes.navControl,
+    padding: space.xs,
     borderRadius: radii.full,
-    backgroundColor: colors.accent,
-  },
-  brandName: {
-    fontSize: 14,
-    fontWeight: 600,
-    letterSpacing: '-0.01em',
-    display: {
-      default: 'inline',
-      '@media (max-width: 720px)': 'none',
+    position: {
+      default: 'static',
+      '@media (max-width: 720px)': 'fixed',
     },
+    bottom: {
+      default: 'auto',
+      '@media (max-width: 720px)': `calc(${space.lg} + env(safe-area-inset-bottom))`,
+    },
+    left: {
+      default: 'auto',
+      '@media (max-width: 720px)': '50%',
+    },
+    translate: {
+      default: 'none',
+      '@media (max-width: 720px)': '-50% 0',
+    },
+    maxWidth: {
+      default: 'none',
+      '@media (max-width: 720px)': `calc(100vw - 2 * ${sizes.pageGutterMobile})`,
+    },
+    overflowX: 'auto',
+    scrollbarWidth: 'none',
   },
   link: {
-    height: 32,
+    position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
+    height: '100%',
     paddingInline: space.md,
+    borderRadius: radii.full,
+    whiteSpace: 'nowrap',
+    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
+    outlineWidth: 2,
+    outlineColor: colors.focusRing,
+    outlineOffset: -2,
+  },
+  linkActive: {
+    position: 'absolute',
+    inset: 0,
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceHover,
+    boxShadow: `inset 0 1px 0 ${colors.glassHighlight}`,
+  },
+  linkLabel: {
+    position: 'relative',
     fontSize: 14,
     fontWeight: 500,
     color: {
       default: colors.textMuted,
       ':hover': colors.text,
     },
-    borderRadius: radii.sm,
-    transitionProperty: 'color, background-color',
+    transitionProperty: 'color',
     transitionDuration: motion.fast,
     transitionTimingFunction: motion.ease,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
   },
-  linkActive: {
+  linkLabelActive: {
     color: colors.text,
   },
   right: {
+    pointerEvents: 'auto',
+    marginLeft: 'auto',
     display: 'flex',
     alignItems: 'center',
     gap: space.sm,
   },
-  iconButton: {
+  search: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: space.sm,
-    height: 34,
-    paddingInline: space.md,
-    color: colors.textMuted,
-    backgroundColor: {
-      default: colors.surface,
-      ':hover': colors.surfaceHover,
+    height: sizes.navControl,
+    minWidth: {
+      default: 220,
+      '@media (max-width: 720px)': sizes.navControl,
     },
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    fontSize: 13,
-    transitionProperty: 'background-color, color',
+    paddingInline: {
+      default: space.lg,
+      '@media (max-width: 720px)': 0,
+    },
+    justifyContent: {
+      default: 'flex-start',
+      '@media (max-width: 720px)': 'center',
+    },
+    color: {
+      default: colors.textMuted,
+      ':hover': colors.text,
+    },
+    borderRadius: radii.full,
+    fontSize: 14,
+    transitionProperty: 'color',
     transitionDuration: motion.fast,
     outlineStyle: { default: 'none', ':focus-visible': 'solid' },
     outlineWidth: 2,
     outlineColor: colors.focusRing,
+    outlineOffset: 2,
   },
-  searchButton: {
-    minWidth: {
-      default: 220,
-      '@media (max-width: 720px)': 'auto',
-    },
-  },
-  searchHint: {
+  searchLabel: {
     flex: 1,
     textAlign: 'left',
     display: {
@@ -290,35 +320,27 @@ const styles = stylex.create({
   },
   kbd: {
     fontFamily: 'inherit',
-    fontSize: 11,
-    color: colors.textFaint,
-    paddingInline: 5,
-    paddingBlock: 1,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.border,
-    borderRadius: 4,
+    fontSize: 12,
+    lineHeight: 1,
+    color: colors.textMuted,
+    minWidth: 20,
+    paddingBlock: 3,
+    textAlign: 'center',
+    borderRadius: radii.xs,
+    boxShadow: `inset 0 0 0 1px ${colors.glassRim}`,
     display: {
-      default: 'inline',
+      default: 'inline-block',
       '@media (max-width: 720px)': 'none',
     },
   },
   avatar: {
-    width: 34,
-    height: 34,
+    width: sizes.navControl,
+    height: sizes.navControl,
     display: 'grid',
     placeItems: 'center',
     fontSize: 13,
     fontWeight: 600,
     color: colors.text,
-    backgroundColor: {
-      default: colors.surface,
-      '[data-hovered]': colors.surfaceHover,
-    },
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderStrong,
-    backdropFilter: 'blur(12px)',
     borderRadius: radii.full,
     outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
     outlineWidth: 2,
@@ -327,12 +349,7 @@ const styles = stylex.create({
   },
   popover: {
     minWidth: 200,
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderStrong,
     borderRadius: radii.lg,
-    boxShadow: shadows.popover,
     padding: space.xs,
     outline: 'none',
   },
@@ -357,10 +374,8 @@ const styles = stylex.create({
     paddingInline: space.md,
     paddingTop: space.sm,
     paddingBottom: space.xs,
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
+    fontSize: 12,
+    fontWeight: 500,
     color: colors.textFaint,
   },
   separator: {
@@ -403,5 +418,9 @@ const styles = stylex.create({
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
+    paddingBottom: {
+      default: 0,
+      '@media (max-width: 720px)': `calc(${sizes.navControl} + 2 * ${space.lg})`,
+    },
   },
 })

@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { motion as m } from 'motion/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { Button } from '@/components/Button'
@@ -17,21 +17,43 @@ import { fadeUp, springs, stagger } from '@/lib/motion'
 import { getSession } from '@/lib/session'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
-interface ItemSearch {
+export interface ItemSearch {
   season?: string
+  episode?: string
 }
 
+const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
+
 export const Route = createFileRoute('/_app/items/$itemId')({
-  validateSearch: (raw: Record<string, unknown>): ItemSearch =>
-    typeof raw.season === 'string' && raw.season ? { season: raw.season } : {},
+  validateSearch: (raw: Record<string, unknown>): ItemSearch => ({
+    season: str(raw.season),
+    episode: str(raw.episode),
+  }),
   // Resolve the item before the route commits so the hero mounts in the same frame the
-  // previous page unmounts, which the shared-element morph depends on.
+  // previous page unmounts, which the shared-element morph depends on. Seasons and
+  // episodes have no page of their own: they land on the series with that tab/row open.
   loader: async ({ context: { queryClient }, params }) => {
     const session = getSession()
     if (!session) return
-    await queryClient
+    const item = await queryClient
       .ensureQueryData(itemQueries.item(session.userId, params.itemId))
-      .catch(() => {})
+      .catch(() => null)
+    if (item?.Type === 'Season' && item.SeriesId) {
+      throw redirect({
+        to: '/items/$itemId',
+        params: { itemId: item.SeriesId },
+        search: { season: item.Id ?? undefined },
+        replace: true,
+      })
+    }
+    if (item?.Type === 'Episode' && item.SeriesId) {
+      throw redirect({
+        to: '/items/$itemId',
+        params: { itemId: item.SeriesId },
+        search: { season: item.SeasonId ?? undefined, episode: item.Id ?? undefined },
+        replace: true,
+      })
+    }
   },
   component: ItemPage,
 })
@@ -57,13 +79,9 @@ function ItemPage() {
 
 function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
   const type = item.Type
-  const showSimilar = type === 'Movie' || type === 'Series'
-  const similar = useQuery({
-    ...itemQueries.similar(userId, item.Id ?? ''),
-    enabled: showSimilar,
-  })
+  const similar = useQuery(itemQueries.similar(userId, item.Id ?? ''))
   const similarItems = similar.data?.Items ?? []
-  const overview = type === 'Season' ? null : plainText(item.Overview)
+  const overview = plainText(item.Overview)
 
   return (
     <article {...stylex.props(styles.page)}>
@@ -78,18 +96,6 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
         <m.div variants={fadeUp} {...stylex.props(styles.main)}>
           {overview && <p {...stylex.props(styles.overview)}>{overview}</p>}
           {type === 'Series' && <SeriesEpisodes series={item} userId={userId} />}
-          {type === 'Season' && item.SeriesId && item.Id && (
-            <Episodes userId={userId} seriesId={item.SeriesId} seasonId={item.Id} />
-          )}
-          {type === 'Episode' && item.SeriesId && item.SeasonId && (
-            <Episodes
-              userId={userId}
-              seriesId={item.SeriesId}
-              seasonId={item.SeasonId}
-              currentId={item.Id}
-              title={item.SeasonName ?? 'Episodes'}
-            />
-          )}
         </m.div>
         <m.aside variants={fadeUp} {...stylex.props(styles.aside)}>
           <FactSheet item={item} />
@@ -102,7 +108,7 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
         </div>
       )}
 
-      {showSimilar && similarItems.length > 0 && (
+      {similarItems.length > 0 && (
         <div {...stylex.props(styles.rails)}>
           <Rail title="More like this">
             {similarItems.map((s) => (
@@ -125,7 +131,7 @@ function sortSeasons(seasons: readonly BaseItemDto[]): BaseItemDto[] {
 }
 
 function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: string }) {
-  const { season: selected } = Route.useSearch()
+  const { season: selected, episode } = Route.useSearch()
   const seriesId = series.Id ?? ''
   const seasons = useQuery(itemQueries.seasons(userId, seriesId))
   const list = sortSeasons(seasons.data?.Items ?? [])
@@ -148,7 +154,7 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
             aria-selected={s.Id === active?.Id}
             to="/items/$itemId"
             params={{ itemId: seriesId }}
-            search={{ season: s.Id }}
+            search={{ season: s.Id ?? undefined }}
             replace
             resetScroll={false}
             {...stylex.props(styles.seasonTab, s.Id === active?.Id && styles.seasonTabActive)}
@@ -171,7 +177,13 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
         ))}
       </div>
       {active?.Id && (
-        <Episodes key={active.Id} userId={userId} seriesId={seriesId} seasonId={active.Id} />
+        <Episodes
+          key={active.Id}
+          userId={userId}
+          seriesId={seriesId}
+          seasonId={active.Id}
+          expandedId={episode}
+        />
       )}
     </section>
   )
@@ -181,41 +193,27 @@ function Episodes({
   userId,
   seriesId,
   seasonId,
-  currentId,
-  title,
+  expandedId,
 }: {
   userId: string
   seriesId: string
   seasonId: string
-  currentId?: string
-  title?: string
+  expandedId?: string
 }) {
   const episodes = useQuery(itemQueries.episodes(userId, seriesId, seasonId))
   const list = episodes.data?.Items ?? []
 
+  if (episodes.isPending) return <div {...stylex.props(styles.listSkeleton)} />
+  if (episodes.isError) return <p {...stylex.props(styles.stateText)}>Couldn’t load episodes.</p>
+  if (list.length === 0) return <p {...stylex.props(styles.stateText)}>No episodes.</p>
   return (
-    <section {...stylex.props(styles.section)}>
-      {title && (
-        <h2 {...stylex.props(styles.sectionTitle)}>
-          <Link
-            to="/items/$itemId"
-            params={{ itemId: seasonId }}
-            {...stylex.props(styles.sectionLink)}
-          >
-            {title}
-          </Link>
-        </h2>
-      )}
-      {episodes.isPending ? (
-        <div {...stylex.props(styles.listSkeleton)} />
-      ) : episodes.isError ? (
-        <p {...stylex.props(styles.stateText)}>Couldn’t load episodes.</p>
-      ) : list.length === 0 ? (
-        <p {...stylex.props(styles.stateText)}>No episodes.</p>
-      ) : (
-        <EpisodeList episodes={list} currentId={currentId} />
-      )}
-    </section>
+    <EpisodeList
+      episodes={list}
+      userId={userId}
+      seriesId={seriesId}
+      seasonId={seasonId}
+      expandedId={expandedId}
+    />
   )
 }
 
@@ -271,24 +269,6 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.md,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: 600,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    color: colors.textMuted,
-  },
-  sectionLink: {
-    color: {
-      default: colors.textMuted,
-      ':hover': colors.text,
-    },
-    borderRadius: radii.xs,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 3,
   },
   seasons: {
     display: 'flex',

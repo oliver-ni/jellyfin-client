@@ -1,13 +1,13 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
-import { Play } from 'lucide-react'
+import { Play } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import { useMorphTarget } from '@/hooks/useMorphTarget'
+import { useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
 import { episodeLabel } from '@/lib/format'
 import { itemImage, landscapeImage } from '@/lib/images'
-import { fadeUp, rectOf, setMorphSource, springs, type MorphShape } from '@/lib/motion'
+import { fadeUp, springs, type MorphShape } from '@/lib/motion'
 import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
@@ -39,6 +39,7 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
   const unplayed = item.UserData?.UnplayedItemCount
   const media = useRef<HTMLDivElement>(null)
   const morph = useMorphTarget(item.Id, shape, media)
+  useMorphHandoff(item.Id, shape, media, image?.url)
 
   return (
     <m.div
@@ -50,15 +51,6 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
       <Link
         to="/items/$itemId"
         params={{ itemId: item.Id ?? '' }}
-        onClick={() => {
-          if (!item.Id || !media.current) return
-          setMorphSource({
-            itemId: item.Id,
-            shape,
-            rect: rectOf(media.current),
-            src: image?.url ?? null,
-          })
-        }}
         {...stylex.props(styles.card, stylex.defaultMarker())}
       >
         <m.div
@@ -73,7 +65,7 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
           <BlurImage src={image?.url} blurhash={image?.blurhash} alt="" style={styles.image} />
           <div {...stylex.props(styles.overlay)}>
             <span {...stylex.props(styles.playBadge)}>
-              <Play size={18} fill="currentColor" />
+              <Play size={18} weight="fill" />
             </span>
           </div>
           {unplayed ? <span {...stylex.props(styles.count)}>{unplayed}</span> : null}

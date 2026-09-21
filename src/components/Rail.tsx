@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link, type LinkProps } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useRef, type ReactNode } from 'react'
 import { fadeUp, stagger } from '@/lib/motion'
@@ -34,7 +34,7 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
         {linkTo ? (
           <Link to={linkTo} params={linkParams} {...stylex.props(styles.titleLink)}>
             <h2 {...stylex.props(styles.title)}>{title}</h2>
-            <ChevronRight size={16} {...stylex.props(styles.titleChevron)} />
+            <CaretRight size={16} {...stylex.props(styles.titleChevron)} />
           </Link>
         ) : (
           <h2 {...stylex.props(styles.title)}>{title}</h2>
@@ -46,7 +46,7 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
             onClick={() => scrollBy(-1)}
             {...stylex.props(styles.arrow)}
           >
-            <ChevronLeft size={18} />
+            <CaretLeft size={18} />
           </button>
           <button
             type="button"
@@ -54,7 +54,7 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
             onClick={() => scrollBy(1)}
             {...stylex.props(styles.arrow)}
           >
-            <ChevronRight size={18} />
+            <CaretRight size={18} />
           </button>
         </div>
       </m.header>
@@ -92,11 +92,10 @@ const styles = stylex.create({
     outlineOffset: 4,
   },
   title: {
-    fontSize: 13,
+    fontSize: 17,
     fontWeight: 600,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    color: colors.textMuted,
+    letterSpacing: '-0.01em',
+    color: colors.text,
   },
   titleChevron: {
     color: colors.textFaint,

@@ -5,34 +5,42 @@ import {
   unmarkFavoriteItem,
   markUnplayedItem,
 } from '@/api/gen/sdk.gen'
-import type { BaseItemDto, UserItemDataDto } from '@/api/gen/types.gen'
+import type { BaseItemDto, BaseItemDtoQueryResult, UserItemDataDto } from '@/api/gen/types.gen'
 import { itemQueries } from '@/lib/item-queries'
 
-/** Optimistic favorite / played toggles for an item, kept in sync with the item query. */
+function isQuery(key: unknown, id: string | RegExp): boolean {
+  if (typeof key !== 'object' || key === null || !('_id' in key) || typeof key._id !== 'string') {
+    return false
+  }
+  return typeof id === 'string' ? key._id === id : id.test(key._id)
+}
+
+/** Optimistic favorite / played toggles for an item, kept in sync with the item and episode queries. */
 export function useUserDataToggles(userId: string, item: BaseItemDto) {
   const queryClient = useQueryClient()
   const itemId = item.Id ?? ''
   const { queryKey } = itemQueries.item(userId, itemId)
 
-  const apply = (patch: Partial<UserItemDataDto>) =>
-    queryClient.setQueryData<BaseItemDto>(queryKey, (prev) =>
-      prev?.UserData ? { ...prev, UserData: { ...prev.UserData, ...patch } } : prev,
+  const patched = (prev: BaseItemDto, patch: Partial<UserItemDataDto>): BaseItemDto =>
+    prev.UserData ? { ...prev, UserData: { ...prev.UserData, ...patch } } : prev
+
+  const apply = (patch: Partial<UserItemDataDto>) => {
+    queryClient.setQueryData<BaseItemDto>(queryKey, (prev) => prev && patched(prev, patch))
+    queryClient.setQueriesData<BaseItemDtoQueryResult>(
+      { predicate: (q) => isQuery(q.queryKey[0], 'getEpisodes') },
+      (prev) =>
+        prev?.Items?.some((it) => it.Id === itemId)
+          ? { ...prev, Items: prev.Items.map((it) => (it.Id === itemId ? patched(it, patch) : it)) }
+          : prev,
     )
+  }
 
   const settle = () => {
     void queryClient.invalidateQueries({ queryKey })
     void queryClient.invalidateQueries({
-      predicate: (q) => {
-        const k = q.queryKey[0]
-        if (k === 'libraryItems') return true
-        return (
-          typeof k === 'object' &&
-          k !== null &&
-          '_id' in k &&
-          typeof k._id === 'string' &&
-          /^get(ResumeItems|NextUp|LatestMedia|Episodes|Seasons|Items)$/.test(k._id)
-        )
-      },
+      predicate: (q) =>
+        q.queryKey[0] === 'libraryItems' ||
+        isQuery(q.queryKey[0], /^get(ResumeItems|NextUp|LatestMedia|Episodes|Seasons|Items)$/),
     })
   }
 

@@ -1,4 +1,4 @@
-import { animate, type MotionValue, type Transition, type Variants } from 'motion/react'
+import { animate, type Transition, type Variants } from 'motion/react'
 
 /**
  * Spring presets, duration-based and critically damped so everything settles on the same
@@ -142,20 +142,8 @@ export function flyMorph(source: MorphSource, target: HTMLElement, onDone: () =>
     Object.assign(img.style, { width: '100%', height: '100%', objectFit: 'cover' })
     flyer.append(img)
   }
-  const from = source.rect
-  const start = {
-    x: from.x - to.x,
-    y: from.y - to.y,
-    scaleX: from.width / to.width,
-    scaleY: from.height / to.height,
-  }
-  flyer.style.transform = `translate(${start.x}px, ${start.y}px) scale(${start.scaleX}, ${start.scaleY})`
   overlayLayer().append(flyer)
-  const controls = animate(
-    flyer,
-    { x: [start.x, 0], y: [start.y, 0], scaleX: [start.scaleX, 1], scaleY: [start.scaleY, 1] },
-    springs.morph,
-  )
+  const controls = playMorph(flyer, source.rect, to)
   let done = false
   const finish = () => {
     if (done) return
@@ -170,24 +158,24 @@ export function flyMorph(source: MorphSource, target: HTMLElement, onDone: () =>
   }
 }
 
-export interface MorphValues {
-  x: MotionValue<number>
-  y: MotionValue<number>
-  scaleX: MotionValue<number>
-  scaleY: MotionValue<number>
-}
+const IDENTITY = 'translate(0px, 0px) scale(1, 1)'
 
-/** Snap `values` so `to` visually sits at `from`, then spring them home. Origin is top-left. */
-export function playMorph(values: MorphValues, from: Rect, to: Rect) {
-  values.x.jump(from.x - to.x)
-  values.y.jump(from.y - to.y)
-  values.scaleX.jump(from.width / to.width)
-  values.scaleY.jump(from.height / to.height)
-  const controls = [
-    animate(values.x, 0, springs.morph),
-    animate(values.y, 0, springs.morph),
-    animate(values.scaleX, 1, springs.morph),
-    animate(values.scaleY, 1, springs.morph),
-  ]
-  return () => controls.forEach((c) => c.stop())
+/**
+ * Snap `el` (laid out at `to`) so it visually sits at `from`, then spring it home. Animates
+ * the whole `transform` so the browser can run it off the main thread: the destination page
+ * is still rendering and decoding images while this plays, and per-frame JS would stutter.
+ */
+export function playMorph(el: HTMLElement, from: Rect, to: Rect) {
+  const start = `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.width / to.width}, ${from.height / to.height})`
+  el.style.transformOrigin = '0 0'
+  el.style.transform = start
+  const controls = animate(el, { transform: [start, IDENTITY] }, springs.morph)
+  return {
+    then: (onDone: () => void) => controls.then(onDone),
+    /** Stop and clear the inline transform so `el` can be measured again untouched. */
+    stop: () => {
+      controls.stop()
+      el.style.transform = ''
+    },
+  }
 }

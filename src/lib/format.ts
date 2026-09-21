@@ -1,4 +1,4 @@
-import type { BaseItemDto } from '@/api/gen/types.gen'
+import type { BaseItemDto, MediaStream } from '@/api/gen/types.gen'
 
 const TICKS_PER_MINUTE = 600_000_000
 
@@ -121,6 +121,24 @@ export function channelLabel(
   if (channels === 6) return '5.1'
   if (channels === 8) return '7.1'
   return `${channels}ch`
+}
+
+export function videoStreamLabel(s: MediaStream): string {
+  const parts = [resolutionLabel(s.Width, s.Height), codecLabel(s.Codec)]
+  if (s.VideoRangeType && s.VideoRangeType !== 'SDR' && s.VideoRangeType !== 'Unknown') {
+    parts.push(s.VideoRangeType.replace('DOVI', 'Dolby Vision'))
+  }
+  return parts.filter(Boolean).join(' · ')
+}
+
+export function audioStreamLabel(s: MediaStream): string {
+  return [languageName(s.Language), codecLabel(s.Codec), channelLabel(s.Channels, s.ChannelLayout)]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+export function unique<T>(xs: readonly (T | null | undefined)[]): T[] {
+  return [...new Set(xs.filter((x): x is T => x != null))]
 }
 
 /** Overviews from some metadata providers contain HTML; flatten to plain text with newlines. */

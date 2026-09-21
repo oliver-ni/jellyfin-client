@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { Check, ChevronDown } from 'lucide-react'
+import { CaretDown, Check } from '@phosphor-icons/react'
 import {
   Button as AriaButton,
   Select as AriaSelect,
@@ -10,6 +10,7 @@ import {
   type Key,
 } from 'react-aria-components'
 import { colors } from '@/theme/tokens.stylex'
+import { glass, overlay } from '@/theme/glass'
 import { toolbarControl } from './toolbar-styles'
 
 export interface SelectOption<K extends Key> {
@@ -43,19 +44,23 @@ export function Select<K extends Key>({
       }}
       {...stylex.props(styles.root)}
     >
-      <AriaButton {...stylex.props(toolbarControl.trigger)}>
+      <AriaButton {...stylex.props(glass.surface, toolbarControl.trigger)}>
         {label && <span {...stylex.props(styles.label)}>{label}</span>}
         <SelectValue {...stylex.props(styles.value)} />
-        <ChevronDown size={14} {...stylex.props(styles.chevron)} />
+        <CaretDown size={14} {...stylex.props(styles.chevron)} />
       </AriaButton>
-      <Popover placement="bottom start" offset={6} {...stylex.props(toolbarControl.popover)}>
+      <Popover
+        placement="bottom start"
+        offset={6}
+        {...stylex.props(glass.panel, overlay.popover, toolbarControl.popover)}
+      >
         <ListBox items={options} {...stylex.props(styles.list)}>
           {(opt) => (
             <ListBoxItem id={opt.key} textValue={opt.label} {...stylex.props(toolbarControl.item)}>
               {({ isSelected }) => (
                 <>
                   <span {...stylex.props(toolbarControl.check)}>
-                    {isSelected && <Check size={14} />}
+                    {isSelected && <Check size={14} weight="bold" />}
                   </span>
                   {opt.label}
                 </>

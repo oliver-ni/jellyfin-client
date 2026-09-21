@@ -10,6 +10,36 @@
     {
       "files": ["src/routes/**/*.tsx"],
       "rules": { "react/only-export-components": "off" }
+    },
+    {
+      "files": ["src/player/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/**",
+                  "../api/**",
+                  "../../api/**",
+                  "../routes/**",
+                  "../../routes/**",
+                  "../theme/**",
+                  "../../theme/**",
+                  "../lib/**",
+                  "../../lib/**",
+                  "../components/**",
+                  "../../components/**",
+                  "../hooks/**",
+                  "../../hooks/**"
+                ],
+                "message": "src/player is app-agnostic: it must not import app modules (extract-ready boundary)."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

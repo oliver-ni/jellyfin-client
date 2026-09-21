@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
-import { Info, Play } from 'lucide-react'
+import { Info, Play } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeCode, formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
@@ -97,7 +97,7 @@ export function Hero({ item, eyebrow }: HeroProps) {
         )}
         <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
           <Link to="/items/$itemId" params={{ itemId }} {...stylex.props(styles.play)}>
-            <Play size={18} fill="currentColor" />
+            <Play size={18} weight="fill" />
             {remaining ? 'Resume' : 'Play'}
           </Link>
           <Link
@@ -158,10 +158,8 @@ const styles = stylex.create({
     paddingBottom: space.xxxl,
   },
   eyebrow: {
-    fontSize: 12,
-    fontWeight: 600,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
+    fontSize: 14,
+    fontWeight: 500,
     color: colors.heroTextMuted,
   },
   logo: {
