@@ -15,7 +15,7 @@ const storage: AsyncStorage<PersistedQuery> = {
   entries: () => entries<string, PersistedQuery>(store),
 }
 
-export const persister = experimental_createQueryPersister<PersistedQuery>({
+const persister = experimental_createQueryPersister<PersistedQuery>({
   storage,
   serialize: (q) => q,
   deserialize: (q) => q,

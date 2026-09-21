@@ -4,7 +4,7 @@ import { motion as m } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useElementLayout } from '@/hooks/useElementLayout'
-import { stagger } from '@/lib/motion'
+import { stagger, vanish } from '@/lib/motion'
 import { colors, radii, space } from '@/theme/tokens.stylex'
 import { ItemCard } from './ItemCard'
 
@@ -55,6 +55,7 @@ export function ItemGrid({ total, items, onRenderedUpTo, minCardWidth = 150 }: I
       ref={ref}
       initial="hidden"
       animate="show"
+      exit={vanish}
       variants={stagger(0.015)}
       {...stylex.props(styles.root)}
       style={{ height: rows ? virtualizer.getTotalSize() : undefined }}
@@ -85,7 +86,7 @@ export function ItemGrid({ total, items, onRenderedUpTo, minCardWidth = 150 }: I
   )
 }
 
-export function CardSkeleton({ width }: { width: number }) {
+function CardSkeleton({ width }: { width: number }) {
   return (
     <div {...stylex.props(styles.skeleton)} style={{ width }}>
       <div {...stylex.props(styles.skeletonPoster)} />

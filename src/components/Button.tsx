@@ -1,5 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { Button as AriaButton, type ButtonProps as AriaButtonProps } from 'react-aria-components'
+import { focus } from '@/theme/focus'
 import { colors, fonts, motion, radii, space } from '@/theme/tokens.stylex'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost'
@@ -13,7 +14,10 @@ export interface ButtonProps extends Omit<AriaButtonProps, 'className' | 'style'
 
 export function Button({ variant = 'secondary', size = 'md', style, ...props }: ButtonProps) {
   return (
-    <AriaButton {...props} {...stylex.props(styles.base, variants[variant], sizes[size], style)} />
+    <AriaButton
+      {...props}
+      {...stylex.props(focus.ring, styles.base, variants[variant], sizes[size], style)}
+    />
   )
 }
 
@@ -34,13 +38,6 @@ const styles = stylex.create({
     transitionProperty: 'background-color, border-color, color, transform, opacity',
     transitionDuration: motion.fast,
     transitionTimingFunction: motion.ease,
-    outlineStyle: {
-      default: 'none',
-      '[data-focus-visible]': 'solid',
-    },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
     opacity: {
       default: 1,
       '[data-disabled]': 0.5,

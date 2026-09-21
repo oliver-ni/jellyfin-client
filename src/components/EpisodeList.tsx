@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { createLink, Link } from '@tanstack/react-router'
 import { Check, Heart, Play } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
-import { useLayoutEffect, useRef } from 'react'
+import { useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useMorphTarget } from '@/hooks/useMorphTarget'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
@@ -18,6 +18,7 @@ import {
 } from '@/lib/format'
 import { landscapeImage } from '@/lib/images'
 import { fadeUp, springs, stagger } from '@/lib/motion'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 import { IconToggle } from './IconButton'
@@ -43,7 +44,7 @@ export function EpisodeList({
   expandedId,
 }: EpisodeListProps) {
   return (
-    <m.ol initial="hidden" animate="show" variants={stagger(0.035)} {...stylex.props(styles.list)}>
+    <m.ol initial="hidden" animate="show" variants={stagger()} {...stylex.props(styles.list)}>
       {episodes.map((ep) => (
         <EpisodeRow
           key={ep.Id}
@@ -75,25 +76,11 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
   const sub = [formatRuntime(episode.RunTimeTicks), formatDate(episode.PremiereDate)]
     .filter(Boolean)
     .join('  ·  ')
-  const rowRef = useRef<HTMLLIElement>(null)
   const stillRef = useRef<HTMLAnchorElement>(null)
-
-  // Opened from a deep link (Continue watching, search, an old episode URL): bring it into
-  // view a frame later, after the router's scroll reset. Registered before the morph target so
-  // the still is measured where it ends up.
-  const openedOnMount = useRef(expanded)
-  useLayoutEffect(() => {
-    if (!openedOnMount.current) return
-    const frame = requestAnimationFrame(() => {
-      rowRef.current?.scrollIntoView({ block: 'center', behavior: 'instant' })
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [])
   const morph = useMorphTarget(id, 'landscape', stillRef)
 
   return (
     <m.li
-      ref={rowRef}
       variants={fadeUp}
       initial={morph.morphing ? false : undefined}
       {...stylex.props(styles.row, expanded && styles.rowExpanded, stylex.defaultMarker())}
@@ -105,7 +92,7 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
         params={{ itemId: id }}
         aria-label={`Play ${episode.Name ?? 'episode'}`}
         style={{ opacity: morph.opacity }}
-        {...stylex.props(styles.still)}
+        {...stylex.props(focus.ring, styles.still)}
       >
         <BlurImage src={still?.url} blurhash={still?.blurhash} alt="" style={styles.image} />
         <span {...stylex.props(styles.stillOverlay)}>
@@ -132,7 +119,7 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
           replace
           resetScroll={false}
           aria-expanded={expanded}
-          {...stylex.props(styles.titleLink)}
+          {...stylex.props(focus.ring, styles.titleLink)}
         >
           <span {...stylex.props(styles.number)}>{episode.IndexNumber ?? '–'}</span>
           <span {...stylex.props(styles.title, played && styles.titlePlayed)}>{episode.Name}</span>
@@ -179,7 +166,7 @@ function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: str
   return (
     <div {...stylex.props(styles.detailsInner)}>
       <div {...stylex.props(styles.actions)}>
-        <Link to="/play/$itemId" params={{ itemId: id }} {...stylex.props(styles.play)}>
+        <Link to="/play/$itemId" params={{ itemId: id }} {...stylex.props(focus.ring, styles.play)}>
           <Play size={16} weight="fill" />
           {remaining ? `Resume · ${remaining} min left` : 'Play'}
         </Link>
@@ -252,10 +239,6 @@ const styles = stylex.create({
     borderRadius: radii.xs,
     overflow: 'hidden',
     backgroundColor: colors.skeleton,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
   },
   image: {
     position: 'absolute',
@@ -282,7 +265,6 @@ const styles = stylex.create({
     placeItems: 'center',
     width: 40,
     height: 40,
-    paddingLeft: 3,
     borderRadius: radii.full,
     backgroundColor: colors.onMediaBg,
   },
@@ -323,10 +305,6 @@ const styles = stylex.create({
     gap: space.sm,
     color: colors.text,
     borderRadius: radii.xs,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
   },
   number: {
     flexShrink: 0,
@@ -403,9 +381,6 @@ const styles = stylex.create({
       default: 'none',
       ':active': 'scale(0.98)',
     },
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
     outlineOffset: 3,
   },
   facts: {

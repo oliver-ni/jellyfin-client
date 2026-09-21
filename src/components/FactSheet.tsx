@@ -9,6 +9,7 @@ import {
   unique,
   videoStreamLabel,
 } from '@/lib/format'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 interface Fact {
@@ -52,7 +53,7 @@ function facts(item: BaseItemDto): Fact[] {
                     href={u.Url}
                     target="_blank"
                     rel="noreferrer"
-                    {...stylex.props(styles.link)}
+                    {...stylex.props(focus.ring, styles.link)}
                   >
                     {u.Name}
                     <ArrowUpRight size={12} />
@@ -149,9 +150,5 @@ const styles = stylex.create({
     borderRadius: radii.xs,
     transitionProperty: 'color',
     transitionDuration: motion.fast,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
   },
 })

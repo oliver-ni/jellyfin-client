@@ -2,7 +2,7 @@ import type { BaseItemDto, MediaStream } from '@/api/gen/types.gen'
 
 const TICKS_PER_MINUTE = 600_000_000
 
-export function ticksToMinutes(ticks: number | null | undefined): number {
+function ticksToMinutes(ticks: number | null | undefined): number {
   return ticks ? Math.round(ticks / TICKS_PER_MINUTE) : 0
 }
 
@@ -110,7 +110,7 @@ export function resolutionLabel(
   return null
 }
 
-export function channelLabel(
+function channelLabel(
   channels: number | null | undefined,
   layout: string | null | undefined,
 ): string | null {

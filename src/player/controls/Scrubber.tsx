@@ -71,6 +71,8 @@ export function Scrubber({ segments, thumbnailAt }: ScrubberProps) {
 
   const preview = hover
   const thumb = preview != null && thumbnailAt ? thumbnailAt(preview) : null
+  const hoverSegment =
+    preview != null ? segments?.find((s) => preview >= s.start && preview < s.end) : undefined
   const active = scrubbing || preview != null
 
   return (
@@ -117,6 +119,18 @@ export function Scrubber({ segments, thumbnailAt }: ScrubberProps) {
           ) : null,
         )}
         <m.div style={{ transform: fillTransform }} {...stylex.props(styles.fill)} />
+        {segments?.map((seg) =>
+          duration > 0 ? (
+            <div
+              key={seg.id}
+              {...stylex.props(styles.divider)}
+              style={{
+                left: `${(seg.start / duration) * 100}%`,
+                width: `${((seg.end - seg.start) / duration) * 100}%`,
+              }}
+            />
+          ) : null,
+        )}
       </div>
       <m.div
         style={{ left: thumbX }}
@@ -131,7 +145,12 @@ export function Scrubber({ segments, thumbnailAt }: ScrubberProps) {
           {...stylex.props(styles.preview)}
         >
           {thumb && <ThumbnailView thumb={thumb} />}
-          <span {...stylex.props(styles.previewTime)}>{formatTime(preview)}</span>
+          <span {...stylex.props(styles.previewTime)}>
+            {hoverSegment && (
+              <span {...stylex.props(styles.previewName)}>{hoverSegment.name} · </span>
+            )}
+            {formatTime(preview)}
+          </span>
         </m.div>
       )}
     </div>
@@ -192,10 +211,17 @@ const styles = stylex.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderInlineWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  divider: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    boxSizing: 'border-box',
+    borderInlineWidth: 2,
     borderInlineStyle: 'solid',
-    borderInlineColor: 'rgba(0,0,0,0.5)',
+    borderInlineColor: 'rgba(0,0,0,0.85)',
+    pointerEvents: 'none',
   },
   fill: {
     position: 'absolute',
@@ -233,6 +259,10 @@ const styles = stylex.create({
     marginLeft: 0,
     pointerEvents: 'none',
     translate: '-50% 0',
+  },
+  previewName: {
+    fontWeight: 500,
+    opacity: 0.75,
   },
   previewTime: {
     fontSize: 12,

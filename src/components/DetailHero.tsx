@@ -10,13 +10,14 @@ import { backdropImage, itemImage, logoImage } from '@/lib/images'
 import {
   concealMorphOrigin,
   fadeUp,
+  offerMorphSource,
   playMorph,
   pop,
   rectOf,
-  setMorphSource,
   stagger,
   takeMorphSource,
 } from '@/lib/motion'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii, shadows, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 import { IconToggle } from './IconButton'
@@ -58,10 +59,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
     const el = tileRef.current
     return () => {
       const { itemId, src } = handBack.current
-      if (!el?.isConnected || !itemId) return
-      const rect = rectOf(el)
-      if (rect.width === 0) return
-      setMorphSource({ itemId, shape: 'poster', rect, src })
+      if (el?.isConnected && itemId) offerMorphSource(el, { itemId, shape: 'poster', src })
     }
   }, [])
   // While morphing, sit above the outgoing page's fading ghost instead of under it.
@@ -136,12 +134,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
             />
           </m.div>
         )}
-        <m.div
-          initial="hidden"
-          animate="show"
-          variants={stagger(0.05, 0.05)}
-          {...stylex.props(styles.text)}
-        >
+        <m.div initial="hidden" animate="show" variants={stagger()} {...stylex.props(styles.text)}>
           {logo ? (
             <m.img
               variants={fadeUp}
@@ -177,7 +170,11 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
           )}
           <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
             {canPlay && (
-              <Link to="/play/$itemId" params={{ itemId }} {...stylex.props(styles.play)}>
+              <Link
+                to="/play/$itemId"
+                params={{ itemId }}
+                {...stylex.props(focus.ring, styles.play)}
+              >
                 <Play size={18} weight="fill" />
                 {remaining ? `Resume · ${remaining} min left` : 'Play'}
               </Link>
@@ -348,9 +345,6 @@ const styles = stylex.create({
       default: 'none',
       ':active': 'scale(0.98)',
     },
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
     outlineOffset: 3,
   },
 })

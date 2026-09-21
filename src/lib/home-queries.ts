@@ -7,7 +7,7 @@ import {
 import type { ImageType, ItemFields } from '@/api/gen/types.gen'
 
 export const CARD_FIELDS: ItemFields[] = ['PrimaryImageAspectRatio', 'MediaSourceCount']
-export const HERO_FIELDS: ItemFields[] = [...CARD_FIELDS, 'Overview', 'Genres']
+const HERO_FIELDS: ItemFields[] = [...CARD_FIELDS, 'Overview', 'Genres']
 const IMAGE_TYPES: ImageType[] = ['Primary', 'Backdrop', 'Thumb', 'Logo']
 
 export const homeQueries = {

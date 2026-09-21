@@ -3,6 +3,7 @@ import { animate, motion as m, useMotionValue } from 'motion/react'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { ToggleButton, type ToggleButtonProps } from 'react-aria-components'
 import { springs } from '@/lib/motion'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii } from '@/theme/tokens.stylex'
 
 export interface IconToggleProps extends Omit<
@@ -18,7 +19,10 @@ export interface IconToggleProps extends Omit<
 /** Round icon toggle (favorite, watched, ...). */
 export function IconToggle({ onMedia, children, ...props }: IconToggleProps) {
   return (
-    <ToggleButton {...props} {...stylex.props(styles.base, onMedia ? styles.media : styles.plain)}>
+    <ToggleButton
+      {...props}
+      {...stylex.props(focus.ring, styles.base, onMedia ? styles.media : styles.plain)}
+    >
       {({ isSelected }) => <PopIcon selected={isSelected}>{children}</PopIcon>}
     </ToggleButton>
   )
@@ -64,9 +68,6 @@ const styles = stylex.create({
       default: 'none',
       '[data-pressed]': 'scale(0.94)',
     },
-    outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
     outlineOffset: 3,
   },
   media: {

@@ -1,8 +1,8 @@
 const SESSION_KEY = 'jf.session'
 const DEVICE_ID_KEY = 'jf.deviceId'
 
-export const CLIENT_NAME = 'Jellyfin Client'
-export const CLIENT_VERSION = __APP_VERSION__
+const CLIENT_NAME = 'Jellyfin Client'
+const CLIENT_VERSION = __APP_VERSION__
 
 export interface Session {
   serverUrl: string
@@ -46,7 +46,7 @@ export function getDeviceId(): string {
   return id
 }
 
-export function deviceName(): string {
+function deviceName(): string {
   const ua = navigator.userAgent
   const browser = /Firefox\//.test(ua)
     ? 'Firefox'

@@ -5,6 +5,7 @@ import { motion as m } from 'motion/react'
 import { useRef, type ReactNode } from 'react'
 import { fadeUp, stagger } from '@/lib/motion'
 import { railMarker } from '@/theme/markers.stylex'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export interface RailProps {
@@ -27,12 +28,12 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
     <m.section
       initial="hidden"
       animate="show"
-      variants={stagger(0.03)}
+      variants={stagger()}
       {...stylex.props(styles.section, railMarker)}
     >
       <m.header variants={fadeUp} {...stylex.props(styles.header)}>
         {linkTo ? (
-          <Link to={linkTo} params={linkParams} {...stylex.props(styles.titleLink)}>
+          <Link to={linkTo} params={linkParams} {...stylex.props(focus.ring, styles.titleLink)}>
             <h2 {...stylex.props(styles.title)}>{title}</h2>
             <CaretRight size={16} {...stylex.props(styles.titleChevron)} />
           </Link>
@@ -44,7 +45,7 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
             type="button"
             aria-label="Scroll left"
             onClick={() => scrollBy(-1)}
-            {...stylex.props(styles.arrow)}
+            {...stylex.props(focus.ring, styles.arrow)}
           >
             <CaretLeft size={18} />
           </button>
@@ -52,7 +53,7 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
             type="button"
             aria-label="Scroll right"
             onClick={() => scrollBy(1)}
-            {...stylex.props(styles.arrow)}
+            {...stylex.props(focus.ring, styles.arrow)}
           >
             <CaretRight size={18} />
           </button>
@@ -86,9 +87,6 @@ const styles = stylex.create({
     gap: space.xs,
     color: colors.text,
     borderRadius: radii.sm,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
     outlineOffset: 4,
   },
   title: {
@@ -132,9 +130,6 @@ const styles = stylex.create({
       default: colors.surface,
       ':hover': colors.surfaceHover,
     },
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
   },
   scroller: {
     display: 'flex',

@@ -15,6 +15,7 @@ import { plainText } from '@/lib/format'
 import { itemQueries } from '@/lib/item-queries'
 import { fadeUp, springs, stagger } from '@/lib/motion'
 import { getSession } from '@/lib/session'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export interface ItemSearch {
@@ -90,7 +91,7 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
       <m.div
         initial="hidden"
         animate="show"
-        variants={stagger(0.08, 0.25)}
+        variants={stagger(0.03, 0.1)}
         {...stylex.props(styles.body)}
       >
         <m.div variants={fadeUp} {...stylex.props(styles.main)}>
@@ -157,7 +158,11 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
             search={{ season: s.Id ?? undefined }}
             replace
             resetScroll={false}
-            {...stylex.props(styles.seasonTab, s.Id === active?.Id && styles.seasonTabActive)}
+            {...stylex.props(
+              focus.ring,
+              styles.seasonTab,
+              s.Id === active?.Id && styles.seasonTabActive,
+            )}
           >
             {s.Id === active?.Id && (
               <m.span
@@ -294,10 +299,6 @@ const styles = stylex.create({
     },
     transitionProperty: 'background-color, color',
     transitionDuration: motion.base,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
   },
   seasonTabActive: {
     color: colors.accentText,

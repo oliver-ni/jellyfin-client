@@ -31,20 +31,20 @@ import { CARD_FIELDS } from './home-queries'
 import { landscapeImage } from './images'
 import { getDeviceId, getSession } from './session'
 
-export const TICKS_PER_SECOND = 10_000_000
+const TICKS_PER_SECOND = 10_000_000
 
 export function ticksToSeconds(ticks: number | null | undefined): number {
   return ticks ? ticks / TICKS_PER_SECOND : 0
 }
 
-export function secondsToTicks(seconds: number): number {
+function secondsToTicks(seconds: number): number {
   return Math.round(seconds * TICKS_PER_SECOND)
 }
 
 export const AUTO_QUALITY = 'auto'
 const MAX_BITRATE = 120_000_000
 
-export const QUALITY_OPTIONS: QualityOption[] = [
+const QUALITY_OPTIONS: QualityOption[] = [
   { id: AUTO_QUALITY, label: 'Auto' },
   { id: '20000000', label: '1080p · 20 Mbps' },
   { id: '10000000', label: '1080p · 10 Mbps' },
@@ -297,21 +297,23 @@ export function toSegments(
     const start = ticksToSeconds(s.StartTicks)
     const end = ticksToSeconds(s.EndTicks)
     if (end - start < 2) continue
+    const range = { id: s.Id, start, end }
     switch (s.Type) {
       case 'Intro':
-        out.push({ id: s.Id, start, end, label: 'Skip intro', action: 'skip' })
+        out.push({ ...range, name: 'Intro', label: 'Skip intro', action: 'skip' })
         break
       case 'Recap':
-        out.push({ id: s.Id, start, end, label: 'Skip recap', action: 'skip' })
+        out.push({ ...range, name: 'Recap', label: 'Skip recap', action: 'skip' })
         break
       case 'Commercial':
-        out.push({ id: s.Id, start, end, label: 'Skip ad', action: 'skip' })
+        out.push({ ...range, name: 'Ad', label: 'Skip ad', action: 'skip' })
         break
       case 'Outro':
+        if (hasNext) out.push({ ...range, name: 'Credits', label: 'Next episode', action: 'next' })
+        break
       case 'Preview':
-        if (hasNext) out.push({ id: s.Id, start, end, label: 'Next episode', action: 'next' })
-        else if (s.Type === 'Preview')
-          out.push({ id: s.Id, start, end, label: 'Skip preview', action: 'skip' })
+        if (hasNext) out.push({ ...range, name: 'Preview', label: 'Next episode', action: 'next' })
+        else out.push({ ...range, name: 'Preview', label: 'Skip preview', action: 'skip' })
         break
       default:
         break
@@ -320,7 +322,14 @@ export function toSegments(
   // Without a detected outro, offer "next" over the final stretch of the episode.
   if (hasNext && duration && !out.some((s) => s.action === 'next')) {
     const start = Math.max(0, duration - 30)
-    out.push({ id: 'credits', start, end: duration, label: 'Next episode', action: 'next' })
+    out.push({
+      id: 'credits',
+      start,
+      end: duration,
+      name: 'Credits',
+      label: 'Next episode',
+      action: 'next',
+    })
   }
   return out.sort((a, b) => a.start - b.start)
 }

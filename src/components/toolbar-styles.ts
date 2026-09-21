@@ -1,10 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
-/**
- * Shared styles for toolbar dropdowns/chips and their popovers. Compose `trigger` over
- * `glass.surface` and `popover` over `glass.panel`; each control is its own capsule.
- */
+/** Toolbar dropdown/chip trigger; compose over `glass.surface`. Each control is its own capsule. */
 export const toolbarControl = stylex.create({
   trigger: {
     pointerEvents: 'auto',
@@ -19,13 +16,11 @@ export const toolbarControl = stylex.create({
       default: colors.textMuted,
       '[data-hovered]': colors.text,
       '[data-pressed]': colors.text,
-      '[data-selected]': colors.text,
     },
     backgroundColor: {
       default: colors.glass,
       '[data-hovered]': colors.glassStrong,
       '[data-pressed]': colors.glassStrong,
-      '[data-selected]': colors.glassStrong,
     },
     borderRadius: radii.full,
     borderWidth: 0,
@@ -35,39 +30,9 @@ export const toolbarControl = stylex.create({
     transitionDuration: motion.fast,
     transitionTimingFunction: motion.ease,
     transform: { default: 'none', '[data-pressed]': 'scale(0.97)' },
-    outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
   },
-  popover: {
-    minWidth: 180,
-    maxHeight: 360,
-    overflowY: 'auto',
-    borderRadius: radii.lg,
-    padding: space.xs,
-    outline: 'none',
-  },
-  item: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: space.sm,
-    paddingInline: space.md,
-    paddingBlock: 7,
-    fontSize: 13,
-    color: colors.text,
-    borderRadius: radii.sm,
-    cursor: 'pointer',
-    outline: 'none',
-    backgroundColor: {
-      default: 'transparent',
-      '[data-focused]': colors.surfaceHover,
-    },
-  },
-  check: {
-    display: 'grid',
-    placeItems: 'center',
-    width: 16,
-    color: colors.textMuted,
+  selected: {
+    color: colors.accentText,
+    backgroundColor: { default: colors.accent, '[data-hovered]': colors.accentHover },
   },
 })

@@ -6,6 +6,7 @@ import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeCode, formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
 import { backdropImage, logoImage } from '@/lib/images'
 import { fadeUp, stagger } from '@/lib/motion'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
@@ -54,7 +55,7 @@ export function Hero({ item, eyebrow }: HeroProps) {
         key={itemId}
         initial="hidden"
         animate="show"
-        variants={stagger(0.06)}
+        variants={stagger()}
         {...stylex.props(styles.content)}
       >
         {eyebrow && (
@@ -96,7 +97,7 @@ export function Hero({ item, eyebrow }: HeroProps) {
           </m.p>
         )}
         <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
-          <Link to="/items/$itemId" params={{ itemId }} {...stylex.props(styles.play)}>
+          <Link to="/items/$itemId" params={{ itemId }} {...stylex.props(focus.ring, styles.play)}>
             <Play size={18} weight="fill" />
             {remaining ? 'Resume' : 'Play'}
           </Link>
@@ -104,7 +105,7 @@ export function Hero({ item, eyebrow }: HeroProps) {
             to="/items/$itemId"
             params={{ itemId }}
             aria-label="More info"
-            {...stylex.props(styles.info)}
+            {...stylex.props(focus.ring, styles.info)}
           >
             <Info size={20} />
           </Link>
@@ -230,9 +231,6 @@ const styles = stylex.create({
       default: 'none',
       ':active': 'scale(0.98)',
     },
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
     outlineOffset: 3,
   },
   info: {
@@ -252,9 +250,6 @@ const styles = stylex.create({
     borderColor: colors.heroBorder,
     transitionProperty: 'background-color',
     transitionDuration: motion.fast,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
     outlineOffset: 3,
   },
 })

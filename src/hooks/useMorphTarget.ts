@@ -4,8 +4,9 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 're
 import {
   concealMorphOrigin,
   flyMorph,
+  inViewport,
+  offerMorphSource,
   rectOf,
-  setMorphSource,
   takeMorphSource,
   type MorphShape,
 } from '@/lib/motion'
@@ -36,10 +37,7 @@ export function useMorphHandoff(
         const { pathname, search } = toLocation
         const opensThisItem =
           pathname === `/items/${itemId}` || ('episode' in search && search.episode === itemId)
-        if (!opensThisItem) return
-        const rect = rectOf(el)
-        if (rect.width === 0) return
-        setMorphSource({ itemId, shape, rect, src: src ?? null })
+        if (opensThisItem) offerMorphSource(el, { itemId, shape, src: src ?? null })
       }),
     [ref, router],
   )
@@ -49,7 +47,7 @@ export function useMorphHandoff(
  * Lets a card receive the shared-element handoff from the page that navigated here (the
  * detail hero, on back-navigation). The card's media is hidden while a stand-in flies from the
  * hero's rect to the card's, then revealed in place. Measuring waits a frame so the router's
- * scroll restoration has landed first.
+ * scroll restoration has landed first; a card that ends up off screen just appears.
  */
 export function useMorphTarget(
   itemId: string | undefined,
@@ -65,7 +63,7 @@ export function useMorphTarget(
     let stop: (() => void) | undefined
     const frame = requestAnimationFrame(() => {
       const el = ref.current
-      if (!el) {
+      if (!el || !inViewport(rectOf(el))) {
         opacity.jump(1)
         return
       }

@@ -10,7 +10,9 @@ import {
   type Key,
 } from 'react-aria-components'
 import { colors } from '@/theme/tokens.stylex'
+import { focus } from '@/theme/focus'
 import { glass, overlay } from '@/theme/glass'
+import { menu } from '@/theme/menu'
 import { toolbarControl } from './toolbar-styles'
 
 export interface SelectOption<K extends Key> {
@@ -44,7 +46,7 @@ export function Select<K extends Key>({
       }}
       {...stylex.props(styles.root)}
     >
-      <AriaButton {...stylex.props(glass.surface, toolbarControl.trigger)}>
+      <AriaButton {...stylex.props(focus.ring, glass.surface, toolbarControl.trigger)}>
         {label && <span {...stylex.props(styles.label)}>{label}</span>}
         <SelectValue {...stylex.props(styles.value)} />
         <CaretDown size={14} {...stylex.props(styles.chevron)} />
@@ -52,14 +54,14 @@ export function Select<K extends Key>({
       <Popover
         placement="bottom start"
         offset={6}
-        {...stylex.props(glass.panel, overlay.popover, toolbarControl.popover)}
+        {...stylex.props(glass.panel, overlay.popover, menu.popover)}
       >
-        <ListBox items={options} {...stylex.props(styles.list)}>
+        <ListBox items={options} {...stylex.props(menu.list)}>
           {(opt) => (
-            <ListBoxItem id={opt.key} textValue={opt.label} {...stylex.props(toolbarControl.item)}>
+            <ListBoxItem id={opt.key} textValue={opt.label} {...stylex.props(menu.item)}>
               {({ isSelected }) => (
                 <>
-                  <span {...stylex.props(toolbarControl.check)}>
+                  <span {...stylex.props(menu.check)}>
                     {isSelected && <Check size={14} weight="bold" />}
                   </span>
                   {opt.label}
@@ -85,11 +87,5 @@ const styles = stylex.create({
   },
   chevron: {
     opacity: 0.6,
-  },
-  list: {
-    outline: 'none',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
   },
 })

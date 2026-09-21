@@ -146,7 +146,6 @@ const styles = stylex.create({
     borderRadius: radii.full,
     backgroundColor: colors.onMediaBg,
     color: colors.onMediaText,
-    paddingLeft: 3,
   },
   count: {
     position: 'absolute',

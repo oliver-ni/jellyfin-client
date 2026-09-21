@@ -1,14 +1,16 @@
 import * as stylex from '@stylexjs/stylex'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { hashKey, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp } from '@phosphor-icons/react'
-import { useCallback } from 'react'
+import { AnimatePresence, motion as m } from 'motion/react'
+import { useCallback, type ReactNode } from 'react'
 import { getItemOptions } from '@/api/gen/@tanstack/react-query.gen'
 import { Button } from '@/components/Button'
 import { FilterMenu, FilterToggle } from '@/components/FilterMenu'
 import { ItemGrid } from '@/components/ItemGrid'
 import { Select } from '@/components/Select'
 import { useRequiredSession } from '@/hooks/useSession'
+import { useSettled } from '@/hooks/useSettled'
 import {
   SORT_OPTIONS,
   activeFilterCount,
@@ -21,7 +23,9 @@ import {
   type LibrarySearch,
   type Order,
 } from '@/lib/library'
+import { fadeUp, vanish } from '@/lib/motion'
 import { glass } from '@/theme/glass'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/library/$libraryId')({
@@ -43,10 +47,10 @@ function LibraryPage() {
     ...libraryFiltersQuery(userId, libraryId, itemTypes),
     enabled: library.isSuccess,
   })
-  const items = useInfiniteQuery({
-    ...libraryItemsQuery({ userId, libraryId, itemTypes, search }),
-    enabled: library.isSuccess,
-  })
+  const itemsQuery = libraryItemsQuery({ userId, libraryId, itemTypes, search })
+  const items = useInfiniteQuery({ ...itemsQuery, enabled: library.isSuccess })
+  // Identity of the result set on screen; lags the URL while the previous set is a placeholder.
+  const resultSetKey = useSettled(hashKey(itemsQuery.queryKey), !items.isPlaceholderData)
 
   const loaded = flattenPages(items.data?.pages)
   const total = items.data?.pages[0]?.TotalRecordCount ?? loaded.length
@@ -108,7 +112,7 @@ function LibraryPage() {
                 : 'Descending, click for ascending'
             }
             onClick={() => update({ order: order === 'asc' ? 'desc' : 'asc' })}
-            {...stylex.props(glass.surface, styles.orderButton)}
+            {...stylex.props(focus.ring, glass.surface, styles.orderButton)}
           >
             {order === 'asc' ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
           </button>
@@ -143,34 +147,50 @@ function LibraryPage() {
                 favorite: undefined,
               })
             }
-            {...stylex.props(styles.clear)}
+            {...stylex.props(focus.ring, styles.clear)}
           >
             Clear filters
           </button>
         )}
       </div>
 
-      {items.isError ? (
-        <div {...stylex.props(styles.state)}>
-          <p {...stylex.props(styles.stateTitle)}>Couldn’t load this library</p>
-          <p {...stylex.props(styles.stateText)}>{items.error.message}</p>
-          <Button onPress={() => void items.refetch()}>Try again</Button>
-        </div>
-      ) : items.isSuccess && total === 0 ? (
-        <div {...stylex.props(styles.state)}>
-          <p {...stylex.props(styles.stateTitle)}>Nothing here</p>
-          <p {...stylex.props(styles.stateText)}>
-            {filterCount > 0 ? 'No titles match these filters.' : 'This library is empty.'}
-          </p>
-        </div>
-      ) : (
-        <ItemGrid
-          total={items.isSuccess ? total : 24}
-          items={loaded}
-          onRenderedUpTo={onRenderedUpTo}
-        />
-      )}
+      <AnimatePresence mode="popLayout" initial={false}>
+        {items.isError ? (
+          <Notice key="error" title="Couldn’t load this library" text={items.error.message}>
+            <Button onPress={() => void items.refetch()}>Try again</Button>
+          </Notice>
+        ) : items.isSuccess && total === 0 ? (
+          <Notice
+            key="empty"
+            title="Nothing here"
+            text={filterCount > 0 ? 'No titles match these filters.' : 'This library is empty.'}
+          />
+        ) : (
+          <ItemGrid
+            key={resultSetKey}
+            total={items.isSuccess ? total : 24}
+            items={loaded}
+            onRenderedUpTo={onRenderedUpTo}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  )
+}
+
+function Notice({ title, text, children }: { title: string; text: string; children?: ReactNode }) {
+  return (
+    <m.div
+      initial="hidden"
+      animate="show"
+      exit={vanish}
+      variants={fadeUp}
+      {...stylex.props(styles.state)}
+    >
+      <p {...stylex.props(styles.stateTitle)}>{title}</p>
+      <p {...stylex.props(styles.stateText)}>{text}</p>
+      {children}
+    </m.div>
   )
 }
 
@@ -238,10 +258,6 @@ const styles = stylex.create({
     transitionProperty: 'color, background-color, transform',
     transitionDuration: motion.fast,
     transform: { default: 'none', ':active': 'scale(0.97)' },
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
   },
   clear: {
     pointerEvents: 'auto',
@@ -256,9 +272,6 @@ const styles = stylex.create({
     backgroundColor: 'transparent',
     borderRadius: radii.sm,
     cursor: 'pointer',
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
   },
   state: {
     display: 'flex',

@@ -1,4 +1,4 @@
-import { animate, type Transition, type Variants } from 'motion/react'
+import { animate, type TargetAndTransition, type Transition, type Variants } from 'motion/react'
 
 /**
  * Spring presets, duration-based and critically damped so everything settles on the same
@@ -20,17 +20,15 @@ export const fadeUp: Variants = {
   show: { opacity: 1, y: 0, transition: springs.gentle },
 }
 
-export const fade: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] } },
-}
-
 export const pop: Variants = {
   hidden: { opacity: 0, scale: 0.96 },
   show: { opacity: 1, scale: 1, transition: springs.gentle },
 }
 
-export const stagger = (delayChildren = 0.04, start = 0): Variants => ({
+/** Exit target for `AnimatePresence`; exits are quicker than entrances. */
+export const vanish: TargetAndTransition = { opacity: 0, transition: { duration: 0.15 } }
+
+export const stagger = (delayChildren = 0.03, start = 0): Variants => ({
   hidden: {},
   show: { transition: { delayChildren: start, staggerChildren: delayChildren } },
 })
@@ -59,11 +57,29 @@ export interface MorphSource {
 
 const SOURCE_TTL = 1500
 
-let pending: (MorphSource & { expires: number }) | null = null
+let pending: (MorphSource & { expires: number; pressed: boolean }) | null = null
 
-export function setMorphSource(source: MorphSource) {
-  pending = { ...source, expires: performance.now() + SOURCE_TTL }
+let lastPointerTarget: EventTarget | null = null
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', (e) => (lastPointerTarget = e.target), { capture: true })
 }
+
+/**
+ * Offer `el` as the morph origin. The element the user pressed always wins; anything else
+ * (a second card for the same item, or a history navigation) only counts while on screen.
+ */
+export function offerMorphSource(el: Element, source: Omit<MorphSource, 'rect'>) {
+  const rect = rectOf(el)
+  if (rect.width === 0) return
+  const pressed = lastPointerTarget instanceof Node && el.contains(lastPointerTarget)
+  const now = performance.now()
+  if (pending && pending.pressed && !pressed && pending.expires > now) return
+  if (!pressed && !inViewport(rect)) return
+  pending = { ...source, rect, pressed, expires: now + SOURCE_TTL }
+}
+
+export const inViewport = (r: Rect) =>
+  r.y < window.innerHeight && r.y + r.height > 0 && r.x < window.innerWidth && r.x + r.width > 0
 
 /** Claim the pending handoff if it is for this item and shape and still fresh. */
 export function takeMorphSource(itemId: string, shape: MorphShape): MorphSource | null {
@@ -83,7 +99,10 @@ export function rectOf(el: Element): Rect {
   return { x, y, width, height }
 }
 
-const near = (a: Rect, b: Rect) => Math.abs(a.x - b.x) < 4 && Math.abs(a.y - b.y) < 4
+/** Same slot, ignoring hover scale: compare centres, not corners. */
+const near = (a: Rect, b: Rect) =>
+  Math.abs(a.x + a.width / 2 - (b.x + b.width / 2)) < 4 &&
+  Math.abs(a.y + a.height / 2 - (b.y + b.height / 2)) < 4
 
 let layer: HTMLDivElement | null = null
 

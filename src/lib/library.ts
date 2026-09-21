@@ -1,4 +1,4 @@
-import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
+import { infiniteQueryOptions, keepPreviousData, queryOptions } from '@tanstack/react-query'
 import { getItems, getQueryFiltersLegacy } from '@/api/gen/sdk.gen'
 import type {
   BaseItemDto,
@@ -11,7 +11,7 @@ import type {
 } from '@/api/gen/types.gen'
 import { CARD_FIELDS } from './home-queries'
 
-export const SORT_KEYS = [
+const SORT_KEYS = [
   'added',
   'name',
   'premiere',
@@ -128,7 +128,7 @@ export function libraryItemTypes(type: CollectionType | null | undefined): BaseI
   }
 }
 
-export const PAGE_SIZE = 100
+const PAGE_SIZE = 100
 
 export interface LibraryItemsParams {
   userId: string
@@ -179,6 +179,8 @@ export function libraryItemsQuery({ userId, libraryId, itemTypes, search }: Libr
     },
     // Random order must not be re-shuffled on every background refetch.
     staleTime: sort.key === 'random' ? Infinity : undefined,
+    // Changing sort/filters keeps the current grid on screen until the new set arrives.
+    placeholderData: keepPreviousData,
   })
 }
 

@@ -34,6 +34,9 @@ export interface Segment {
   id: string
   start: number
   end: number
+  /** Short chapter name shown on the timeline ("Intro"). */
+  name: string
+  /** Action button text ("Skip intro"). */
   label: string
   /** `skip` jumps to `end`; `next` offers the next item (with autoplay countdown). */
   action: 'skip' | 'next'

@@ -25,6 +25,8 @@ import { getSession, type Session } from '@/lib/session'
 import { THEMES, setThemeId, type ThemeId } from '@/lib/theme'
 import { brandMark } from '@/brand'
 import { glass, overlay } from '@/theme/glass'
+import { menu } from '@/theme/menu'
+import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app')({
@@ -82,7 +84,11 @@ function TopNav({ session }: { session: Session }) {
   return (
     <header {...stylex.props(styles.nav)}>
       <SearchPalette userId={session.userId} isOpen={searchOpen} onOpenChange={setSearchOpen} />
-      <Link to="/" aria-label={session.serverName} {...stylex.props(glass.surface, styles.brand)}>
+      <Link
+        to="/"
+        aria-label={session.serverName}
+        {...stylex.props(focus.ring, glass.surface, styles.brand)}
+      >
         <span aria-hidden="true">{brandMark}</span>
       </Link>
       <nav aria-label="Libraries" {...stylex.props(glass.surface, styles.links)}>
@@ -97,28 +103,31 @@ function TopNav({ session }: { session: Session }) {
         <AriaButton
           aria-label="Search"
           onPress={() => setSearchOpen(true)}
-          {...stylex.props(glass.surface, styles.search)}
+          {...stylex.props(focus.ring, glass.surface, styles.search)}
         >
           <MagnifyingGlass size={16} />
           <span {...stylex.props(styles.searchLabel)}>Search</span>
           <kbd {...stylex.props(styles.kbd)}>/</kbd>
         </AriaButton>
         <MenuTrigger>
-          <AriaButton aria-label="Account" {...stylex.props(glass.surface, styles.avatar)}>
+          <AriaButton
+            aria-label="Account"
+            {...stylex.props(focus.ring, glass.surface, styles.avatar)}
+          >
             {session.userName.slice(0, 1).toUpperCase()}
           </AriaButton>
           <Popover
             placement="bottom end"
             offset={8}
-            {...stylex.props(glass.panel, overlay.popover, styles.popover)}
+            {...stylex.props(glass.panel, overlay.popover, menu.popover)}
           >
             <div {...stylex.props(styles.menuHeader)}>
               <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
               <span {...stylex.props(styles.menuServer)}>{session.serverName}</span>
             </div>
-            <div {...stylex.props(styles.separator)} />
+            <div {...stylex.props(menu.separator)} />
             <Menu
-              {...stylex.props(styles.menu)}
+              {...stylex.props(menu.list)}
               onAction={async (key) => {
                 if (key === 'logout') {
                   await logout()
@@ -135,14 +144,14 @@ function TopNav({ session }: { session: Session }) {
                   const [next] = keys
                   if (typeof next === 'string') setThemeId(next as ThemeId)
                 }}
-                {...stylex.props(styles.menuSection)}
+                {...stylex.props(menu.list)}
               >
-                <Header {...stylex.props(styles.sectionLabel)}>Theme</Header>
+                <Header {...stylex.props(menu.header)}>Theme</Header>
                 {THEMES.map((t) => (
-                  <MenuItem key={t.id} id={t.id} {...stylex.props(styles.menuItem)}>
+                  <MenuItem key={t.id} id={t.id} {...stylex.props(menu.item)}>
                     {({ isSelected }) => (
                       <>
-                        <span {...stylex.props(styles.check)}>
+                        <span {...stylex.props(menu.check)}>
                           {isSelected && <Check size={14} weight="bold" />}
                         </span>
                         {t.label}
@@ -151,10 +160,10 @@ function TopNav({ session }: { session: Session }) {
                   </MenuItem>
                 ))}
               </MenuSection>
-              <Separator {...stylex.props(styles.separator)} />
-              <MenuSection {...stylex.props(styles.menuSection)}>
-                <MenuItem id="logout" {...stylex.props(styles.menuItem)}>
-                  <span {...stylex.props(styles.check)}>
+              <Separator {...stylex.props(menu.separator)} />
+              <MenuSection {...stylex.props(menu.list)}>
+                <MenuItem id="logout" {...stylex.props(menu.item)}>
+                  <span {...stylex.props(menu.check)}>
                     <SignOut size={14} />
                   </span>
                   Sign out
@@ -179,7 +188,7 @@ function NavLink({ children, ...target }: NavLinkProps) {
       ? ({ to: '/', activeOptions: { exact: true } } as const)
       : ({ to: '/library/$libraryId', params: { libraryId: target.libraryId } } as const)
   return (
-    <Link {...link} {...stylex.props(styles.link)}>
+    <Link {...link} {...stylex.props(focus.ring, styles.link)}>
       {({ isActive }) => (
         <>
           {isActive && (
@@ -230,10 +239,6 @@ const styles = stylex.create({
     fontSize: 18,
     lineHeight: 1,
     borderRadius: radii.full,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
   },
   links: {
     pointerEvents: 'auto',
@@ -274,9 +279,6 @@ const styles = stylex.create({
     paddingInline: space.md,
     borderRadius: radii.full,
     whiteSpace: 'nowrap',
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
     outlineOffset: -2,
   },
   linkActive: {
@@ -333,10 +335,6 @@ const styles = stylex.create({
     fontSize: 14,
     transitionProperty: 'color',
     transitionDuration: motion.fast,
-    outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
   },
   searchLabel: {
     flex: 1,
@@ -370,52 +368,12 @@ const styles = stylex.create({
     fontWeight: 600,
     color: colors.text,
     borderRadius: radii.full,
-    outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.focusRing,
-    outlineOffset: 2,
-  },
-  popover: {
-    minWidth: 200,
-    borderRadius: radii.lg,
-    padding: space.xs,
-    outline: 'none',
-  },
-  menu: {
-    outline: 'none',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-  },
-  menuSection: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
   },
   menuHeader: {
     display: 'flex',
     flexDirection: 'column',
     paddingInline: space.md,
     paddingBlock: space.sm,
-  },
-  sectionLabel: {
-    paddingInline: space.md,
-    paddingTop: space.sm,
-    paddingBottom: space.xs,
-    fontSize: 12,
-    fontWeight: 500,
-    color: colors.textFaint,
-  },
-  separator: {
-    height: 1,
-    marginBlock: space.xs,
-    backgroundColor: colors.border,
-  },
-  check: {
-    display: 'grid',
-    placeItems: 'center',
-    width: 16,
-    color: colors.textMuted,
   },
   menuUser: {
     fontSize: 14,
@@ -425,22 +383,6 @@ const styles = stylex.create({
   menuServer: {
     fontSize: 12,
     color: colors.textMuted,
-  },
-  menuItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: space.sm,
-    paddingInline: space.md,
-    paddingBlock: space.sm,
-    fontSize: 14,
-    color: colors.text,
-    borderRadius: radii.sm,
-    cursor: 'pointer',
-    outline: 'none',
-    backgroundColor: {
-      default: 'transparent',
-      '[data-focused]': colors.surfaceHover,
-    },
   },
   main: {
     flex: 1,
