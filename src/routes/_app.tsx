@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { Check, MagnifyingGlass, Plugs, PlugsConnected, SignOut } from '@phosphor-icons/react'
+import { Check, MagnifyingGlass, PlugsConnected, SignOut } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
@@ -141,7 +141,6 @@ function TopNav({ session }: { session: Session }) {
               {...stylex.props(menu.list)}
               onAction={async (key) => {
                 if (key === 'seerr-connect') setConnectOpen(true)
-                if (key === 'seerr-disconnect') await seerrSignOut()
                 if (key === 'logout') {
                   await Promise.all([logout(), seerrSignOut()])
                   await navigate({ to: '/login', replace: true })
@@ -181,14 +180,6 @@ function TopNav({ session }: { session: Session }) {
                       <PlugsConnected size={14} />
                     </span>
                     Connect Seerr
-                  </MenuItem>
-                )}
-                {seerr === 'signedIn' && (
-                  <MenuItem id="seerr-disconnect" {...stylex.props(menu.item)}>
-                    <span {...stylex.props(menu.check)}>
-                      <Plugs size={14} />
-                    </span>
-                    Disconnect Seerr
                   </MenuItem>
                 )}
                 <MenuItem id="logout" {...stylex.props(menu.item)}>

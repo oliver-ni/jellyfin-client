@@ -2,13 +2,13 @@ import * as stylex from '@stylexjs/stylex'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { ArrowSquareOut, Check, Plus, Prohibit } from '@phosphor-icons/react'
-import { motion as m } from 'motion/react'
+import { AnimatePresence, motion as m } from 'motion/react'
 import { useState } from 'react'
 import { ListBox, ListBoxItem, type Selection } from 'react-aria-components'
 import { Button } from '@/components/Button'
 import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
-import { fadeUp, stagger } from '@/lib/motion'
+import { fadeUp, springs, stagger, vanish } from '@/lib/motion'
 import { useRequiredSession } from '@/lib/session'
 import * as seerr from '@/seerr/api'
 import { ConnectDialog } from '@/seerr/ConnectDialog'
@@ -77,8 +77,7 @@ function RequestPage() {
         rating={t.rating}
         genres={t.genres}
       >
-        {t.type === 'movie' && open && <MovieAction title={t} />}
-        {!open && <Status title={t} />}
+        {t.type === 'movie' && (open ? <MovieAction title={t} /> : <Status title={t} />)}
         {t.jellyfinId && (
           <Link
             to="/items/$itemId"
@@ -103,9 +102,15 @@ function RequestPage() {
           </m.p>
         )}
         {t.type === 'tv' && (
-          <m.div variants={fadeUp}>
-            <SeasonPicker title={t} />
-          </m.div>
+          <m.section variants={fadeUp}>
+            <AnimatePresence mode="popLayout" initial={false}>
+              {open ? (
+                <SeasonPicker key="pick" title={t} />
+              ) : (
+                <SeasonStatus key="status" title={t} />
+              )}
+            </AnimatePresence>
+          </m.section>
         )}
       </m.div>
     </article>
@@ -168,8 +173,8 @@ function MovieAction({ title }: { title: seerr.MovieDetails }) {
   )
 }
 
-/** Where a title with nothing left to request stands; the library link covers what's here. */
-function Status({ title }: { title: seerr.Title }) {
+/** Where a film with nothing left to request stands; the library link covers what's here. */
+function Status({ title }: { title: seerr.MovieDetails }) {
   const label = AVAILABILITY_LABEL[title.availability]
   if (!label || (title.availability === 'available' && title.jellyfinId)) return null
   return (
@@ -184,6 +189,37 @@ function Status({ title }: { title: seerr.Title }) {
   )
 }
 
+const seasonMeta = (s: seerr.TvDetails['seasons'][number]) =>
+  [
+    `${s.episodeCount} ${s.episodeCount === 1 ? 'episode' : 'episodes'}`,
+    AVAILABILITY_LABEL[s.availability],
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+const swap = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: springs.gentle },
+  exit: vanish,
+}
+
+/** Where every season already stands, once there is nothing left to pick. */
+function SeasonStatus({ title }: { title: seerr.TvDetails }) {
+  return (
+    <m.div {...swap} {...stylex.props(styles.seasons)}>
+      <h2 {...stylex.props(styles.heading)}>Seasons</h2>
+      <ul {...stylex.props(styles.seasonList)}>
+        {title.seasons.map((s) => (
+          <li key={s.number} {...stylex.props(styles.seasonRow, styles.seasonRowStatic)}>
+            <span {...stylex.props(styles.seasonName)}>{s.name}</span>
+            <span {...stylex.props(styles.seasonMeta)}>{seasonMeta(s)}</span>
+          </li>
+        ))}
+      </ul>
+    </m.div>
+  )
+}
+
 function SeasonPicker({ title }: { title: seerr.TvDetails }) {
   const request = useRequest(title)
   const open = seerr.openSeasons(title)
@@ -192,31 +228,27 @@ function SeasonPicker({ title }: { title: seerr.TvDetails }) {
   const chosen = open.filter((s) => selected === 'all' || selected.has(s.number))
 
   return (
-    <section {...stylex.props(styles.seasons)}>
+    <m.div {...swap} {...stylex.props(styles.seasons)}>
       <header {...stylex.props(styles.seasonsHeader)}>
         <h2 {...stylex.props(styles.heading)}>Seasons</h2>
-        {open.length > 0 && (
-          <div {...stylex.props(styles.actionGroup)}>
-            {request.isError && (
-              <span {...stylex.props(styles.error)}>{request.error.message}</span>
-            )}
-            <Button
-              variant="primary"
-              isDisabled={chosen.length === 0}
-              isPending={request.isPending}
-              onPress={() => request.mutate(chosen.map((s) => s.number))}
-            >
-              <Plus size={16} weight="bold" />
-              {request.isPending
-                ? 'Requesting…'
-                : chosen.length === 1
-                  ? `Request ${chosen[0]!.name.toLowerCase()}`
-                  : chosen.length > 1
-                    ? `Request ${chosen.length} seasons`
-                    : 'Request'}
-            </Button>
-          </div>
-        )}
+        <div {...stylex.props(styles.actionGroup)}>
+          {request.isError && <span {...stylex.props(styles.error)}>{request.error.message}</span>}
+          <Button
+            variant="primary"
+            isDisabled={chosen.length === 0}
+            isPending={request.isPending}
+            onPress={() => request.mutate(chosen.map((s) => s.number))}
+          >
+            <Plus size={16} weight="bold" />
+            {request.isPending
+              ? 'Requesting…'
+              : chosen.length === 1
+                ? `Request ${chosen[0]!.name.toLowerCase()}`
+                : chosen.length > 1
+                  ? `Request ${chosen.length} seasons`
+                  : 'Request'}
+          </Button>
+        </div>
       </header>
       <ListBox
         aria-label="Seasons to request"
@@ -227,7 +259,6 @@ function SeasonPicker({ title }: { title: seerr.TvDetails }) {
           .filter((s) => !seerr.requestable(s.availability))
           .map((s) => s.number)}
         items={title.seasons}
-        renderEmptyState={() => <Notice title="No seasons listed yet" />}
         {...stylex.props(styles.seasonList)}
       >
         {(s) => (
@@ -244,20 +275,13 @@ function SeasonPicker({ title }: { title: seerr.TvDetails }) {
                   {isSelected && <Check size={12} weight="bold" />}
                 </span>
                 <span {...stylex.props(styles.seasonName)}>{s.name}</span>
-                <span {...stylex.props(styles.seasonMeta)}>
-                  {[
-                    `${s.episodeCount} ${s.episodeCount === 1 ? 'episode' : 'episodes'}`,
-                    AVAILABILITY_LABEL[s.availability],
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
+                <span {...stylex.props(styles.seasonMeta)}>{seasonMeta(s)}</span>
               </>
             )}
           </ListBoxItem>
         )}
       </ListBox>
-    </section>
+    </m.div>
   )
 }
 
@@ -302,6 +326,9 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     outline: 'none',
+    listStyle: 'none',
+    padding: 0,
+    margin: 0,
   },
   seasonRow: {
     display: 'grid',
@@ -332,6 +359,13 @@ const styles = stylex.create({
     },
     transitionProperty: 'background-color',
     transitionDuration: motion.fast,
+  },
+  seasonRowStatic: {
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    marginInline: 0,
+    paddingInline: 0,
+    cursor: 'default',
+    backgroundColor: 'transparent',
   },
   checkbox: {
     display: 'grid',
