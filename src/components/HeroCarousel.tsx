@@ -6,11 +6,12 @@ import {
   type AnimationPlaybackControls,
 } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { Radio, RadioGroup } from 'react-aria-components'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { backdropImage, logoImage } from '@/lib/images'
 import { springs } from '@/lib/motion'
 import { focus } from '@/theme/focus'
-import { colors, radii, space } from '@/theme/tokens.stylex'
+import { colors, motion, radii } from '@/theme/tokens.stylex'
 import { Hero } from './Hero'
 
 export interface HeroSlide {
@@ -25,6 +26,7 @@ const DWELL = 8
  * Rotates the home hero through `slides`. The active dot fills over the dwell time and that
  * fill *is* the timer, so pausing (hover, focus) and restarting (selecting a dot) stay in sync.
  * Under reduced motion the carousel does not auto-advance; the dots still select.
+ * The dots are one radio group: a single tab stop, arrow keys move between slides.
  */
 export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
   const [selected, setSelected] = useState(0)
@@ -76,20 +78,24 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
     >
       <Hero item={slide.item} eyebrow={slide.eyebrow}>
         {count > 1 && (
-          <div role="group" aria-label="Featured" {...stylex.props(styles.dots)}>
+          <RadioGroup
+            aria-label="Featured"
+            orientation="horizontal"
+            value={String(index)}
+            onChange={(v) => setSelected(Number(v))}
+            {...stylex.props(styles.dots)}
+          >
             {slides.map((s, i) => {
               const active = i === index
               return (
-                <button
+                <Radio
                   key={s.item.Id}
-                  type="button"
+                  value={String(i)}
                   aria-label={s.item.SeriesName ?? s.item.Name ?? ''}
-                  aria-current={active || undefined}
-                  onClick={() => setSelected(i)}
-                  {...stylex.props(focus.ring, styles.dot)}
+                  {...stylex.props(focus.ring, styles.dot, stylex.defaultMarker())}
                 >
                   <m.span
-                    animate={{ width: active ? 24 : 6 }}
+                    animate={{ width: active ? 32 : 8 }}
                     transition={springs.snappy}
                     {...stylex.props(styles.pill)}
                   >
@@ -97,10 +103,10 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
                       <span ref={fill} {...stylex.props(styles.fill, !autoplay && styles.full)} />
                     )}
                   </m.span>
-                </button>
+                </Radio>
               )
             })}
-          </div>
+          </RadioGroup>
         )}
       </Hero>
     </div>
@@ -115,18 +121,22 @@ const styles = stylex.create({
   dot: {
     display: 'grid',
     placeItems: 'center',
-    height: 24,
-    minWidth: 24,
-    paddingInline: space.xs,
+    height: 32,
+    paddingInline: 5,
     cursor: 'pointer',
     borderRadius: radii.full,
   },
   pill: {
     display: 'block',
-    height: 6,
+    height: 8,
     borderRadius: radii.full,
-    backgroundColor: colors.heroBorder,
+    backgroundColor: {
+      default: colors.heroBorder,
+      [stylex.when.ancestor(':hover')]: colors.heroTextMuted,
+    },
     overflow: 'hidden',
+    transitionProperty: 'background-color',
+    transitionDuration: motion.fast,
   },
   fill: {
     display: 'block',

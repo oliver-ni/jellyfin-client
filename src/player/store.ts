@@ -76,9 +76,6 @@ export interface PlayerPrefs {
   volume: number
   muted: boolean
   rate: number
-  audioLanguage: string | null
-  subtitleLanguage: string | null
-  subtitlesEnabled: boolean
   autoplayNext: boolean
   subtitleScale: number
   set: (patch: Partial<Omit<PlayerPrefs, 'set'>>) => void
@@ -90,9 +87,6 @@ export const usePlayerPrefs = create<PlayerPrefs>()(
       volume: 1,
       muted: false,
       rate: 1,
-      audioLanguage: null,
-      subtitleLanguage: null,
-      subtitlesEnabled: true,
       autoplayNext: true,
       subtitleScale: 1,
       set: (patch) => set(patch),

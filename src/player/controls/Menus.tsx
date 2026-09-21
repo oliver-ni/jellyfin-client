@@ -95,6 +95,35 @@ export function OptionSection({ title, options, selected, onSelect, none }: Opti
   )
 }
 
+interface ToggleSectionProps {
+  label: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}
+
+/** A single on/off option rendered like the other sections, with the check as its state. */
+export function ToggleSection({ label, checked, onChange }: ToggleSectionProps) {
+  return (
+    <MenuSection
+      selectionMode="multiple"
+      selectedKeys={checked ? ['on'] : []}
+      onSelectionChange={(keys) => onChange(keys === 'all' || keys.has('on'))}
+      {...stylex.props(styles.section)}
+    >
+      <MenuItem id="on" textValue={label} {...stylex.props(styles.item)}>
+        {({ isSelected }) => (
+          <>
+            <span {...stylex.props(styles.check, isSelected && styles.checkOn)}>
+              <Check size={14} weight="bold" />
+            </span>
+            <span {...stylex.props(styles.itemLabel)}>{label}</span>
+          </>
+        )}
+      </MenuItem>
+    </MenuSection>
+  )
+}
+
 export function PlayerMenuList({ children, label }: { children: ReactNode; label: string }) {
   return (
     <Menu aria-label={label} {...stylex.props(styles.menu)}>

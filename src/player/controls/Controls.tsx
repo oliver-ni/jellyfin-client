@@ -17,10 +17,11 @@ import { usePlayerContext, usePlayerState } from '../context'
 import { formatTime } from '../format'
 import { toggleFullscreen } from '../hooks'
 import { spring } from '../motion'
+import { usePlayerPrefs } from '../store'
 import { player } from '../tokens.stylex'
 import type { NextItem, Segment, Thumbnail } from '../types'
 import { ControlButton } from './ControlButton'
-import { NONE_KEY, OptionSection, PlayerMenuList, PlayerMenuTrigger } from './Menus'
+import { NONE_KEY, OptionSection, PlayerMenuList, PlayerMenuTrigger, ToggleSection } from './Menus'
 import { Scrubber } from './Scrubber'
 import { VolumeControl } from './VolumeControl'
 
@@ -35,6 +36,11 @@ export interface ControlsProps {
 }
 
 const RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+const SUBTITLE_SIZES = [
+  { id: '0.85', label: 'Small' },
+  { id: '1', label: 'Default' },
+  { id: '1.25', label: 'Large' },
+]
 
 export function Controls({
   segments,
@@ -55,6 +61,7 @@ export function Controls({
   const rate = usePlayerState((s) => s.rate)
   const audioTrackId = usePlayerState((s) => s.audioTrackId)
   const subtitleTrackId = usePlayerState((s) => s.subtitleTrackId)
+  const prefs = usePlayerPrefs()
 
   const pipSupported = typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
   const hasHours = duration >= 3600
@@ -131,6 +138,12 @@ export function Controls({
                     selected={subtitleTrackId}
                     onSelect={(id) => onSubtitleChange?.(id === NONE_KEY ? null : id)}
                   />
+                  <OptionSection
+                    title="Size"
+                    options={SUBTITLE_SIZES}
+                    selected={String(prefs.subtitleScale)}
+                    onSelect={(id) => prefs.set({ subtitleScale: Number(id) })}
+                  />
                 </PlayerMenuList>
               }
             >
@@ -158,6 +171,13 @@ export function Controls({
                     options={source.qualityOptions}
                     selected={source.qualityId ?? null}
                     onSelect={(id) => onQualityChange?.(id)}
+                  />
+                )}
+                {next && (
+                  <ToggleSection
+                    label="Autoplay next episode"
+                    checked={prefs.autoplayNext}
+                    onChange={(autoplayNext) => prefs.set({ autoplayNext })}
                   />
                 )}
                 {source.deliveryLabel && (
