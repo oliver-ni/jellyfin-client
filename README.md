@@ -40,3 +40,12 @@ npm run generate
 | `npm run fmt:check` | oxfmt (check)                |
 | `npm run test`      | Vitest                       |
 | `npm run generate`  | Regenerate `src/api/gen`     |
+
+## Docker
+
+```sh
+docker build -t jellyfin-client .
+docker run -p 8080:80 jellyfin-client
+```
+
+Serves the static build with nginx; the Jellyfin server URL is entered at sign-in.
