@@ -67,7 +67,11 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
               <Play size={18} weight="fill" />
             </span>
           </div>
-          {unplayed ? <span {...stylex.props(styles.count)}>{unplayed}</span> : null}
+          {unplayed ? (
+            <span aria-label={`${unplayed} unplayed`} {...stylex.props(styles.count)}>
+              {unplayed}
+            </span>
+          ) : null}
           {progress > 0 && (
             <div {...stylex.props(styles.progressTrack)}>
               <div {...stylex.props(styles.progressBar)} style={{ width: `${progress}%` }} />
