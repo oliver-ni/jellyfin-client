@@ -1,6 +1,6 @@
 import { SkipForward, X } from '@phosphor-icons/react'
 import * as stylex from '@stylexjs/stylex'
-import { AnimatePresence, motion as m } from 'motion/react'
+import { animate, AnimatePresence, motion as m } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from 'react-aria-components'
 import { usePlayerContext, usePlayerState } from '../context'
@@ -16,6 +16,8 @@ export interface SegmentActionProps {
 }
 
 const COUNTDOWN_S = 8
+/** Offset above the bottom edge: clear of the control bar's scrubber when it is shown. */
+const LIFT = { raised: -100, idle: -28 }
 
 /**
  * Bottom-right prompt while the playhead is inside a segment: "Skip intro" seeks past it;
@@ -35,7 +37,7 @@ export function SegmentAction({ segments, next, onNext }: SegmentActionProps) {
         <m.div
           key={segment.id}
           initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: controlsVisible ? -72 : -28 }}
+          animate={{ opacity: 1, y: controlsVisible ? LIFT.raised : LIFT.idle }}
           exit={{ opacity: 0, y: 8, transition: { duration: 0.14 } }}
           transition={spring.gentle}
           {...stylex.props(styles.anchor)}
@@ -74,28 +76,25 @@ interface NextUpProps {
 
 function NextUp({ next, raised, onNext, onDismiss }: NextUpProps) {
   const autoplay = usePlayerPrefs((p) => p.autoplayNext)
-  const [remaining, setRemaining] = useState(COUNTDOWN_S)
-  const fired = useRef(false)
+  const fill = useRef<HTMLSpanElement>(null)
 
+  // The button's fill is the countdown; when it completes, the next episode starts.
   useEffect(() => {
-    if (!autoplay) return
-    const started = performance.now()
-    const id = window.setInterval(() => {
-      const left = Math.max(0, COUNTDOWN_S - (performance.now() - started) / 1000)
-      setRemaining(left)
-      if (left === 0 && !fired.current) {
-        fired.current = true
-        window.clearInterval(id)
-        onNext()
-      }
-    }, 100)
-    return () => window.clearInterval(id)
+    const el = fill.current
+    if (!el || !autoplay) return
+    let live = true
+    const controls = animate(el, { scaleX: [0, 1] }, { duration: COUNTDOWN_S, ease: 'linear' })
+    controls.then(() => live && onNext())
+    return () => {
+      live = false
+      controls.stop()
+    }
   }, [autoplay, onNext])
 
   return (
     <m.div
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: raised ? -72 : -28 }}
+      animate={{ opacity: 1, y: raised ? LIFT.raised : LIFT.idle }}
       exit={{ opacity: 0, y: 8, transition: { duration: 0.14 } }}
       transition={spring.gentle}
       {...stylex.props(styles.anchor, styles.nextRow)}
@@ -108,14 +107,7 @@ function NextUp({ next, raised, onNext, onDismiss }: NextUpProps) {
         </span>
       </div>
       <Button {...stylex.props(styles.action)} onPress={onNext}>
-        {autoplay && (
-          <m.span
-            {...stylex.props(styles.countdown)}
-            initial={false}
-            animate={{ scaleX: 1 - remaining / COUNTDOWN_S }}
-            transition={{ duration: 0.1, ease: 'linear' }}
-          />
-        )}
+        {autoplay && <span ref={fill} {...stylex.props(styles.countdown)} />}
         <span {...stylex.props(styles.actionLabel)}>Next episode</span>
         <SkipForward size={14} weight="fill" {...stylex.props(styles.actionLabel)} />
       </Button>
@@ -169,6 +161,7 @@ const styles = stylex.create({
     inset: 0,
     backgroundColor: 'rgba(0,0,0,0.14)',
     transformOrigin: 'left center',
+    transform: 'scaleX(0)',
   },
   nextRow: {
     display: 'flex',
@@ -194,10 +187,8 @@ const styles = stylex.create({
     fontSize: 14,
     fontWeight: 600,
     color: player.text,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     maxWidth: 360,
+    textWrap: 'balance',
   },
   nextSub: {
     fontWeight: 500,

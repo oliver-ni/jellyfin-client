@@ -35,6 +35,7 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
   const title = isEpisode ? (item.SeriesName ?? item.Name) : item.Name
   const remaining = remainingMinutes(item)
   const itemId = item.Id ?? ''
+  const playable = item.MediaType === 'Video'
 
   const meta = [
     itemKindLabel(item),
@@ -116,7 +117,7 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
           )}
           <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
             <Link
-              to="/items/$itemId"
+              to={playable ? '/play/$itemId' : '/items/$itemId'}
               params={{ itemId }}
               {...stylex.props(focus.ring, styles.play)}
             >
