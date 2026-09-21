@@ -1,8 +1,9 @@
 import { useRouter } from '@tanstack/react-router'
 import { animate } from 'motion/react'
 import { useEffect, type RefObject } from 'react'
+import { peekMorphSource } from '@/lib/motion'
 
-const EXIT = { duration: 0.24, ease: [0.2, 0, 0, 1] } as const
+const EXIT = { duration: 0.2, ease: [0.2, 0, 0, 1] } as const
 
 /**
  * Route exit choreography without keeping the outgoing React tree mounted: just before the
@@ -38,6 +39,20 @@ export function useRouteGhost(page: RefObject<HTMLElement | null>) {
 
       const ghost = source.cloneNode(true) as HTMLElement
       ghost.inert = true
+      // The element being morphed into the next page must not also fade out here. Match by
+      // rect too, since the same item can appear in several rails.
+      const morph = peekMorphSource()
+      if (morph) {
+        const selector = `[data-morph="${morph.itemId}"]`
+        const origins = source.querySelectorAll<HTMLElement>(selector)
+        const clones = ghost.querySelectorAll<HTMLElement>(selector)
+        origins.forEach((origin, i) => {
+          const r = origin.getBoundingClientRect()
+          if (Math.abs(r.x - morph.rect.x) < 2 && Math.abs(r.y - morph.rect.y) < 2) {
+            clones[i].style.visibility = 'hidden'
+          }
+        })
+      }
       Object.assign(ghost.style, {
         position: 'absolute',
         left: '0',

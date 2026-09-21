@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
 import { Check, Heart, Play, Star } from 'lucide-react'
 import { motion as m, useMotionValue } from 'motion/react'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
 import { episodeCode, formatRuntime, remainingMinutes } from '@/lib/format'
@@ -83,6 +83,13 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
     const to = tileRef.current.getBoundingClientRect()
     return playMorph({ x: tileX, y: tileY, scaleX: tileScaleX, scaleY: tileScaleY }, morph.rect, to)
   }, [morph, tileX, tileY, tileScaleX, tileScaleY])
+  // While morphing, sit above the outgoing page's fading ghost instead of under it.
+  const [elevated, setElevated] = useState(morph !== null)
+  useEffect(() => {
+    if (!elevated) return
+    const t = setTimeout(() => setElevated(false), 400)
+    return () => clearTimeout(t)
+  }, [elevated])
 
   const years =
     item.Type === 'Series' && item.ProductionYear
@@ -149,6 +156,7 @@ export function DetailHero({ item, userId }: DetailHeroProps) {
               scaleY: tileScaleY,
               originX: 0,
               originY: 0,
+              zIndex: elevated ? 45 : undefined,
             }}
             {...stylex.props(
               styles.tile,

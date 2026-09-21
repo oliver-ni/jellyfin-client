@@ -57,6 +57,7 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
     >
       <Link
         ref={stillRef}
+        data-morph={id}
         to="/play/$itemId"
         params={{ itemId: id }}
         aria-label={`Play ${episode.Name ?? 'episode'}`}

@@ -57,6 +57,7 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
       >
         <m.div
           ref={media}
+          data-morph={item.Id}
           transition={springs.snappy}
           whileHover={{ scale: 1.035 }}
           whileTap={{ scale: 0.97 }}

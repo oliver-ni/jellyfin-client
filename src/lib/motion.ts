@@ -1,25 +1,28 @@
 import { animate, type MotionValue, type Transition, type Variants } from 'motion/react'
 
-/** Spring presets. Retargeting mid-flight blends rather than restarting. */
+/**
+ * Spring presets, duration-based and critically damped so everything settles on the same
+ * beat. Retargeting mid-flight blends rather than restarting.
+ */
 export const springs = {
   /** Hover/press feedback, toggles. */
-  snappy: { type: 'spring', stiffness: 700, damping: 40, mass: 0.8 } satisfies Transition,
+  snappy: { type: 'spring', duration: 0.22, bounce: 0 } satisfies Transition,
   /** Content reveals, tab indicators. */
-  gentle: { type: 'spring', stiffness: 260, damping: 32, mass: 1 } satisfies Transition,
+  gentle: { type: 'spring', duration: 0.3, bounce: 0 } satisfies Transition,
   /** Shared-element morphs between routes. */
-  morph: { type: 'spring', stiffness: 240, damping: 32, mass: 1 } satisfies Transition,
-  /** Overshooting pop for state flips (favorite, watched). */
-  bouncy: { type: 'spring', stiffness: 520, damping: 16, mass: 0.9 } satisfies Transition,
+  morph: { type: 'spring', duration: 0.28, bounce: 0 } satisfies Transition,
+  /** Slight overshoot for state flips (favorite, watched). */
+  bouncy: { type: 'spring', duration: 0.32, bounce: 0.3 } satisfies Transition,
 } as const
 
 export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 8 },
   show: { opacity: 1, y: 0, transition: springs.gentle },
 }
 
 export const fade: Variants = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.35, ease: [0.2, 0, 0, 1] } },
+  show: { opacity: 1, transition: { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] } },
 }
 
 export const pop: Variants = {
@@ -56,6 +59,10 @@ let pending: MorphSource | null = null
 
 export function setMorphSource(source: MorphSource) {
   pending = source
+}
+
+export function peekMorphSource(): MorphSource | null {
+  return pending
 }
 
 export function takeMorphSource(itemId: string): MorphSource | null {
