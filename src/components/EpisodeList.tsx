@@ -219,9 +219,6 @@ const styles = stylex.create({
     paddingInline: space.md,
     marginInline: `calc(-1 * ${space.md})`,
     borderRadius: radii.md,
-    borderTopWidth: 1,
-    borderTopStyle: 'solid',
-    borderTopColor: colors.border,
     backgroundColor: {
       default: 'transparent',
       ':hover': colors.surface,

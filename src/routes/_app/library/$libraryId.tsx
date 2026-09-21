@@ -84,6 +84,9 @@ function LibraryPage() {
   const order: Order = search.order ?? sort.defaultOrder
   const filterCount = activeFilterCount(search)
 
+  const clearFilters = () =>
+    update({ genre: undefined, year: undefined, unplayed: undefined, favorite: undefined })
+
   const genres = (facets.data?.Genres ?? []).map((g) => ({ key: g, label: g }))
   const years = [...(facets.data?.Years ?? [])]
     .sort((a, b) => b - a)
@@ -140,18 +143,7 @@ function LibraryPage() {
           Favorites
         </FilterToggle>
         {filterCount > 0 && (
-          <button
-            type="button"
-            onClick={() =>
-              update({
-                genre: undefined,
-                year: undefined,
-                unplayed: undefined,
-                favorite: undefined,
-              })
-            }
-            {...stylex.props(focus.ring, styles.clear)}
-          >
+          <button type="button" onClick={clearFilters} {...stylex.props(focus.ring, styles.clear)}>
             Clear filters
           </button>
         )}
@@ -167,7 +159,9 @@ function LibraryPage() {
             key="empty"
             title="Nothing here"
             text={filterCount > 0 ? 'No titles match these filters.' : 'This library is empty.'}
-          />
+          >
+            {filterCount > 0 && <Button onPress={clearFilters}>Clear filters</Button>}
+          </Notice>
         ) : (
           <ItemGrid
             key={resultSetKey}

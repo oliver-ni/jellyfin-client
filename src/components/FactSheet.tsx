@@ -1,14 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { ArrowUpRight } from '@phosphor-icons/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import {
-  audioStreamLabel,
-  formatDate,
-  formatRuntime,
-  languageName,
-  unique,
-  videoStreamLabel,
-} from '@/lib/format'
+import { audioStreamLabel, formatDate, languageName, unique, videoStreamLabel } from '@/lib/format'
 import { focus } from '@/theme/focus'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
@@ -34,10 +27,6 @@ function facts(item: BaseItemDto): Fact[] {
     list('Studio', unique((item.Studios ?? []).map((s) => s.Name))),
     item.PremiereDate ? { label: dateLabel(item), value: formatDate(item.PremiereDate) } : null,
     item.Type === 'Series' && item.Status ? { label: 'Status', value: item.Status } : null,
-    item.RunTimeTicks && item.Type !== 'Series'
-      ? { label: 'Runtime', value: formatRuntime(item.RunTimeTicks) }
-      : null,
-    item.OfficialRating ? { label: 'Rated', value: item.OfficialRating } : null,
     video ? { label: 'Video', value: videoStreamLabel(video) } : null,
     list('Audio', audio, true),
     list('Subtitles', subs),
@@ -88,11 +77,18 @@ function list(label: string, values: readonly string[], multiline = false): Fact
   }
 }
 
-export function FactSheet({ item }: { item: BaseItemDto }) {
+/** `column` stacks facts for a sidebar; `grid` flows them across the page width. */
+export function FactSheet({
+  item,
+  layout = 'column',
+}: {
+  item: BaseItemDto
+  layout?: 'column' | 'grid'
+}) {
   const rows = facts(item)
   if (rows.length === 0) return null
   return (
-    <dl {...stylex.props(styles.sheet)}>
+    <dl {...stylex.props(styles.sheet, layout === 'grid' && styles.grid)}>
       {rows.map((f) => (
         <div key={f.label} {...stylex.props(styles.row)}>
           <dt {...stylex.props(styles.label)}>{f.label}</dt>
@@ -105,10 +101,15 @@ export function FactSheet({ item }: { item: BaseItemDto }) {
 
 const styles = stylex.create({
   sheet: {
-    display: 'flex',
-    flexDirection: 'column',
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
     gap: space.lg,
     margin: 0,
+  },
+  grid: {
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    columnGap: space.xxl,
+    alignItems: 'start',
   },
   row: {
     display: 'flex',

@@ -83,6 +83,7 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
   const similar = useQuery(itemQueries.similar(userId, item.Id ?? ''))
   const similarItems = similar.data?.Items ?? []
   const overview = plainText(item.Overview)
+  const sidebar = type === 'Series'
 
   return (
     <article {...stylex.props(styles.page)}>
@@ -92,14 +93,14 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
         initial="hidden"
         animate="show"
         variants={stagger(0.03, 0.1)}
-        {...stylex.props(styles.body)}
+        {...stylex.props(styles.body, sidebar && styles.bodySplit)}
       >
         <m.div variants={fadeUp} {...stylex.props(styles.main)}>
           {overview && <p {...stylex.props(styles.overview)}>{overview}</p>}
-          {type === 'Series' && <SeriesEpisodes series={item} userId={userId} />}
+          {sidebar && <SeriesEpisodes series={item} userId={userId} />}
         </m.div>
-        <m.aside variants={fadeUp} {...stylex.props(styles.aside)}>
-          <FactSheet item={item} />
+        <m.aside variants={fadeUp} {...stylex.props(sidebar && styles.aside)}>
+          <FactSheet item={item} layout={sidebar ? 'column' : 'grid'} />
         </m.aside>
       </m.div>
 
@@ -175,7 +176,11 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
             <span {...stylex.props(styles.seasonLabel)}>
               {s.Name}
               {(s.UserData?.UnplayedItemCount ?? 0) > 0 && (
-                <span {...stylex.props(styles.unplayedDot)} />
+                <span
+                  role="img"
+                  aria-label={`${s.UserData?.UnplayedItemCount} unplayed`}
+                  {...stylex.props(styles.unplayedDot)}
+                />
               )}
             </span>
           </Link>
@@ -235,10 +240,7 @@ const styles = stylex.create({
   },
   body: {
     display: 'grid',
-    gridTemplateColumns: {
-      default: 'minmax(0, 1fr) 300px',
-      '@media (max-width: 1024px)': 'minmax(0, 1fr)',
-    },
+    gridTemplateColumns: 'minmax(0, 1fr)',
     columnGap: space.xxxl,
     rowGap: space.xl,
     alignItems: 'start',
@@ -249,6 +251,12 @@ const styles = stylex.create({
     maxWidth: sizes.maxContent,
     marginInline: 'auto',
     width: '100%',
+  },
+  bodySplit: {
+    gridTemplateColumns: {
+      default: 'minmax(0, 1fr) 300px',
+      '@media (max-width: 1024px)': 'minmax(0, 1fr)',
+    },
   },
   main: {
     display: 'flex',
