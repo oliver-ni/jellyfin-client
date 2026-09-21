@@ -1,0 +1,72 @@
+import * as stylex from '@stylexjs/stylex'
+import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
+
+/** Shared styles for compact toolbar dropdowns/chips and their popovers. */
+export const toolbarControl = stylex.create({
+  trigger: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: space.xs,
+    height: 32,
+    paddingInline: space.sm,
+    fontSize: 13,
+    fontWeight: 500,
+    color: {
+      default: colors.textMuted,
+      '[data-hovered]': colors.text,
+      '[data-pressed]': colors.text,
+      '[data-selected]': colors.text,
+    },
+    backgroundColor: {
+      default: 'transparent',
+      '[data-hovered]': colors.surface,
+      '[data-selected]': colors.surface,
+    },
+    borderRadius: radii.sm,
+    borderWidth: 0,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transitionProperty: 'color, background-color',
+    transitionDuration: motion.fast,
+    transitionTimingFunction: motion.ease,
+    outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
+    outlineWidth: 2,
+    outlineColor: colors.focusRing,
+    outlineOffset: 1,
+  },
+  popover: {
+    minWidth: 180,
+    maxHeight: 360,
+    overflowY: 'auto',
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: colors.borderStrong,
+    borderRadius: radii.lg,
+    boxShadow: shadows.popover,
+    padding: space.xs,
+    outline: 'none',
+  },
+  item: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingInline: space.md,
+    paddingBlock: 7,
+    fontSize: 13,
+    color: colors.text,
+    borderRadius: radii.sm,
+    cursor: 'pointer',
+    outline: 'none',
+    backgroundColor: {
+      default: 'transparent',
+      '[data-focused]': colors.surfaceHover,
+    },
+  },
+  check: {
+    display: 'grid',
+    placeItems: 'center',
+    width: 16,
+    color: colors.textMuted,
+  },
+})
