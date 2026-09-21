@@ -13,7 +13,7 @@ import { colors } from '@/theme/tokens.stylex'
 import { focus } from '@/theme/focus'
 import { glass, overlay } from '@/theme/glass'
 import { menu } from '@/theme/menu'
-import { toolbarControl } from './toolbar-styles'
+import { toolbarControl } from '@/theme/toolbar'
 
 export interface SelectOption<K extends Key> {
   key: K

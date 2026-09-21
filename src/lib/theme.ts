@@ -1,8 +1,7 @@
 import type * as stylex from '@stylexjs/stylex'
+import { useSyncExternalStore } from 'react'
 import { amberTheme, lightTheme, violetTheme } from '@/theme/themes.stylex'
 import type { colors } from '@/theme/tokens.stylex'
-
-export type ColorTheme = stylex.Theme<typeof colors>
 
 export type ThemeId = 'cinema' | 'violet' | 'amber' | 'light'
 
@@ -10,7 +9,7 @@ export interface ThemeInfo {
   id: ThemeId
   label: string
   /** `null` means the base token values from `tokens.stylex.ts`. */
-  theme: ColorTheme | null
+  theme: stylex.Theme<typeof colors> | null
 }
 
 export const THEMES: readonly ThemeInfo[] = [
@@ -23,33 +22,28 @@ export const THEMES: readonly ThemeInfo[] = [
 const STORAGE_KEY = 'jf.theme'
 const listeners = new Set<() => void>()
 
-function isThemeId(value: unknown): value is ThemeId {
-  return THEMES.some((t) => t.id === value)
-}
+let current = THEMES.find((t) => t.id === localStorage.getItem(STORAGE_KEY)) ?? THEMES[0]
 
-let current: ThemeId = (() => {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  return isThemeId(stored) ? stored : 'cinema'
-})()
-
-export function getThemeId(): ThemeId {
-  return current
-}
-
-export function setThemeId(id: ThemeId) {
-  if (id === current) return
-  current = id
-  localStorage.setItem(STORAGE_KEY, id)
+/** Unknown ids are ignored, so this can take a raw menu key. */
+export function setThemeId(id: unknown) {
+  const next = THEMES.find((t) => t.id === id)
+  if (!next || next === current) return
+  current = next
+  localStorage.setItem(STORAGE_KEY, next.id)
   for (const l of listeners) l()
 }
 
-export function subscribeTheme(listener: () => void) {
+function subscribe(listener: () => void) {
   listeners.add(listener)
   return () => {
     listeners.delete(listener)
   }
 }
 
-export function themeStyles(id: ThemeId): ColorTheme | null {
-  return THEMES.find((t) => t.id === id)?.theme ?? null
+export function useTheme(): ThemeInfo {
+  return useSyncExternalStore(
+    subscribe,
+    () => current,
+    () => current,
+  )
 }

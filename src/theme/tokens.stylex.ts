@@ -74,8 +74,7 @@ export const space = stylex.defineVars({
 export const sizes = stylex.defineVars({
   navHeight: '64px',
   navControl: '40px',
-  pageGutter: '48px',
-  pageGutterMobile: '16px',
+  pageGutter: { default: '48px', '@media (max-width: 720px)': '16px' },
   maxContent: '1720px',
 })
 

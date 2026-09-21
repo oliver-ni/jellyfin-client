@@ -2,14 +2,14 @@ import * as stylex from '@stylexjs/stylex'
 import { hashKey, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp } from '@phosphor-icons/react'
-import { AnimatePresence, motion as m } from 'motion/react'
-import { useCallback, type ReactNode, type Ref } from 'react'
-import { getItemOptions } from '@/api/gen/@tanstack/react-query.gen'
+import { AnimatePresence } from 'motion/react'
+import { useCallback } from 'react'
+import { Button as AriaButton } from 'react-aria-components'
 import { Button } from '@/components/Button'
 import { FilterMenu, FilterToggle } from '@/components/FilterMenu'
 import { ItemGrid } from '@/components/ItemGrid'
+import { Notice } from '@/components/Notice'
 import { Select } from '@/components/Select'
-import { useRequiredSession } from '@/hooks/useSession'
 import { useSettled } from '@/hooks/useSettled'
 import {
   SORT_OPTIONS,
@@ -23,10 +23,12 @@ import {
   type LibrarySearch,
   type Order,
 } from '@/lib/library'
-import { fadeUp, vanish } from '@/lib/motion'
-import { glass } from '@/theme/glass'
+import { queries } from '@/lib/queries'
+import { useRequiredSession } from '@/lib/session'
 import { focus } from '@/theme/focus'
-import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
+import { glass } from '@/theme/glass'
+import { toolbarControl } from '@/theme/toolbar'
+import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/library/$libraryId')({
   validateSearch: validateLibrarySearch,
@@ -41,7 +43,7 @@ function LibraryPage() {
   const navigate = Route.useNavigate()
   const { userId } = useRequiredSession()
 
-  const library = useQuery(getItemOptions({ path: { itemId: libraryId }, query: { userId } }))
+  const library = useQuery(queries.item(userId, libraryId))
   const itemTypes = libraryItemTypes(library.data?.CollectionType)
   const facets = useQuery({
     ...libraryFiltersQuery(userId, libraryId, itemTypes),
@@ -111,18 +113,17 @@ function LibraryPage() {
             onChange={(key) => update({ sort: key, order: undefined })}
           />
           {sort.key !== 'random' && (
-            <button
-              type="button"
+            <AriaButton
               aria-label={
                 order === 'asc'
                   ? 'Ascending, click for descending'
                   : 'Descending, click for ascending'
               }
-              onClick={() => update({ order: order === 'asc' ? 'desc' : 'asc' })}
-              {...stylex.props(focus.ring, glass.surface, styles.orderButton)}
+              onPress={() => update({ order: order === 'asc' ? 'desc' : 'asc' })}
+              {...stylex.props(focus.ring, glass.surface, toolbarControl.trigger, styles.order)}
             >
               {order === 'asc' ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
-            </button>
+            </AriaButton>
           )}
           <span {...stylex.props(styles.gap)} />
           <FilterMenu
@@ -187,36 +188,9 @@ function LibraryPage() {
   )
 }
 
-interface NoticeProps {
-  title: string
-  text: string
-  children?: ReactNode
-  ref?: Ref<HTMLDivElement>
-}
-
-function Notice({ title, text, children, ref }: NoticeProps) {
-  return (
-    <m.div
-      ref={ref}
-      initial="hidden"
-      animate="show"
-      exit={vanish}
-      variants={fadeUp}
-      {...stylex.props(styles.state)}
-    >
-      <p {...stylex.props(styles.stateTitle)}>{title}</p>
-      <p {...stylex.props(styles.stateText)}>{text}</p>
-      {children}
-    </m.div>
-  )
-}
-
 const styles = stylex.create({
   page: {
-    paddingInline: {
-      default: sizes.pageGutter,
-      '@media (max-width: 720px)': sizes.pageGutterMobile,
-    },
+    paddingInline: sizes.pageGutter,
     paddingTop: `calc(${sizes.navHeight} + ${space.xxl})`,
     paddingBottom: space.xxxl,
     display: 'flex',
@@ -256,25 +230,10 @@ const styles = stylex.create({
   gap: {
     width: space.sm,
   },
-  orderButton: {
-    pointerEvents: 'auto',
-    display: 'grid',
-    placeItems: 'center',
+  order: {
+    paddingInline: 0,
     width: 36,
-    height: 36,
-    color: {
-      default: colors.textMuted,
-      ':hover': colors.text,
-    },
-    backgroundColor: {
-      default: colors.glass,
-      ':hover': colors.glassStrong,
-    },
-    borderRadius: radii.full,
-    cursor: 'pointer',
-    transitionProperty: 'color, background-color, transform',
-    transitionDuration: motion.fast,
-    transform: { default: 'none', ':active': 'scale(0.97)' },
+    justifyContent: 'center',
   },
   clear: {
     pointerEvents: 'auto',
@@ -289,22 +248,5 @@ const styles = stylex.create({
     backgroundColor: 'transparent',
     borderRadius: radii.sm,
     cursor: 'pointer',
-  },
-  state: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: space.sm,
-    paddingBlock: space.xxxl,
-    textAlign: 'center',
-  },
-  stateTitle: {
-    fontSize: 18,
-    fontWeight: 600,
-  },
-  stateText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginBottom: space.sm,
   },
 })

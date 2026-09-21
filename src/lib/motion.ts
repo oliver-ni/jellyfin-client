@@ -9,8 +9,6 @@ export const springs = {
   snappy: { type: 'spring', duration: 0.22, bounce: 0 } satisfies Transition,
   /** Content reveals, tab indicators. */
   gentle: { type: 'spring', duration: 0.3, bounce: 0 } satisfies Transition,
-  /** Shared-element morphs between routes. */
-  morph: { type: 'spring', duration: 0.28, bounce: 0 } satisfies Transition,
   /** Slight overshoot for state flips (favorite, watched). */
   bouncy: { type: 'spring', duration: 0.32, bounce: 0.3 } satisfies Transition,
 } as const
@@ -43,9 +41,9 @@ export interface Rect {
 export type MorphShape = 'poster' | 'landscape'
 
 /**
- * Shared-element handoff between routes: a card hands its rect to the detail hero it opens,
- * and the hero hands its rect back to whichever card it returns to. Rects are viewport
- * coordinates, so the morph is independent of scroll changes between routes.
+ * Shared-element handoff between routes: a card hands its rect to the detail hero or episode
+ * row it opens, and those hand their rect back to whichever card they return to. Rects are
+ * viewport coordinates, so the morph is independent of scroll changes between routes.
  */
 export interface MorphSource {
   itemId: string
@@ -57,41 +55,47 @@ export interface MorphSource {
 
 const SOURCE_TTL = 1500
 
-let pending: (MorphSource & { expires: number; pressed: boolean }) | null = null
+const sourceKey = (itemId: string, shape: MorphShape) => `${itemId}/${shape}`
 
-let lastPointerTarget: EventTarget | null = null
+/** Offers from the outgoing page, keyed by item and shape; each is claimed by one target. */
+let pending = new Map<string, MorphSource>()
+let pendingExpires = 0
+
+let lastPress: { target: EventTarget | null; at: number } = { target: null, at: -Infinity }
 if (typeof window !== 'undefined') {
-  window.addEventListener('pointerdown', (e) => (lastPointerTarget = e.target), { capture: true })
+  window.addEventListener(
+    'pointerdown',
+    (e) => (lastPress = { target: e.target, at: performance.now() }),
+    { capture: true },
+  )
 }
 
 /**
- * Offer `el` as the morph origin. The element the user pressed always wins; anything else
- * (a second card for the same item, or a history navigation) only counts while on screen.
+ * Offer `el` as the morph origin. The element the user pressed is the only origin. When the
+ * press was elsewhere (a nav link, the hero) nothing morphs; a navigation without a press
+ * (history, keyboard) morphs from every on-screen element the next page has a target for.
  */
 export function offerMorphSource(el: Element, source: Omit<MorphSource, 'rect'>) {
   const rect = rectOf(el)
   if (rect.width === 0) return
-  const pressed = lastPointerTarget instanceof Node && el.contains(lastPointerTarget)
   const now = performance.now()
-  if (pending && pending.pressed && !pressed && pending.expires > now) return
-  if (!pressed && !inViewport(rect)) return
-  pending = { ...source, rect, pressed, expires: now + SOURCE_TTL }
+  const pressed = lastPress.target instanceof Node && el.contains(lastPress.target)
+  if (!pressed && (now - lastPress.at < SOURCE_TTL || !inViewport(rect))) return
+  if (pressed || pendingExpires < now) pending = new Map()
+  pendingExpires = now + SOURCE_TTL
+  pending.set(sourceKey(source.itemId, source.shape), { ...source, rect })
 }
 
 export const inViewport = (r: Rect) =>
   r.y < window.innerHeight && r.y + r.height > 0 && r.x < window.innerWidth && r.x + r.width > 0
 
-/** Claim the pending handoff if it is for this item and shape and still fresh. */
+/** Claim the pending handoff for this item and shape, if one was offered and is still fresh. */
 export function takeMorphSource(itemId: string, shape: MorphShape): MorphSource | null {
-  if (!pending) return null
-  if (pending.expires < performance.now()) {
-    pending = null
-    return null
-  }
-  if (pending.itemId !== itemId || pending.shape !== shape) return null
-  const s = pending
-  pending = null
-  return s
+  if (pendingExpires < performance.now()) pending = new Map()
+  const key = sourceKey(itemId, shape)
+  const source = pending.get(key) ?? null
+  pending.delete(key)
+  return source
 }
 
 export function rectOf(el: Element): Rect {
@@ -148,6 +152,7 @@ export function flyMorph(source: MorphSource, target: HTMLElement, onDone: () =>
     width: `${to.width}px`,
     height: `${to.height}px`,
     borderRadius: getComputedStyle(target).borderRadius,
+    boxShadow: getComputedStyle(target).boxShadow,
     overflow: 'hidden',
     transformOrigin: '0 0',
     backgroundColor: '#000',
@@ -184,11 +189,11 @@ const IDENTITY = 'translate(0px, 0px) scale(1, 1)'
  * the whole `transform` so the browser can run it off the main thread: the destination page
  * is still rendering and decoding images while this plays, and per-frame JS would stutter.
  */
-export function playMorph(el: HTMLElement, from: Rect, to: Rect) {
+function playMorph(el: HTMLElement, from: Rect, to: Rect) {
   const start = `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.width / to.width}, ${from.height / to.height})`
   el.style.transformOrigin = '0 0'
   el.style.transform = start
-  const controls = animate(el, { transform: [start, IDENTITY] }, springs.morph)
+  const controls = animate(el, { transform: [start, IDENTITY] }, springs.gentle)
   return {
     then: (onDone: () => void) => controls.then(onDone),
     /** Stop and clear the inline transform so `el` can be measured again untouched. */

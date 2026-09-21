@@ -2,6 +2,8 @@ import * as stylex from '@stylexjs/stylex'
 import { User } from '@phosphor-icons/react'
 import type { BaseItemPerson } from '@/api/gen/types.gen'
 import { imageUrl } from '@/lib/images'
+import { media } from '@/theme/media'
+import { text } from '@/theme/text'
 import { colors, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 import { Rail } from './Rail'
@@ -48,13 +50,13 @@ function PersonCard({ person }: { person: BaseItemPerson }) {
     <div {...stylex.props(styles.card)}>
       <div {...stylex.props(styles.avatar)}>
         {src ? (
-          <BlurImage src={src} blurhash={blurhash} alt="" style={styles.image} />
+          <BlurImage src={src} blurhash={blurhash} alt="" style={media.fill} />
         ) : (
           <User size={32} {...stylex.props(styles.placeholder)} />
         )}
       </div>
-      <span {...stylex.props(styles.name)}>{person.Name}</span>
-      {person.Role && <span {...stylex.props(styles.role)}>{person.Role}</span>}
+      <span {...stylex.props(text.clamp2, styles.name)}>{person.Name}</span>
+      {person.Role && <span {...stylex.props(text.clamp2, styles.role)}>{person.Role}</span>}
     </div>
   )
 }
@@ -81,12 +83,6 @@ const styles = stylex.create({
     backgroundColor: colors.surface,
     marginBottom: space.xs,
   },
-  image: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
-  },
   placeholder: {
     color: colors.textFaint,
   },
@@ -94,17 +90,9 @@ const styles = stylex.create({
     fontSize: 13,
     fontWeight: 600,
     color: colors.text,
-    display: '-webkit-box',
-    WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 2,
-    overflow: 'hidden',
   },
   role: {
     fontSize: 12,
     color: colors.textFaint,
-    display: '-webkit-box',
-    WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 2,
-    overflow: 'hidden',
   },
 })

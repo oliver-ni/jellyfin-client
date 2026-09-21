@@ -4,7 +4,7 @@ import { Check, Heart, Play } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
 import { useEffect, useRef, type Ref } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import { useMorphTarget } from '@/hooks/useMorphTarget'
+import { useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
 import {
   audioStreamLabel,
@@ -19,8 +19,11 @@ import {
 import { landscapeImage } from '@/lib/images'
 import { fadeUp, springs, stagger, vanish } from '@/lib/motion'
 import { focus } from '@/theme/focus'
+import { media, playPill } from '@/theme/media'
+import { text } from '@/theme/text'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
+import { Facts } from './Facts'
 import { IconToggle } from './IconButton'
 
 export interface EpisodeListProps {
@@ -79,6 +82,7 @@ interface EpisodeRowProps {
 
 function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRowProps) {
   const id = episode.Id ?? ''
+  const seriesPath = `/items/${seriesId}`
   const still = landscapeImage(episode, STILL_WIDTH * 2)
   const progress = episode.UserData?.PlayedPercentage ?? 0
   const played = episode.UserData?.Played ?? false
@@ -88,6 +92,7 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
     .join('  ·  ')
   const stillRef = useRef<HTMLAnchorElement>(null)
   const morph = useMorphTarget(id, 'landscape', stillRef)
+  useMorphHandoff(stillRef, id, 'landscape', still?.url, (to) => to.pathname !== seriesPath)
   const rowRef = useRef<HTMLLIElement>(null)
 
   useEffect(() => {
@@ -98,16 +103,17 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
       const viewport = window.innerHeight
       if (top >= 0 && bottom <= viewport) return
       const far = Math.abs((top + bottom) / 2 - viewport / 2) > viewport
-      row.scrollIntoView({ block: 'center', behavior: far ? 'instant' : 'smooth' })
+      const jump = far || morph.source !== null
+      row.scrollIntoView({ block: 'center', behavior: jump ? 'instant' : 'smooth' })
     })
     return () => cancelAnimationFrame(frame)
-  }, [expanded])
+  }, [expanded, morph.source])
 
   return (
     <m.li
       ref={rowRef}
       variants={fadeUp}
-      initial={morph.morphing ? false : undefined}
+      initial={morph.source ? false : undefined}
       {...stylex.props(styles.row, expanded && styles.rowExpanded, stylex.defaultMarker())}
     >
       <MotionLink
@@ -119,20 +125,20 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
         style={{ opacity: morph.opacity }}
         {...stylex.props(focus.ring, styles.still)}
       >
-        <BlurImage src={still?.url} blurhash={still?.blurhash} alt="" style={styles.image} />
-        <span {...stylex.props(styles.stillOverlay)}>
-          <span {...stylex.props(styles.playBadge)}>
+        <BlurImage src={still?.url} blurhash={still?.blurhash} alt="" style={media.fill} />
+        <span {...stylex.props(media.hoverScrim)}>
+          <span {...stylex.props(media.playBadge)}>
             <Play size={18} weight="fill" />
           </span>
         </span>
         {played && !progress && (
-          <span {...stylex.props(styles.playedBadge)}>
+          <span {...stylex.props(media.cornerBadge)}>
             <Check size={12} weight="bold" />
           </span>
         )}
         {progress > 0 && (
-          <span {...stylex.props(styles.progressTrack)}>
-            <span {...stylex.props(styles.progressBar)} style={{ width: `${progress}%` }} />
+          <span {...stylex.props(media.progressTrack)}>
+            <span {...stylex.props(media.progressBar)} style={{ width: `${progress}%` }} />
           </span>
         )}
       </MotionLink>
@@ -151,7 +157,9 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
         </Link>
         {sub && <p {...stylex.props(styles.sub)}>{sub}</p>}
         {overview && (
-          <p {...stylex.props(styles.overview, !expanded && styles.overviewClamped)}>{overview}</p>
+          <p {...stylex.props(styles.overview, expanded ? styles.overviewFull : text.clamp2)}>
+            {overview}
+          </p>
         )}
         <AnimatePresence initial={false}>
           {expanded && (
@@ -183,15 +191,19 @@ function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: str
     streams.filter((s) => s.Type === 'Subtitle').map((s) => languageName(s.Language) ?? s.Title),
   )
   const facts = [
-    video ? videoStreamLabel(video) : null,
-    audio.length ? audio.join(', ') : null,
-    subs.length ? `Subtitles: ${subs.join(', ')}` : null,
-  ].filter(Boolean)
+    video && videoStreamLabel(video),
+    audio.join(', '),
+    subs.length > 0 && `Subtitles: ${subs.join(', ')}`,
+  ]
 
   return (
     <div {...stylex.props(styles.detailsInner)}>
       <div {...stylex.props(styles.actions)}>
-        <Link to="/play/$itemId" params={{ itemId: id }} {...stylex.props(focus.ring, styles.play)}>
+        <Link
+          to="/play/$itemId"
+          params={{ itemId: id }}
+          {...stylex.props(focus.ring, playPill.base, playPill.small)}
+        >
           <Play size={16} weight="fill" />
           {remaining ? `Resume · ${remaining} min left` : 'Play'}
         </Link>
@@ -210,16 +222,7 @@ function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: str
           <Check size={16} weight="bold" />
         </IconToggle>
       </div>
-      {facts.length > 0 && (
-        <p {...stylex.props(styles.facts)}>
-          {facts.map((f, i) => (
-            <span key={i}>
-              {i > 0 && <span {...stylex.props(styles.dot)}>·</span>}
-              {f}
-            </span>
-          ))}
-        </p>
-      )}
+      <Facts items={facts} style={styles.facts} />
     </div>
   )
 }
@@ -261,59 +264,6 @@ const styles = stylex.create({
     borderRadius: radii.xs,
     overflow: 'hidden',
     backgroundColor: colors.skeleton,
-  },
-  image: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
-  },
-  stillOverlay: {
-    position: 'absolute',
-    inset: 0,
-    display: 'grid',
-    placeItems: 'center',
-    color: colors.onMediaText,
-    backgroundColor: colors.scrim,
-    opacity: {
-      default: 0,
-      [stylex.when.ancestor(':hover')]: 1,
-    },
-    transitionProperty: 'opacity',
-    transitionDuration: motion.base,
-  },
-  playBadge: {
-    display: 'grid',
-    placeItems: 'center',
-    width: 40,
-    height: 40,
-    borderRadius: radii.full,
-    backgroundColor: colors.onMediaBg,
-  },
-  playedBadge: {
-    position: 'absolute',
-    top: space.sm,
-    right: space.sm,
-    display: 'grid',
-    placeItems: 'center',
-    width: 20,
-    height: 20,
-    borderRadius: radii.full,
-    color: colors.onMediaText,
-    backgroundColor: colors.onMediaBg,
-  },
-  progressTrack: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 3,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  progressBar: {
-    display: 'block',
-    height: '100%',
-    backgroundColor: colors.progress,
   },
   body: {
     display: 'flex',
@@ -359,14 +309,9 @@ const styles = stylex.create({
     lineHeight: 1.5,
     color: colors.textMuted,
     marginTop: space.xs,
-    whiteSpace: 'pre-line',
   },
-  overviewClamped: {
-    display: '-webkit-box',
-    WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 2,
-    overflow: 'hidden',
-    whiteSpace: 'normal',
+  overviewFull: {
+    whiteSpace: 'pre-line',
   },
   details: {
     overflow: 'hidden',
@@ -382,37 +327,8 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: space.sm,
   },
-  play: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: space.sm,
-    height: 36,
-    paddingInline: space.lg,
-    borderRadius: radii.full,
-    fontSize: 14,
-    fontWeight: 600,
-    color: colors.accentText,
-    backgroundColor: {
-      default: colors.accent,
-      ':hover': colors.accentHover,
-    },
-    transitionProperty: 'background-color, transform',
-    transitionDuration: motion.fast,
-    transitionTimingFunction: motion.ease,
-    transform: {
-      default: 'none',
-      ':active': 'scale(0.98)',
-    },
-    outlineOffset: 3,
-  },
   facts: {
-    display: 'flex',
-    flexWrap: 'wrap',
     fontSize: 13,
     color: colors.textFaint,
-  },
-  dot: {
-    marginInline: space.sm,
-    opacity: 0.5,
   },
 })

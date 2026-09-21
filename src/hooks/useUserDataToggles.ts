@@ -6,7 +6,7 @@ import {
   markUnplayedItem,
 } from '@/api/gen/sdk.gen'
 import type { BaseItemDto, BaseItemDtoQueryResult, UserItemDataDto } from '@/api/gen/types.gen'
-import { itemQueries } from '@/lib/item-queries'
+import { queries } from '@/lib/queries'
 
 function isQuery(key: unknown, id: string | RegExp): boolean {
   if (typeof key !== 'object' || key === null || !('_id' in key) || typeof key._id !== 'string') {
@@ -19,7 +19,7 @@ function isQuery(key: unknown, id: string | RegExp): boolean {
 export function useUserDataToggles(userId: string, item: BaseItemDto) {
   const queryClient = useQueryClient()
   const itemId = item.Id ?? ''
-  const { queryKey } = itemQueries.item(userId, itemId)
+  const { queryKey } = queries.item(userId, itemId)
 
   const patched = (prev: BaseItemDto, patch: Partial<UserItemDataDto>): BaseItemDto =>
     prev.UserData ? { ...prev, UserData: { ...prev.UserData, ...patch } } : prev

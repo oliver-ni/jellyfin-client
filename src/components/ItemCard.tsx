@@ -4,19 +4,19 @@ import { Play } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import { useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
+import { opensItem, useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
 import { episodeLabel } from '@/lib/format'
 import { itemImage, landscapeImage } from '@/lib/images'
 import { itemLink, landingId } from '@/lib/item-link'
 import { fadeUp, springs, type MorphShape } from '@/lib/motion'
+import { media } from '@/theme/media'
+import { text } from '@/theme/text'
 import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 
-export type CardShape = MorphShape
-
 export interface ItemCardProps {
   item: BaseItemDto
-  shape?: CardShape
+  shape?: MorphShape
   /** Rendered width in CSS px, used to request an appropriately sized image. */
   width: number
   showProgress?: boolean
@@ -25,9 +25,7 @@ export interface ItemCardProps {
 export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCardProps) {
   const isEpisode = item.Type === 'Episode'
   const image =
-    shape === 'landscape'
-      ? landscapeImage(item, width * 2)
-      : itemImage(item, 'Primary', { width: width * 2 })
+    shape === 'landscape' ? landscapeImage(item, width * 2) : itemImage(item, 'Primary', width * 2)
 
   const isSeason = item.Type === 'Season'
   const title = isEpisode || isSeason ? (item.SeriesName ?? item.Name) : item.Name
@@ -40,20 +38,20 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
   const unplayed = item.UserData?.UnplayedItemCount
   const link = itemLink(item)
   const morphId = landingId(link)
-  const media = useRef<HTMLDivElement>(null)
-  const morph = useMorphTarget(morphId, shape, media)
-  useMorphHandoff(morphId, shape, media, image?.url)
+  const tile = useRef<HTMLDivElement>(null)
+  const morph = useMorphTarget(morphId, shape, tile)
+  useMorphHandoff(tile, morphId, shape, image?.url, (to) => opensItem(to, morphId))
 
   return (
     <m.div
       variants={fadeUp}
-      initial={morph.morphing ? false : undefined}
+      initial={morph.source ? false : undefined}
       {...stylex.props(styles.root)}
       style={{ width }}
     >
       <Link {...link} {...stylex.props(styles.card, stylex.defaultMarker())}>
         <m.div
-          ref={media}
+          ref={tile}
           data-morph={morphId}
           transition={springs.snappy}
           whileHover={{ scale: 1.035 }}
@@ -61,28 +59,28 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
           style={{ opacity: morph.opacity }}
           {...stylex.props(styles.media, shape === 'poster' ? styles.poster : styles.landscape)}
         >
-          <BlurImage src={image?.url} blurhash={image?.blurhash} alt="" style={styles.image} />
-          <div {...stylex.props(styles.overlay)}>
-            <span {...stylex.props(styles.playBadge)}>
+          <BlurImage src={image?.url} blurhash={image?.blurhash} alt="" style={media.fill} />
+          <div {...stylex.props(media.hoverScrim)}>
+            <span {...stylex.props(media.playBadge)}>
               <Play size={18} weight="fill" />
             </span>
           </div>
           {unplayed ? (
-            <span aria-label={`${unplayed} unplayed`} {...stylex.props(styles.count)}>
+            <span aria-label={`${unplayed} unplayed`} {...stylex.props(media.cornerBadge)}>
               {unplayed}
             </span>
           ) : null}
           {progress > 0 && (
-            <div {...stylex.props(styles.progressTrack)}>
-              <div {...stylex.props(styles.progressBar)} style={{ width: `${progress}%` }} />
+            <div {...stylex.props(media.progressTrack)}>
+              <div {...stylex.props(media.progressBar)} style={{ width: `${progress}%` }} />
             </div>
           )}
         </m.div>
         <div {...stylex.props(styles.meta)}>
-          <span title={title ?? undefined} {...stylex.props(styles.title)}>
+          <span title={title ?? undefined} {...stylex.props(text.ellipsis, styles.title)}>
             {title}
           </span>
-          {subtitle && <span {...stylex.props(styles.subtitle)}>{subtitle}</span>}
+          {subtitle && <span {...stylex.props(text.ellipsis, styles.subtitle)}>{subtitle}</span>}
         </div>
       </Link>
     </m.div>
@@ -123,62 +121,6 @@ const styles = stylex.create({
   },
   poster: { aspectRatio: '2 / 3' },
   landscape: { aspectRatio: '16 / 9' },
-  image: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    position: 'absolute',
-    inset: 0,
-    display: 'grid',
-    placeItems: 'center',
-    backgroundColor: colors.scrim,
-    opacity: {
-      default: 0,
-      [stylex.when.ancestor(':hover')]: 1,
-    },
-    transitionProperty: 'opacity',
-    transitionDuration: motion.base,
-    transitionTimingFunction: motion.ease,
-  },
-  playBadge: {
-    display: 'grid',
-    placeItems: 'center',
-    width: 44,
-    height: 44,
-    borderRadius: radii.full,
-    backgroundColor: colors.onMediaBg,
-    color: colors.onMediaText,
-  },
-  count: {
-    position: 'absolute',
-    top: space.sm,
-    right: space.sm,
-    minWidth: 22,
-    height: 22,
-    paddingInline: 6,
-    display: 'grid',
-    placeItems: 'center',
-    fontSize: 11,
-    fontWeight: 700,
-    color: colors.onMediaText,
-    backgroundColor: colors.onMediaBg,
-    borderRadius: radii.full,
-  },
-  progressTrack: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 3,
-    backgroundColor: colors.scrim,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: colors.progress,
-  },
   meta: {
     display: 'flex',
     flexDirection: 'column',
@@ -194,15 +136,9 @@ const styles = stylex.create({
     },
     transitionProperty: 'color',
     transitionDuration: motion.fast,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
   subtitle: {
     fontSize: 12,
     color: colors.textFaint,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
 })

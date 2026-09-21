@@ -3,9 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import { useRequiredSession } from '@/hooks/useSession'
 import { episodeCode } from '@/lib/format'
-import { itemQueries } from '@/lib/item-queries'
+import { queries } from '@/lib/queries'
 import {
   AUTO_QUALITY,
   negotiatePlayback,
@@ -21,7 +20,7 @@ import {
   type PlaybackSelection,
   type PlaybackSession,
 } from '@/lib/playback'
-import { getSession } from '@/lib/session'
+import { getSession, useRequiredSession } from '@/lib/session'
 import { Player, type PlaybackSnapshot, type PlayerSource, type ProgressReason } from '@/player'
 import { fonts } from '@/theme/tokens.stylex'
 
@@ -36,7 +35,7 @@ export const Route = createFileRoute('/play/$itemId')({
     const session = getSession()
     if (!session) return
     const item = await queryClient
-      .ensureQueryData(itemQueries.item(session.userId, params.itemId))
+      .ensureQueryData(queries.item(session.userId, params.itemId))
       .catch(() => null)
     if (item?.Type !== 'Series') return
     const episode = await seriesStartEpisode(session.userId, params.itemId).catch(() => null)
@@ -51,7 +50,7 @@ function PlayPage() {
   const { itemId } = Route.useParams()
   const { userId } = useRequiredSession()
   // The resume position must come from the server now, not from a cached card.
-  const item = useQuery({ ...itemQueries.item(userId, itemId), staleTime: 0 })
+  const item = useQuery({ ...queries.item(userId, itemId), staleTime: 0 })
   const back = useBack(itemId)
 
   if (item.isError) {

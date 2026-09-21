@@ -9,8 +9,11 @@ import { backdropImage, logoImage } from '@/lib/images'
 import { itemLink } from '@/lib/item-link'
 import { fadeUp, stagger, vanish } from '@/lib/motion'
 import { focus } from '@/theme/focus'
+import { media, playPill } from '@/theme/media'
+import { text } from '@/theme/text'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
+import { Facts } from './Facts'
 
 export interface HeroProps {
   item: BaseItemDto
@@ -44,11 +47,7 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
     item.ProductionYear,
     item.OfficialRating,
     remaining ? `${remaining} min left` : formatRuntime(item.RunTimeTicks),
-  ].filter(Boolean)
-
-  const episodeLine = isEpisode
-    ? [episodeCode(item), item.Name].filter(Boolean).join('  ·  ')
-    : null
+  ]
 
   return (
     <section {...stylex.props(styles.hero)}>
@@ -59,7 +58,7 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: BACKDROP_FADE } }}
             exit={releaseBackdrop}
-            {...stylex.props(styles.image)}
+            {...stylex.props(media.fill)}
           >
             <BlurImage
               src={backdrop?.url}
@@ -67,7 +66,7 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
               alt=""
               loading="eager"
               fetchPriority="high"
-              style={styles.image}
+              style={media.fill}
             />
           </m.div>
         </AnimatePresence>
@@ -96,23 +95,16 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
               title
             )}
           </m.h1>
-          {episodeLine && (
-            <m.p variants={fadeUp} {...stylex.props(styles.episode)}>
-              {episodeLine}
-            </m.p>
+          {isEpisode && (
+            <Facts
+              items={[episodeCode(item), item.Name]}
+              variants={fadeUp}
+              style={styles.episode}
+            />
           )}
-          {meta.length > 0 && (
-            <m.p variants={fadeUp} {...stylex.props(styles.meta)}>
-              {meta.map((part, i) => (
-                <span key={i}>
-                  {i > 0 && <span {...stylex.props(styles.dot)}>·</span>}
-                  {part}
-                </span>
-              ))}
-            </m.p>
-          )}
+          <Facts items={meta} variants={fadeUp} style={styles.meta} />
           {item.Overview && (
-            <m.p variants={fadeUp} {...stylex.props(styles.overview)}>
+            <m.p variants={fadeUp} {...stylex.props(text.clamp3, styles.overview)}>
               {item.Overview}
             </m.p>
           )}
@@ -120,7 +112,7 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
             <Link
               to={playable ? '/play/$itemId' : '/items/$itemId'}
               params={{ itemId }}
-              {...stylex.props(focus.ring, styles.play)}
+              {...stylex.props(focus.ring, playPill.base)}
             >
               <Play size={18} weight="fill" />
               {remaining ? 'Resume' : 'Play'}
@@ -153,12 +145,6 @@ const styles = stylex.create({
     inset: 0,
     overflow: 'hidden',
   },
-  image: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
-  },
   fadeBottom: {
     position: 'absolute',
     inset: 0,
@@ -179,10 +165,7 @@ const styles = stylex.create({
     gap: space.md,
     width: '100%',
     maxWidth: 640,
-    paddingInline: {
-      default: sizes.pageGutter,
-      '@media (max-width: 720px)': sizes.pageGutterMobile,
-    },
+    paddingInline: sizes.pageGutter,
     paddingBottom: space.xxxl,
   },
   footer: {
@@ -222,24 +205,14 @@ const styles = stylex.create({
     color: colors.heroText,
   },
   meta: {
-    display: 'flex',
-    flexWrap: 'wrap',
     fontSize: 14,
     fontWeight: 500,
     color: colors.heroTextMuted,
-  },
-  dot: {
-    marginInline: space.sm,
-    opacity: 0.5,
   },
   overview: {
     fontSize: 15,
     lineHeight: 1.5,
     color: colors.heroTextMuted,
-    display: '-webkit-box',
-    WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 3,
-    overflow: 'hidden',
     maxWidth: 560,
   },
   actions: {
@@ -247,29 +220,6 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: space.md,
     marginTop: space.sm,
-  },
-  play: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: space.sm,
-    height: 46,
-    paddingInline: space.xl,
-    borderRadius: radii.full,
-    fontSize: 15,
-    fontWeight: 600,
-    color: colors.accentText,
-    backgroundColor: {
-      default: colors.accent,
-      ':hover': colors.accentHover,
-    },
-    transitionProperty: 'background-color, transform',
-    transitionDuration: motion.fast,
-    transitionTimingFunction: motion.ease,
-    transform: {
-      default: 'none',
-      ':active': 'scale(0.98)',
-    },
-    outlineOffset: 3,
   },
   info: {
     display: 'grid',

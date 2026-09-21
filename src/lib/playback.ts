@@ -29,7 +29,7 @@ import type {
 } from '@/player'
 import { buildDeviceProfile } from './device-profile'
 import { audioStreamLabel, codecLabel, episodeCode, languageName, resolutionLabel } from './format'
-import { CARD_FIELDS } from './home-queries'
+import { CARD_FIELDS } from './queries'
 import { landscapeImage } from './images'
 import { getDeviceId, getSession } from './session'
 

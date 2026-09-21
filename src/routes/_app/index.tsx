@@ -3,11 +3,11 @@ import { useQueries, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { HeroCarousel, type HeroSlide } from '@/components/HeroCarousel'
-import { ItemCard, type CardShape } from '@/components/ItemCard'
+import { ItemCard } from '@/components/ItemCard'
 import { Rail } from '@/components/Rail'
-import { useRequiredSession } from '@/hooks/useSession'
-import { homeQueries } from '@/lib/home-queries'
-import { getSession } from '@/lib/session'
+import type { MorphShape } from '@/lib/motion'
+import { queries } from '@/lib/queries'
+import { getSession, useRequiredSession } from '@/lib/session'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
 const POSTER_W = 150
@@ -18,12 +18,12 @@ export const Route = createFileRoute('/_app/')({
     const session = getSession()
     if (!session) return
     const { userId } = session
-    void queryClient.prefetchQuery(homeQueries.resume(userId))
-    void queryClient.prefetchQuery(homeQueries.nextUp(userId))
-    const views = await queryClient.ensureQueryData(homeQueries.views(userId))
+    void queryClient.prefetchQuery(queries.resume(userId))
+    void queryClient.prefetchQuery(queries.nextUp(userId))
+    const views = await queryClient.ensureQueryData(queries.views(userId))
     for (const view of views.Items ?? []) {
       if (view.Id && isMediaLibrary(view)) {
-        void queryClient.prefetchQuery(homeQueries.latest(userId, view.Id))
+        void queryClient.prefetchQuery(queries.latest(userId, view.Id))
       }
     }
   },
@@ -36,12 +36,12 @@ function isMediaLibrary(view: BaseItemDto) {
 
 function HomePage() {
   const { userId } = useRequiredSession()
-  const views = useQuery(homeQueries.views(userId))
-  const resume = useQuery(homeQueries.resume(userId))
-  const nextUp = useQuery(homeQueries.nextUp(userId))
+  const views = useQuery(queries.views(userId))
+  const resume = useQuery(queries.resume(userId))
+  const nextUp = useQuery(queries.nextUp(userId))
   const libraries = views.data?.Items?.filter(isMediaLibrary) ?? []
   const latest = useQueries({
-    queries: libraries.map((lib) => homeQueries.latest(userId, lib.Id ?? '')),
+    queries: libraries.map((lib) => queries.latest(userId, lib.Id ?? '')),
   })
 
   const slides =
@@ -116,7 +116,7 @@ interface MediaRailProps {
   title: string
   items: BaseItemDto[] | null | undefined
   loading: boolean
-  shape: CardShape
+  shape: MorphShape
   showProgress?: boolean
   linkTo?: '/library/$libraryId'
   linkParams?: { libraryId: string }

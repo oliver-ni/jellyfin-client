@@ -14,15 +14,15 @@ import {
   SearchField,
   Text,
 } from 'react-aria-components'
-import { getItemsOptions } from '@/api/gen/@tanstack/react-query.gen'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import { CARD_FIELDS } from '@/lib/home-queries'
 import { episodeCode, itemKindLabel } from '@/lib/format'
-import { itemLink } from '@/lib/item-link'
 import { itemImage } from '@/lib/images'
-import { BlurImage } from './BlurImage'
+import { itemLink } from '@/lib/item-link'
+import { queries } from '@/lib/queries'
 import { glass } from '@/theme/glass'
+import { text } from '@/theme/text'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
+import { BlurImage } from './BlurImage'
 
 export interface SearchPaletteProps {
   userId: string
@@ -65,18 +65,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
   const query = useDebounced(term.trim(), DEBOUNCE_MS)
 
   const results = useQuery({
-    ...getItemsOptions({
-      query: {
-        userId,
-        searchTerm: query,
-        recursive: true,
-        includeItemTypes: ['Movie', 'Series', 'Episode'],
-        limit: 24,
-        fields: CARD_FIELDS,
-        enableImageTypes: ['Primary'],
-        imageTypeLimit: 1,
-      },
-    }),
+    ...queries.search(userId, query),
     enabled: isOpen && query.length > 0,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
@@ -134,7 +123,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
 }
 
 function Result({ item }: { item: BaseItemDto }) {
-  const image = itemImage(item, 'Primary', { width: THUMB_W * 2 })
+  const image = itemImage(item, 'Primary', THUMB_W * 2)
   const landscape = item.Type === 'Episode'
   return (
     <ListBoxItem id={item.Id ?? ''} textValue={item.Name ?? ''} {...stylex.props(styles.item)}>
@@ -145,11 +134,11 @@ function Result({ item }: { item: BaseItemDto }) {
         loading="eager"
         style={[styles.thumb, landscape ? styles.thumbLandscape : styles.thumbPoster]}
       />
-      <span {...stylex.props(styles.text)}>
-        <Text slot="label" {...stylex.props(styles.name)}>
+      <span {...stylex.props(styles.copy)}>
+        <Text slot="label" {...stylex.props(text.ellipsis, styles.name)}>
           {item.Name}
         </Text>
-        <Text slot="description" {...stylex.props(styles.meta)}>
+        <Text slot="description" {...stylex.props(text.ellipsis, styles.meta)}>
           {subtitle(item)}
         </Text>
       </span>
@@ -266,7 +255,7 @@ const styles = stylex.create({
     width: THUMB_W * 1.6,
     height: THUMB_W * 0.9,
   },
-  text: {
+  copy: {
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
@@ -275,16 +264,10 @@ const styles = stylex.create({
   name: {
     fontSize: 14,
     fontWeight: 500,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
   meta: {
     fontSize: 12,
     color: colors.textMuted,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
   empty: {
     paddingInline: space.lg,

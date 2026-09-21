@@ -10,13 +10,13 @@ import { DetailHero } from '@/components/DetailHero'
 import { EpisodeList } from '@/components/EpisodeList'
 import { FactSheet } from '@/components/FactSheet'
 import { ItemCard } from '@/components/ItemCard'
+import { Notice } from '@/components/Notice'
 import { Rail } from '@/components/Rail'
-import { useRequiredSession } from '@/hooks/useSession'
 import { useSettled } from '@/hooks/useSettled'
 import { plainText } from '@/lib/format'
-import { itemQueries } from '@/lib/item-queries'
 import { fadeUp, springs, stagger } from '@/lib/motion'
-import { getSession } from '@/lib/session'
+import { queries } from '@/lib/queries'
+import { getSession, useRequiredSession } from '@/lib/session'
 import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
@@ -32,14 +32,17 @@ export const Route = createFileRoute('/_app/items/$itemId')({
     season: str(raw.season),
     episode: str(raw.episode),
   }),
-  // Resolve the item before the route commits so the hero mounts in the same frame the
-  // previous page unmounts, which the shared-element morph depends on. Seasons and
-  // episodes have no page of their own: they land on the series with that tab/row open.
-  loader: async ({ context: { queryClient }, params }) => {
+  loaderDeps: ({ search }) => search,
+  // Resolve the item (and, for a deep-linked episode, its season's rows) before the route
+  // commits so the morph target mounts in the same frame the previous page unmounts.
+  // Seasons and episodes have no page of their own: they land on the series with that
+  // tab/row open.
+  loader: async ({ context: { queryClient }, params, deps }) => {
     const session = getSession()
     if (!session) return
+    const { userId } = session
     const item = await queryClient
-      .ensureQueryData(itemQueries.item(session.userId, params.itemId))
+      .ensureQueryData(queries.item(userId, params.itemId))
       .catch(() => null)
     if (item?.Type === 'Season' && item.SeriesId) {
       throw redirect({
@@ -57,6 +60,12 @@ export const Route = createFileRoute('/_app/items/$itemId')({
         replace: true,
       })
     }
+    if (item?.Type === 'Series' && deps.season && deps.episode) {
+      await Promise.all([
+        queryClient.ensureQueryData(queries.seasons(userId, params.itemId)),
+        queryClient.ensureQueryData(queries.episodes(userId, params.itemId, deps.season)),
+      ]).catch(() => null)
+    }
   },
   component: ItemPage,
 })
@@ -64,16 +73,17 @@ export const Route = createFileRoute('/_app/items/$itemId')({
 function ItemPage() {
   const { itemId } = Route.useParams()
   const { userId } = useRequiredSession()
-  const item = useQuery(itemQueries.item(userId, itemId))
+  const item = useQuery(queries.item(userId, itemId))
 
   if (item.isError) {
     return (
       <div {...stylex.props(styles.state)}>
-        <p {...stylex.props(styles.stateTitle)}>Couldn’t load this title</p>
-        <p {...stylex.props(styles.stateText)}>
-          It may have been removed from the server, or the link is wrong.
-        </p>
-        <Button onPress={() => void item.refetch()}>Try again</Button>
+        <Notice
+          title="Couldn’t load this title"
+          text="It may have been removed from the server, or the link is wrong."
+        >
+          <Button onPress={() => void item.refetch()}>Try again</Button>
+        </Notice>
       </div>
     )
   }
@@ -84,7 +94,7 @@ function ItemPage() {
 
 function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
   const type = item.Type
-  const similar = useQuery(itemQueries.similar(userId, item.Id ?? ''))
+  const similar = useQuery(queries.similar(userId, item.Id ?? ''))
   const similarItems = similar.data?.Items ?? []
   const overview = plainText(item.Overview)
   const sidebar = type === 'Series'
@@ -140,7 +150,7 @@ function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: strin
   const { season: selected, episode } = Route.useSearch()
   const navigate = useNavigate()
   const seriesId = series.Id ?? ''
-  const seasons = useQuery(itemQueries.seasons(userId, seriesId))
+  const seasons = useQuery(queries.seasons(userId, seriesId))
   const list = sortSeasons(seasons.data?.Items ?? [])
 
   const active =
@@ -219,15 +229,15 @@ function Episodes({
 }) {
   // Switching seasons keeps the current rows on screen until the new season arrives.
   const episodes = useQuery({
-    ...itemQueries.episodes(userId, seriesId, seasonId),
+    ...queries.episodes(userId, seriesId, seasonId),
     placeholderData: keepPreviousData,
   })
   const shownSeasonId = useSettled(seasonId, !episodes.isPlaceholderData)
   const list = episodes.data?.Items ?? []
 
   if (episodes.isPending) return <div {...stylex.props(styles.listSkeleton)} />
-  if (episodes.isError) return <p {...stylex.props(styles.stateText)}>Couldn’t load episodes.</p>
-  if (list.length === 0) return <p {...stylex.props(styles.stateText)}>No episodes.</p>
+  if (episodes.isError) return <Notice title="Couldn’t load episodes" />
+  if (list.length === 0) return <Notice title="No episodes" />
   return (
     <AnimatePresence mode="popLayout">
       <EpisodeList
@@ -259,10 +269,7 @@ const styles = stylex.create({
     columnGap: space.xxxl,
     rowGap: space.xl,
     alignItems: 'start',
-    paddingInline: {
-      default: sizes.pageGutter,
-      '@media (max-width: 720px)': sizes.pageGutterMobile,
-    },
+    paddingInline: sizes.pageGutter,
     maxWidth: sizes.maxContent,
     marginInline: 'auto',
     width: '100%',
@@ -366,21 +373,6 @@ const styles = stylex.create({
     width: '100%',
   },
   state: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: space.sm,
-    paddingTop: `calc(${sizes.navHeight} + ${space.xxxl})`,
-    paddingBottom: space.xxxl,
-    textAlign: 'center',
-  },
-  stateTitle: {
-    fontSize: 18,
-    fontWeight: 600,
-  },
-  stateText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginBottom: space.sm,
+    paddingTop: sizes.navHeight,
   },
 })

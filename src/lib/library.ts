@@ -9,7 +9,7 @@ import type {
   ItemSortBy,
   SortOrder,
 } from '@/api/gen/types.gen'
-import { CARD_FIELDS } from './home-queries'
+import { CARD_FIELDS } from './queries'
 
 const SORT_KEYS = [
   'added',

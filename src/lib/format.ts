@@ -43,11 +43,17 @@ export function itemKindLabel(item: BaseItemDto): string | null {
   }
 }
 
+const dateFormat = new Intl.DateTimeFormat(undefined, {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+})
+
 export function formatDate(iso: string | null | undefined): string | null {
   if (!iso) return null
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  return dateFormat.format(d)
 }
 
 const languageNames =

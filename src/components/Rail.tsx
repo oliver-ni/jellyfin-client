@@ -76,10 +76,7 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingInline: {
-      default: sizes.pageGutter,
-      '@media (max-width: 720px)': sizes.pageGutterMobile,
-    },
+    paddingInline: sizes.pageGutter,
   },
   titleLink: {
     display: 'inline-flex',
@@ -139,14 +136,8 @@ const styles = stylex.create({
     scrollSnapType: 'x proximity',
     scrollbarWidth: 'none',
     '::-webkit-scrollbar': { display: 'none' },
-    paddingInline: {
-      default: sizes.pageGutter,
-      '@media (max-width: 720px)': sizes.pageGutterMobile,
-    },
+    paddingInline: sizes.pageGutter,
     paddingBlock: space.sm,
-    scrollPaddingInline: {
-      default: sizes.pageGutter,
-      '@media (max-width: 720px)': sizes.pageGutterMobile,
-    },
+    scrollPaddingInline: sizes.pageGutter,
   },
 })

@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react'
+
 const SESSION_KEY = 'jf.session'
 const DEVICE_ID_KEY = 'jf.deviceId'
 
@@ -30,11 +32,22 @@ export function setSession(session: Session | null) {
   for (const l of listeners) l()
 }
 
-export function subscribeSession(listener: () => void) {
+function subscribe(listener: () => void) {
   listeners.add(listener)
   return () => {
     listeners.delete(listener)
   }
+}
+
+export function useSession() {
+  return useSyncExternalStore(subscribe, getSession, getSession)
+}
+
+/** For routes under `_app`, whose `beforeLoad` guarantees a session. */
+export function useRequiredSession(): Session {
+  const session = useSession()
+  if (!session) throw new Error('No active session')
+  return session
 }
 
 export function getDeviceId(): string {

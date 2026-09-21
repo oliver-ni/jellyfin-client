@@ -6,11 +6,11 @@ import {
   getSession,
   normalizeServerUrl,
   setSession,
-  subscribeSession,
   type Session,
 } from './session'
 
-function applySessionToClient(session: Session | null) {
+function applySession(session: Session | null) {
+  setSession(session)
   client.setConfig({
     baseUrl: session?.serverUrl ?? '',
     auth: () => authorizationHeader(session?.accessToken),
@@ -18,18 +18,10 @@ function applySessionToClient(session: Session | null) {
   })
 }
 
-applySessionToClient(getSession())
-subscribeSession(() => applySessionToClient(getSession()))
+applySession(getSession())
 
-export class AuthError extends Error {
-  readonly status: number | undefined
-
-  constructor(message: string, status?: number) {
-    super(message)
-    this.name = 'AuthError'
-    this.status = status
-  }
-}
+/** A failure with a message fit to show the user. */
+export class AuthError extends Error {}
 
 export async function probeServer(input: string) {
   const serverUrl = normalizeServerUrl(input)
@@ -48,7 +40,6 @@ export async function probeServer(input: string) {
         : controller.signal.aborted
           ? 'Timed out connecting to server'
           : 'Could not reach server (check the URL and CORS)',
-      status,
     )
   } finally {
     clearTimeout(timeout)
@@ -72,22 +63,19 @@ export async function login(
       status === 401
         ? 'Invalid username or password'
         : `Login failed (${status ?? 'network error'})`,
-      status,
     )
   }
-  const session: Session = {
+  await clearPersistedQueries()
+  applySession({
     serverUrl,
     serverName,
     userId: data.User.Id,
     userName: data.User.Name ?? username,
     accessToken: data.AccessToken,
-  }
-  await clearPersistedQueries()
-  setSession(session)
-  return session
+  })
 }
 
 export async function logout() {
-  setSession(null)
+  applySession(null)
   await clearPersistedQueries()
 }

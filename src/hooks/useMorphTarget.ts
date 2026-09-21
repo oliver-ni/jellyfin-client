@@ -1,4 +1,4 @@
-import { useRouter } from '@tanstack/react-router'
+import { useRouter, type ParsedLocation } from '@tanstack/react-router'
 import { useMotionValue } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import {
@@ -9,67 +9,77 @@ import {
   rectOf,
   takeMorphSource,
   type MorphShape,
+  type MorphSource,
 } from '@/lib/motion'
 
+/** Whether `to` opens the page, or the expanded episode row, for `itemId`. */
+export const opensItem = (to: ParsedLocation, itemId: string) =>
+  to.pathname === `/items/${itemId}` || ('episode' in to.search && to.search.episode === itemId)
+
 /**
- * Lets a card hand its rect to the page that replaces it whenever that page is this item's,
- * whether the card was clicked or the route arrived via history, so forward and back
- * navigations morph alike. Measured before the navigation commits, while the card is still
- * where the user sees it.
+ * Offers `ref` as the morph origin for `itemId` whenever a navigation passes `when`, measured
+ * before the navigation commits so the element is still where the user sees it. Works for
+ * clicks and for history navigation alike, so forward and back morph the same way.
  */
 export function useMorphHandoff(
+  ref: RefObject<HTMLElement | null>,
   itemId: string | undefined,
   shape: MorphShape,
-  ref: RefObject<HTMLElement | null>,
   src: string | null | undefined,
+  when: (to: ParsedLocation) => boolean = () => true,
 ) {
   const router = useRouter()
-  const latest = useRef({ itemId, shape, src })
+  const latest = useRef({ itemId, shape, src, when })
   useEffect(() => {
-    latest.current = { itemId, shape, src }
-  }, [itemId, shape, src])
+    latest.current = { itemId, shape, src, when }
+  }, [itemId, shape, src, when])
   useEffect(
     () =>
       router.subscribe('onBeforeNavigate', ({ toLocation }) => {
-        const { itemId, shape, src } = latest.current
+        const { itemId, shape, src, when } = latest.current
         const el = ref.current
-        if (!el || !itemId) return
-        const { pathname, search } = toLocation
-        const opensThisItem =
-          pathname === `/items/${itemId}` || ('episode' in search && search.episode === itemId)
-        if (opensThisItem) offerMorphSource(el, { itemId, shape, src: src ?? null })
+        if (el && itemId && when(toLocation))
+          offerMorphSource(el, { itemId, shape, src: src ?? null })
       }),
     [ref, router],
   )
 }
 
 /**
- * Lets a card receive the shared-element handoff from the page that navigated here (the
- * detail hero, on back-navigation). The card's media is hidden while a stand-in flies from the
- * hero's rect to the card's, then revealed in place. Measuring waits a frame so the router's
- * scroll restoration has landed first; a card that ends up off screen just appears.
+ * Receives the handoff for `itemId`, if the page that navigated here offered one: `ref` is
+ * hidden while a stand-in flies from the origin's rect to its own, then revealed in place.
+ * Measuring waits a frame so the router's scroll reset has landed, and one more if the target
+ * is still off screen (a deep-linked episode row scrolls itself into view on mount); a target
+ * that stays off screen just appears.
  */
 export function useMorphTarget(
   itemId: string | undefined,
   shape: MorphShape,
   ref: RefObject<HTMLElement | null>,
 ) {
-  const [source] = useState(() => (itemId ? takeMorphSource(itemId, shape) : null))
+  const [source] = useState<MorphSource | null>(() =>
+    itemId ? takeMorphSource(itemId, shape) : null,
+  )
   const opacity = useMotionValue(1)
 
   useLayoutEffect(() => {
     if (!source) return
     opacity.jump(0)
     let stop: (() => void) | undefined
-    const frame = requestAnimationFrame(() => {
+    let retry = true
+    const measure = () => {
       const el = ref.current
-      if (!el || !inViewport(rectOf(el))) {
+      if (el && inViewport(rectOf(el))) {
+        concealMorphOrigin(source)
+        stop = flyMorph(source, el, () => opacity.jump(1))
+      } else if (el && retry) {
+        retry = false
+        frame = requestAnimationFrame(measure)
+      } else {
         opacity.jump(1)
-        return
       }
-      concealMorphOrigin(source)
-      stop = flyMorph(source, el, () => opacity.jump(1))
-    })
+    }
+    let frame = requestAnimationFrame(measure)
     return () => {
       cancelAnimationFrame(frame)
       stop?.()
@@ -77,5 +87,5 @@ export function useMorphTarget(
     }
   }, [source, ref, opacity])
 
-  return { morphing: source !== null, opacity }
+  return { source, opacity }
 }

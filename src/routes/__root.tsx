@@ -3,10 +3,10 @@ import type { QueryClient } from '@tanstack/react-query'
 import { Link, Outlet, createRootRouteWithContext } from '@tanstack/react-router'
 import { MotionConfig } from 'motion/react'
 import { useLayoutEffect } from 'react'
-import { useThemeId } from '@/hooks/useTheme'
-import { themeStyles } from '@/lib/theme'
+import { Notice } from '@/components/Notice'
+import { useTheme } from '@/lib/theme'
 import { focus } from '@/theme/focus'
-import { colors, fonts, space } from '@/theme/tokens.stylex'
+import { colors, fonts } from '@/theme/tokens.stylex'
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -20,22 +20,22 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function NotFound() {
   return (
     <main {...stylex.props(styles.notFound)}>
-      <h1 {...stylex.props(styles.notFoundTitle)}>Page not found</h1>
-      <Link to="/" {...stylex.props(focus.ring, styles.notFoundLink)}>
-        Go home
-      </Link>
+      <Notice title="Page not found">
+        <Link to="/" {...stylex.props(focus.ring, styles.link)}>
+          Go home
+        </Link>
+      </Notice>
     </main>
   )
 }
 
 function Root() {
-  const themeId = useThemeId()
+  const { theme } = useTheme()
 
   // Theme vars go on <body> so portalled content (popovers, dialogs) inherits them too.
   useLayoutEffect(() => {
-    const { className } = stylex.props(themeStyles(themeId), styles.body)
-    document.body.className = className ?? ''
-  }, [themeId])
+    document.body.className = stylex.props(theme, styles.body).className ?? ''
+  }, [theme])
 
   return (
     <MotionConfig reducedMotion="user">
@@ -58,18 +58,10 @@ const styles = stylex.create({
   },
   notFound: {
     minHeight: '100dvh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.md,
-    padding: space.xl,
+    display: 'grid',
+    placeItems: 'center',
   },
-  notFoundTitle: {
-    fontSize: 22,
-    fontWeight: 700,
-  },
-  notFoundLink: {
+  link: {
     color: colors.textMuted,
     textDecoration: 'underline',
     textUnderlineOffset: 3,

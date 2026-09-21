@@ -14,15 +14,13 @@ import {
   Separator,
   Button as AriaButton,
 } from 'react-aria-components'
-import { getUserViewsOptions } from '@/api/gen/@tanstack/react-query.gen'
 import { SearchPalette } from '@/components/SearchPalette'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
-import { useSession } from '@/hooks/useSession'
-import { useThemeId } from '@/hooks/useTheme'
 import { logout } from '@/lib/auth'
 import { springs } from '@/lib/motion'
-import { getSession, type Session } from '@/lib/session'
-import { THEMES, setThemeId, type ThemeId } from '@/lib/theme'
+import { queries } from '@/lib/queries'
+import { getSession, useSession, type Session } from '@/lib/session'
+import { THEMES, setThemeId, useTheme } from '@/lib/theme'
 import { brandMark } from '@/brand'
 import { glass, overlay } from '@/theme/glass'
 import { menu } from '@/theme/menu'
@@ -65,8 +63,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 function TopNav({ session }: { session: Session }) {
   const navigate = useNavigate()
-  const themeId = useThemeId()
-  const views = useQuery(getUserViewsOptions({ query: { userId: session.userId } }))
+  const theme = useTheme()
+  const views = useQuery(queries.views(session.userId))
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -138,12 +136,12 @@ function TopNav({ session }: { session: Session }) {
             >
               <MenuSection
                 selectionMode="single"
-                selectedKeys={[themeId]}
+                selectedKeys={[theme.id]}
                 shouldCloseOnSelect={false}
                 onSelectionChange={(keys) => {
                   if (keys === 'all') return
                   const [next] = keys
-                  if (typeof next === 'string') setThemeId(next as ThemeId)
+                  setThemeId(next)
                 }}
                 {...stylex.props(menu.list)}
               >
@@ -224,10 +222,7 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: space.sm,
     height: sizes.navHeight,
-    paddingInline: {
-      default: sizes.pageGutter,
-      '@media (max-width: 720px)': sizes.pageGutterMobile,
-    },
+    paddingInline: sizes.pageGutter,
     pointerEvents: 'none',
   },
   brand: {
@@ -267,7 +262,7 @@ const styles = stylex.create({
     },
     maxWidth: {
       default: 'none',
-      '@media (max-width: 720px)': `calc(100vw - 2 * ${sizes.pageGutterMobile})`,
+      '@media (max-width: 720px)': `calc(100vw - 2 * ${sizes.pageGutter})`,
     },
     overflowX: 'auto',
     scrollbarWidth: 'none',
