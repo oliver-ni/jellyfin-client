@@ -71,6 +71,7 @@ function TopNav({ session }: { session: Session }) {
   const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
+    if (searchOpen) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return
       if (isTypingTarget(e.target)) return
@@ -79,7 +80,7 @@ function TopNav({ session }: { session: Session }) {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [searchOpen])
 
   return (
     <header {...stylex.props(styles.nav)}>
