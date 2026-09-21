@@ -109,7 +109,11 @@ function LoginPage() {
               type="text"
               autoComplete="url"
             />
-            {error && <p {...stylex.props(styles.error)}>{error}</p>}
+            {error && (
+              <p role="alert" {...stylex.props(styles.error)}>
+                {error}
+              </p>
+            )}
             <Button type="submit" variant="primary" size="lg" isDisabled={busy || !serverInput}>
               {busy ? 'Connecting…' : 'Continue'}
             </Button>
@@ -131,7 +135,11 @@ function LoginPage() {
               onChange={setPassword}
               autoComplete="current-password"
             />
-            {error && <p {...stylex.props(styles.error)}>{error}</p>}
+            {error && (
+              <p role="alert" {...stylex.props(styles.error)}>
+                {error}
+              </p>
+            )}
             <Button type="submit" variant="primary" size="lg" isDisabled={busy || !username}>
               {busy ? 'Signing in…' : 'Sign in'}
             </Button>

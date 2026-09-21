@@ -86,9 +86,12 @@ export class PlayerEngine {
         this.store.setState({ paused: true })
         this.stopFrame()
         this.syncTime()
-        if (!video.ended) this.report('pause')
+        if (this.store.getState().status !== 'ended') this.report('pause')
       }),
-      on('waiting', () => this.store.setState({ waiting: true })),
+      on('waiting', () => {
+        if (this.stalledAtEnd()) this.end()
+        else this.store.setState({ waiting: true })
+      }),
       on('stalled', () => {
         if (!video.paused) this.store.setState({ waiting: true })
       }),
@@ -108,12 +111,7 @@ export class PlayerEngine {
       on('progress', () => this.syncBuffered()),
       on('volumechange', () => this.store.setState({ volume: video.volume, muted: video.muted })),
       on('ratechange', () => this.store.setState({ rate: video.playbackRate })),
-      on('ended', () => {
-        this.stopFrame()
-        this.syncTime()
-        this.store.setState({ status: 'ended', paused: true, controlsVisible: true })
-        this.callbacks.onEnded?.()
-      }),
+      on('ended', () => this.end()),
       on('error', () => {
         if (this.hls) return
         const code = video.error?.code ?? 0
@@ -180,6 +178,7 @@ export class PlayerEngine {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         void video.play().catch(() => undefined)
       })
+      hls.on(Hls.Events.MEDIA_ENDED, () => this.end())
       hls.loadSource(source.url)
       hls.attachMedia(video)
       return
@@ -285,6 +284,29 @@ export class PlayerEngine {
       audioTrackId: s.audioTrackId,
       subtitleTrackId: s.subtitleTrackId,
     }
+  }
+
+  private end() {
+    if (this.store.getState().status === 'ended') return
+    this.stopFrame()
+    this.syncTime()
+    this.store.setState({ status: 'ended', paused: true, waiting: false, controlsVisible: true })
+    this.video?.pause()
+    this.callbacks.onEnded?.()
+  }
+
+  /**
+   * Transcodes can run out of data slightly before the container's duration (the playlist
+   * timing and the encoded tracks disagree), so the browser never fires `ended`.
+   */
+  private stalledAtEnd() {
+    const video = this.video
+    const runtime = this.source?.duration
+    if (!video || !runtime || video.seeking || video.currentTime < runtime - 1) return false
+    for (let i = 0; i < video.buffered.length; i++) {
+      if (video.buffered.end(i) > video.currentTime + 0.25) return false
+    }
+    return true
   }
 
   private duration() {

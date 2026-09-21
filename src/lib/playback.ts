@@ -4,6 +4,7 @@ import {
   getItemSegments,
   getNextUp,
   getPostedPlaybackInfo,
+  getResumeItems,
   reportPlaybackProgress,
   reportPlaybackStart,
   reportPlaybackStopped,
@@ -294,13 +295,19 @@ export const playbackQueries = {
     }),
 }
 
-/** Where a series starts playing: the next-up (or in-progress) episode, else its first. */
+/** Where a series starts playing: its in-progress episode, else next up, else the first. */
 export async function seriesStartEpisode(userId: string, seriesId: string) {
-  const nextUp = await getNextUp({ query: { userId, seriesId, limit: 1, enableResumable: true } })
-  const first = nextUp.data?.Items?.[0]
-  if (first) return first
-  const episodes = await getEpisodes({ path: { seriesId }, query: { userId, limit: 1 } })
-  return episodes.data?.Items?.[0] ?? null
+  const candidates = [
+    () =>
+      getResumeItems({ query: { userId, parentId: seriesId, limit: 1, mediaTypes: ['Video'] } }),
+    () => getNextUp({ query: { userId, seriesId, limit: 1 } }),
+    () => getEpisodes({ path: { seriesId }, query: { userId, limit: 1 } }),
+  ]
+  for (const load of candidates) {
+    const episode = (await load()).data?.Items?.[0]
+    if (episode) return episode
+  }
+  return null
 }
 
 export function toSegments(

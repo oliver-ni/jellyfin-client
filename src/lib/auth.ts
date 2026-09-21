@@ -36,21 +36,19 @@ export async function probeServer(input: string) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 8000)
   try {
-    const { data, error, response } = await getPublicSystemInfo({
+    const { data, response } = await getPublicSystemInfo({
       baseUrl: serverUrl,
       signal: controller.signal,
     })
-    if (error || !data) {
-      const status = response?.status
-      throw new AuthError(`Server responded with ${status ?? 'an error'}`, status)
-    }
-    return { serverUrl, info: data }
-  } catch (e) {
-    if (e instanceof AuthError) throw e
+    if (data) return { serverUrl, info: data }
+    const status = response?.status
     throw new AuthError(
-      controller.signal.aborted
-        ? 'Timed out connecting to server'
-        : 'Could not reach server (check the URL and CORS)',
+      status
+        ? `Server responded with ${status}`
+        : controller.signal.aborted
+          ? 'Timed out connecting to server'
+          : 'Could not reach server (check the URL and CORS)',
+      status,
     )
   } finally {
     clearTimeout(timeout)
