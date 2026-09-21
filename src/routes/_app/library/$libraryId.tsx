@@ -3,7 +3,7 @@ import { hashKey, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
-import { useCallback, type ReactNode } from 'react'
+import { useCallback, type ReactNode, type Ref } from 'react'
 import { getItemOptions } from '@/api/gen/@tanstack/react-query.gen'
 import { Button } from '@/components/Button'
 import { FilterMenu, FilterToggle } from '@/components/FilterMenu'
@@ -49,8 +49,11 @@ function LibraryPage() {
   })
   const itemsQuery = libraryItemsQuery({ userId, libraryId, itemTypes, search })
   const items = useInfiniteQuery({ ...itemsQuery, enabled: library.isSuccess })
-  // Identity of the result set on screen; lags the URL while the previous set is a placeholder.
-  const resultSetKey = useSettled(hashKey(itemsQuery.queryKey), !items.isPlaceholderData)
+  // What's on screen lags the URL while the previous result set is shown as a placeholder,
+  // so the title, count and grid switch together.
+  const settled = !items.isPlaceholderData
+  const resultSetKey = useSettled(hashKey(itemsQuery.queryKey), settled)
+  const title = useSettled(library.data?.Name, settled)
 
   const loaded = flattenPages(items.data?.pages)
   const total = items.data?.pages[0]?.TotalRecordCount ?? loaded.length
@@ -89,7 +92,7 @@ function LibraryPage() {
   return (
     <div {...stylex.props(styles.page)}>
       <header {...stylex.props(styles.head)}>
-        <h1 {...stylex.props(styles.title)}>{library.data?.Name ?? '\u00a0'}</h1>
+        <h1 {...stylex.props(styles.title)}>{title ?? '\u00a0'}</h1>
         <span {...stylex.props(styles.count)}>
           {items.isSuccess ? `${total.toLocaleString()} ${total === 1 ? 'title' : 'titles'}` : ''}
         </span>
@@ -178,9 +181,17 @@ function LibraryPage() {
   )
 }
 
-function Notice({ title, text, children }: { title: string; text: string; children?: ReactNode }) {
+interface NoticeProps {
+  title: string
+  text: string
+  children?: ReactNode
+  ref?: Ref<HTMLDivElement>
+}
+
+function Notice({ title, text, children, ref }: NoticeProps) {
   return (
     <m.div
+      ref={ref}
       initial="hidden"
       animate="show"
       exit={vanish}

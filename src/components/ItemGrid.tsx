@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { motion as m } from 'motion/react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useElementLayout } from '@/hooks/useElementLayout'
 import { stagger, vanish } from '@/lib/motion'
@@ -16,15 +16,18 @@ export interface ItemGridProps {
   /** Called with the highest item index currently rendered, so the caller can page in more. */
   onRenderedUpTo?: (index: number) => void
   minCardWidth?: number
+  /** Root element; needed by `AnimatePresence mode="popLayout"` to take an exiting grid out of flow. */
+  ref?: Ref<HTMLDivElement>
 }
 
 const GAP = 20
 const META_HEIGHT = 44
 
 /** Window-scrolled virtualized poster grid; columns adapt to container width. */
-export function ItemGrid({ total, items, onRenderedUpTo, minCardWidth = 150 }: ItemGridProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const { width, top } = useElementLayout(ref)
+export function ItemGrid({ total, items, onRenderedUpTo, minCardWidth = 150, ref }: ItemGridProps) {
+  const root = useRef<HTMLDivElement>(null)
+  useImperativeHandle(ref, () => root.current as HTMLDivElement, [])
+  const { width, top } = useElementLayout(root)
 
   const cols = Math.max(2, Math.floor((width + GAP) / (minCardWidth + GAP)))
   const cardWidth = width ? Math.floor((width - GAP * (cols - 1)) / cols) : minCardWidth
@@ -52,7 +55,7 @@ export function ItemGrid({ total, items, onRenderedUpTo, minCardWidth = 150 }: I
 
   return (
     <m.div
-      ref={ref}
+      ref={root}
       initial="hidden"
       animate="show"
       exit={vanish}
