@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Check, MagnifyingGlass, SignOut } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
-import { useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Header,
   Menu,
@@ -15,6 +15,7 @@ import {
   Button as AriaButton,
 } from 'react-aria-components'
 import { getUserViewsOptions } from '@/api/gen/@tanstack/react-query.gen'
+import { SearchPalette } from '@/components/SearchPalette'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
 import { useSession } from '@/hooks/useSession'
 import { useThemeId } from '@/hooks/useTheme'
@@ -50,14 +51,37 @@ function AppLayout() {
   )
 }
 
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target.isContentEditable
+  )
+}
+
 function TopNav({ session }: { session: Session }) {
   const navigate = useNavigate()
   const themeId = useThemeId()
   const views = useQuery(getUserViewsOptions({ query: { userId: session.userId } }))
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return
+      if (isTypingTarget(e.target)) return
+      e.preventDefault()
+      setSearchOpen(true)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
     <header {...stylex.props(styles.nav)}>
+      <SearchPalette userId={session.userId} isOpen={searchOpen} onOpenChange={setSearchOpen} />
       <Link to="/" aria-label={session.serverName} {...stylex.props(glass.surface, styles.brand)}>
         <span aria-hidden="true">{brandMark}</span>
       </Link>
@@ -70,11 +94,15 @@ function TopNav({ session }: { session: Session }) {
         ))}
       </nav>
       <div {...stylex.props(styles.right)}>
-        <button type="button" aria-label="Search" {...stylex.props(glass.surface, styles.search)}>
+        <AriaButton
+          aria-label="Search"
+          onPress={() => setSearchOpen(true)}
+          {...stylex.props(glass.surface, styles.search)}
+        >
           <MagnifyingGlass size={16} />
           <span {...stylex.props(styles.searchLabel)}>Search</span>
           <kbd {...stylex.props(styles.kbd)}>/</kbd>
-        </button>
+        </AriaButton>
         <MenuTrigger>
           <AriaButton aria-label="Account" {...stylex.props(glass.surface, styles.avatar)}>
             {session.userName.slice(0, 1).toUpperCase()}
@@ -299,13 +327,13 @@ const styles = stylex.create({
     },
     color: {
       default: colors.textMuted,
-      ':hover': colors.text,
+      '[data-hovered]': colors.text,
     },
     borderRadius: radii.full,
     fontSize: 14,
     transitionProperty: 'color',
     transitionDuration: motion.fast,
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
+    outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
     outlineWidth: 2,
     outlineColor: colors.focusRing,
     outlineOffset: 2,
