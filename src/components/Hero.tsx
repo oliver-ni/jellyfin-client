@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeCode, formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
 import { backdropImage, logoImage } from '@/lib/images'
+import { itemLink } from '@/lib/item-link'
 import { fadeUp, stagger, vanish } from '@/lib/motion'
 import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
@@ -125,8 +126,7 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
               {remaining ? 'Resume' : 'Play'}
             </Link>
             <Link
-              to="/items/$itemId"
-              params={{ itemId }}
+              {...itemLink(item)}
               aria-label="More info"
               {...stylex.props(focus.ring, styles.info)}
             >

@@ -7,6 +7,7 @@ import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
 import { episodeLabel } from '@/lib/format'
 import { itemImage, landscapeImage } from '@/lib/images'
+import { itemLink, landingId } from '@/lib/item-link'
 import { fadeUp, springs, type MorphShape } from '@/lib/motion'
 import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
@@ -37,9 +38,11 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
       : item.ProductionYear?.toString()
   const progress = showProgress ? (item.UserData?.PlayedPercentage ?? 0) : 0
   const unplayed = item.UserData?.UnplayedItemCount
+  const link = itemLink(item)
+  const morphId = landingId(link)
   const media = useRef<HTMLDivElement>(null)
-  const morph = useMorphTarget(item.Id, shape, media)
-  useMorphHandoff(item.Id, shape, media, image?.url)
+  const morph = useMorphTarget(morphId, shape, media)
+  useMorphHandoff(morphId, shape, media, image?.url)
 
   return (
     <m.div
@@ -48,14 +51,10 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
       {...stylex.props(styles.root)}
       style={{ width }}
     >
-      <Link
-        to="/items/$itemId"
-        params={{ itemId: item.Id ?? '' }}
-        {...stylex.props(styles.card, stylex.defaultMarker())}
-      >
+      <Link {...link} {...stylex.props(styles.card, stylex.defaultMarker())}>
         <m.div
           ref={media}
-          data-morph={item.Id}
+          data-morph={morphId}
           transition={springs.snappy}
           whileHover={{ scale: 1.035 }}
           whileTap={{ scale: 0.97 }}

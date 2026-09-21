@@ -18,6 +18,7 @@ import { getItemsOptions } from '@/api/gen/@tanstack/react-query.gen'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { CARD_FIELDS } from '@/lib/home-queries'
 import { episodeCode, itemKindLabel } from '@/lib/format'
+import { itemLink } from '@/lib/item-link'
 import { itemImage } from '@/lib/images'
 import { BlurImage } from './BlurImage'
 import { glass } from '@/theme/glass'
@@ -111,7 +112,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
                 const item = items.find((it) => it.Id === key)
                 if (!item?.Id) return
                 open(false)
-                void navigate({ to: '/items/$itemId', params: { itemId: item.Id } })
+                void navigate(itemLink(item))
               }}
               {...stylex.props(styles.list, items.length > 0 && styles.listOpen)}
             >
