@@ -185,7 +185,11 @@ const styles = stylex.create({
     alignItems: 'center',
     cursor: 'pointer',
     touchAction: 'none',
-    outline: 'none',
+    borderRadius: player.radiusSm,
+    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
+    outlineWidth: 2,
+    outlineColor: player.focusRing,
+    outlineOffset: 2,
   },
   track: {
     position: 'relative',
