@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
@@ -50,13 +50,14 @@ export const Route = createFileRoute('/play/$itemId')({
 function PlayPage() {
   const { itemId } = Route.useParams()
   const { userId } = useRequiredSession()
-  const item = useQuery(itemQueries.item(userId, itemId))
+  // The resume position must come from the server now, not from a cached card.
+  const item = useQuery({ ...itemQueries.item(userId, itemId), staleTime: 0 })
   const back = useBack(itemId)
 
   if (item.isError) {
     return <Fallback message="This title could not be loaded." onBack={back} />
   }
-  if (!item.data) return <Fallback />
+  if (!item.data || !item.isFetchedAfterMount) return <Fallback />
   return <ItemPlayer key={itemId} item={item.data} userId={userId} onBack={back} />
 }
 
@@ -79,6 +80,7 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
   const itemId = item.Id ?? ''
   const mediaSourceId = item.MediaSources?.[0]?.Id ?? undefined
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const segments = useQuery(playbackQueries.segments(itemId))
   const nextEpisode = useQuery({
     ...playbackQueries.nextEpisode(userId, item),
@@ -136,7 +138,7 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
       if (reason === 'unload') {
         if (startedFor.current === s.playSessionId) {
           startedFor.current = null
-          void reportStopped(s, itemId, snap)
+          void reportStopped(s, itemId, snap).then(() => queryClient.invalidateQueries())
         }
         return
       }
@@ -147,7 +149,7 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
       }
       void reportProgress(s, itemId, snap)
     },
-    [itemId],
+    [itemId, queryClient],
   )
 
   // Closing the tab skips React cleanup; flush a final stop so the position sticks.
