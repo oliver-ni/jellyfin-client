@@ -87,18 +87,22 @@ export function Controls({
           >
             <PlayPauseIcon paused={paused} />
           </ControlButton>
-          <ControlButton label="Back 10 seconds" shortcut="J" onPress={() => engine.seekBy(-10)}>
-            <ArrowCounterClockwise size={20} />
-          </ControlButton>
-          <ControlButton label="Forward 10 seconds" shortcut="L" onPress={() => engine.seekBy(10)}>
-            <ArrowClockwise size={20} />
-          </ControlButton>
+          <div {...stylex.props(styles.wideOnly)}>
+            <ControlButton label="Back 10 seconds" shortcut="J" onPress={() => engine.seekBy(-10)}>
+              <ArrowCounterClockwise size={20} />
+            </ControlButton>
+            <ControlButton label="Forward 10 seconds" shortcut="L" onPress={() => engine.seekBy(10)}>
+              <ArrowClockwise size={20} />
+            </ControlButton>
+          </div>
           {next && onNext && (
             <ControlButton label={`Next: ${next.title}`} shortcut="⇧N" onPress={onNext}>
               <SkipForward size={20} weight="fill" />
             </ControlButton>
           )}
-          <VolumeControl />
+          <div {...stylex.props(styles.wideOnly)}>
+            <VolumeControl />
+          </div>
           <div {...stylex.props(styles.time)}>
             <span>{formatTime(currentTime, hasHours)}</span>
             <span {...stylex.props(styles.timeSep)}>/</span>
@@ -191,17 +195,19 @@ export function Controls({
             </ControlButton>
           </PlayerMenuTrigger>
           {pipSupported && (
-            <ControlButton
-              label={pip ? 'Exit picture in picture' : 'Picture in picture'}
-              onPress={() => {
-                const video = engine.video
-                if (!video) return
-                if (document.pictureInPictureElement) void document.exitPictureInPicture()
-                else void video.requestPictureInPicture().catch(() => undefined)
-              }}
-            >
-              <PictureInPicture size={20} />
-            </ControlButton>
+            <div {...stylex.props(styles.wideOnly)}>
+              <ControlButton
+                label={pip ? 'Exit picture in picture' : 'Picture in picture'}
+                onPress={() => {
+                  const video = engine.video
+                  if (!video) return
+                  if (document.pictureInPictureElement) void document.exitPictureInPicture()
+                  else void video.requestPictureInPicture().catch(() => undefined)
+                }}
+              >
+                <PictureInPicture size={20} />
+              </ControlButton>
+            </div>
           )}
           <ControlButton
             label={fullscreen ? 'Exit full screen' : 'Full screen'}
@@ -264,6 +270,9 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: 2,
     minWidth: 0,
+  },
+  wideOnly: {
+    display: { default: 'contents', '@media (max-width: 600px)': 'none' },
   },
   time: {
     display: 'flex',
