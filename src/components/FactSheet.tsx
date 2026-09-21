@@ -107,17 +107,13 @@ const styles = stylex.create({
   sheet: {
     display: 'flex',
     flexDirection: 'column',
+    gap: space.lg,
     margin: 0,
   },
   row: {
     display: 'flex',
     flexDirection: 'column',
     gap: space.xxs,
-    paddingTop: { default: space.md, ':first-child': 0 },
-    paddingBottom: space.md,
-    borderTopWidth: { default: 1, ':first-child': 0 },
-    borderTopStyle: 'solid',
-    borderTopColor: colors.border,
   },
   label: {
     fontSize: 13,

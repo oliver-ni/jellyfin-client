@@ -224,12 +224,12 @@ const styles = stylex.create({
   fadeBottom: {
     position: 'absolute',
     inset: 0,
-    backgroundImage: `linear-gradient(to top, ${colors.bg} 0%, ${colors.bg} 6%, transparent 60%)`,
+    backgroundImage: `linear-gradient(to top, ${colors.bg} 0%, ${colors.bg} 6%, ${colors.scrim} 40%, transparent 75%)`,
   },
   fadeLeft: {
     position: 'absolute',
     inset: 0,
-    backgroundImage: `linear-gradient(to right, ${colors.scrim} 0%, transparent 70%)`,
+    backgroundImage: `linear-gradient(to right, ${colors.scrim} 0%, ${colors.scrim} 30%, transparent 75%)`,
   },
   content: {
     position: 'relative',

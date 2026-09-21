@@ -76,7 +76,9 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
           )}
         </m.div>
         <div {...stylex.props(styles.meta)}>
-          <span {...stylex.props(styles.title)}>{title}</span>
+          <span title={title ?? undefined} {...stylex.props(styles.title)}>
+            {title}
+          </span>
           {subtitle && <span {...stylex.props(styles.subtitle)}>{subtitle}</span>}
         </div>
       </Link>
