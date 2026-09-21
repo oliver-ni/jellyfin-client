@@ -32,6 +32,14 @@ export const seerrQueries = {
       queryFn: (): Promise<seerr.MovieDetails | seerr.TvDetails> =>
         type === 'movie' ? seerr.movie(tmdbId) : seerr.tv(tmdbId),
     }),
+  /** Kept fresh while on screen so download progress moves. */
+  requests: (userId: number) =>
+    queryOptions({
+      queryKey: ['seerr', 'requests', userId],
+      queryFn: () => seerr.requests(userId),
+      refetchInterval: 15_000,
+      ...live,
+    }),
 }
 
 /** Whether Seerr is reachable and this browser holds a session for it; `undefined` while probing. */
@@ -57,5 +65,6 @@ export async function signOut() {
 /** Refetches a title after a request so its availability moves to `pending`/`processing`. */
 export function invalidateTitle(type: seerr.MediaType, tmdbId: number) {
   void queryClient.invalidateQueries({ queryKey: ['seerr', 'search'] })
+  void queryClient.invalidateQueries({ queryKey: ['seerr', 'requests'] })
   return queryClient.invalidateQueries({ queryKey: ['seerr', type, tmdbId] })
 }

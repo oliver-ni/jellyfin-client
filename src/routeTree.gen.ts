@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppRequestsRouteImport } from './routes/_app/requests'
 import { Route as PlayItemIdRouteImport } from './routes/play/$itemId'
 import { Route as AppItemsItemIdRouteImport } from './routes/_app/items/$itemId'
 import { Route as AppLibraryLibraryIdRouteImport } from './routes/_app/library/$libraryId'
@@ -29,6 +30,11 @@ const LoginRoute = LoginRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRequestsRoute = AppRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
   getParentRoute: () => AppRoute,
 } as any)
 const PlayItemIdRoute = PlayItemIdRouteImport.update({
@@ -55,6 +61,7 @@ const AppRequestTypeTmdbIdRoute = AppRequestTypeTmdbIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/requests': typeof AppRequestsRoute
   '/play/$itemId': typeof PlayItemIdRoute
   '/items/$itemId': typeof AppItemsItemIdRoute
   '/library/$libraryId': typeof AppLibraryLibraryIdRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/requests': typeof AppRequestsRoute
   '/play/$itemId': typeof PlayItemIdRoute
   '/': typeof AppIndexRoute
   '/items/$itemId': typeof AppItemsItemIdRoute
@@ -72,6 +80,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/requests': typeof AppRequestsRoute
   '/play/$itemId': typeof PlayItemIdRoute
   '/_app/': typeof AppIndexRoute
   '/_app/items/$itemId': typeof AppItemsItemIdRoute
@@ -83,6 +92,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/requests'
     | '/play/$itemId'
     | '/items/$itemId'
     | '/library/$libraryId'
@@ -90,6 +100,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/requests'
     | '/play/$itemId'
     | '/'
     | '/items/$itemId'
@@ -99,6 +110,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
+    | '/_app/requests'
     | '/play/$itemId'
     | '/_app/'
     | '/_app/items/$itemId'
@@ -135,6 +147,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/requests': {
+      id: '/_app/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof AppRequestsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/play/$itemId': {
       id: '/play/$itemId'
       path: '/play/$itemId'
@@ -167,6 +186,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppRequestsRoute: typeof AppRequestsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppItemsItemIdRoute: typeof AppItemsItemIdRoute
   AppLibraryLibraryIdRoute: typeof AppLibraryLibraryIdRoute
@@ -174,6 +194,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppRequestsRoute: AppRequestsRoute,
   AppIndexRoute: AppIndexRoute,
   AppItemsItemIdRoute: AppItemsItemIdRoute,
   AppLibraryLibraryIdRoute: AppLibraryLibraryIdRoute,

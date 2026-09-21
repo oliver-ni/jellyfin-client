@@ -1,4 +1,4 @@
-import type { Availability, MediaType } from './api'
+import type { Availability, MediaType, Request } from './api'
 
 export const MEDIA_TYPE_LABEL: Record<MediaType, string> = { movie: 'Film', tv: 'Series' }
 
@@ -11,4 +11,20 @@ export const AVAILABILITY_LABEL: Record<Availability, string | null> = {
   partial: 'Partly in library',
   available: 'In your library',
   blocklisted: 'Unavailable',
+}
+
+/** Where a request stands: its own status until approved, then the title's availability. */
+export function requestLabel(r: Request): string {
+  switch (r.status) {
+    case 'pending':
+      return 'Awaiting approval'
+    case 'declined':
+      return 'Declined'
+    case 'failed':
+      return 'Failed'
+    case 'completed':
+      return 'In your library'
+    case 'approved':
+      return AVAILABILITY_LABEL[r.availability] ?? 'On its way'
+  }
 }

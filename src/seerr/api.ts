@@ -75,14 +75,36 @@ export interface SeerrUser {
 }
 
 /** Seerr's `MediaRequestStatus` enum. */
-const REQUEST_STATUS: Record<number, 'pending' | 'approved' | 'declined' | 'failed' | 'completed'> =
-  {
-    1: 'pending',
-    2: 'approved',
-    3: 'declined',
-    4: 'failed',
-    5: 'completed',
-  }
+export type RequestStatus = 'pending' | 'approved' | 'declined' | 'failed' | 'completed'
+
+const REQUEST_STATUS: Record<number, RequestStatus> = {
+  1: 'pending',
+  2: 'approved',
+  3: 'declined',
+  4: 'failed',
+  5: 'completed',
+}
+
+/** One download the connected Radarr/Sonarr is working on for a request. */
+export interface Download {
+  size: number
+  sizeLeft: number
+  /** Downloader's estimate as `HH:MM:SS` (or `D.HH:MM:SS`); gone once it stops guessing. */
+  timeLeft: string | null
+}
+
+export interface Request {
+  id: number
+  type: MediaType
+  tmdbId: number
+  status: RequestStatus
+  /** Where the title as a whole stands, from the media record the request points at. */
+  availability: Availability
+  seasons: number[]
+  requestedAt: string
+  jellyfinId: string | null
+  downloads: Download[]
+}
 
 export class SeerrError extends Error {
   status: number
@@ -90,6 +112,27 @@ export class SeerrError extends Error {
     super(message)
     this.status = status
   }
+}
+
+interface RawDownload {
+  size: number
+  sizeLeft: number
+  timeLeft?: string
+  episode?: { seasonNumber: number }
+}
+
+interface RawRequest {
+  id: number
+  status: number
+  createdAt: string
+  type: string
+  media: {
+    tmdbId: number
+    status: number
+    jellyfinMediaId: string | null
+    downloadStatus?: RawDownload[]
+  }
+  seasons: { seasonNumber: number }[]
 }
 
 interface RawMediaInfo {
@@ -232,6 +275,29 @@ export async function tv(tmdbId: number): Promise<TvDetails> {
         availability: availability.get(s.seasonNumber) ?? 'unknown',
       })),
   }
+}
+
+/** A user's requests, newest first. Download progress only covers the seasons requested. */
+export async function requests(userId: number): Promise<Request[]> {
+  const page = await request<{ results: RawRequest[] }>(
+    `/request?take=100&sort=added&requestedBy=${userId}`,
+  )
+  return page.results.map((r) => {
+    const seasons = r.seasons.map((s) => s.seasonNumber).sort((a, b) => a - b)
+    return {
+      id: r.id,
+      type: r.type === 'tv' ? 'tv' : 'movie',
+      tmdbId: r.media.tmdbId,
+      status: REQUEST_STATUS[r.status] ?? 'pending',
+      availability: AVAILABILITY[r.media.status] ?? 'unknown',
+      seasons,
+      requestedAt: r.createdAt,
+      jellyfinId: r.media.jellyfinMediaId,
+      downloads: (r.media.downloadStatus ?? [])
+        .filter((d) => !d.episode || seasons.includes(d.episode.seasonNumber))
+        .map((d) => ({ size: d.size, sizeLeft: d.sizeLeft, timeLeft: d.timeLeft ?? null })),
+    }
+  })
 }
 
 export function requestMovie(tmdbId: number) {

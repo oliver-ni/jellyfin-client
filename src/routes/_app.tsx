@@ -106,6 +106,7 @@ function TopNav({ session }: { session: Session }) {
             {lib.Name}
           </NavLink>
         ))}
+        {seerr === 'signedIn' && <NavLink to="/requests">Requests</NavLink>}
       </nav>
       <div {...stylex.props(styles.right)}>
         <AriaButton
@@ -198,15 +199,15 @@ function TopNav({ session }: { session: Session }) {
 }
 
 type NavLinkProps = { children: ReactNode } & (
-  | { to: '/'; libraryId?: undefined }
+  | { to: '/' | '/requests'; libraryId?: undefined }
   | { to: '/library/$libraryId'; libraryId: string }
 )
 
 function NavLink({ children, ...target }: NavLinkProps) {
   const link =
-    target.to === '/'
-      ? ({ to: '/', activeOptions: { exact: true } } as const)
-      : ({ to: '/library/$libraryId', params: { libraryId: target.libraryId } } as const)
+    target.to === '/library/$libraryId'
+      ? ({ to: target.to, params: { libraryId: target.libraryId } } as const)
+      : ({ to: target.to, activeOptions: { exact: true } } as const)
   return (
     <Link {...link} {...stylex.props(focus.ring, styles.link)}>
       {({ isActive }) => (
