@@ -64,7 +64,9 @@ function EpisodeRow({ episode, current }: { episode: BaseItemDto; current: boole
       >
         <BlurImage src={still?.url} blurhash={still?.blurhash} alt="" style={styles.image} />
         <span {...stylex.props(styles.stillOverlay)}>
-          <Play size={18} fill="currentColor" />
+          <span {...stylex.props(styles.playBadge)}>
+            <Play size={18} fill="currentColor" />
+          </span>
         </span>
         {played && !progress && (
           <span {...stylex.props(styles.playedBadge)}>
@@ -158,14 +160,15 @@ const styles = stylex.create({
     },
     transitionProperty: 'opacity',
     transitionDuration: motion.base,
-    '::before': {
-      content: '""',
-      position: 'absolute',
-      width: 40,
-      height: 40,
-      borderRadius: radii.full,
-      backgroundColor: colors.onMediaBg,
-    },
+  },
+  playBadge: {
+    display: 'grid',
+    placeItems: 'center',
+    width: 40,
+    height: 40,
+    paddingLeft: 3,
+    borderRadius: radii.full,
+    backgroundColor: colors.onMediaBg,
   },
   playedBadge: {
     position: 'absolute',
