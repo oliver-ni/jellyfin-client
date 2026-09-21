@@ -1,4 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
+import { useMutation } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Dialog, Form, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button } from '@/components/Button'
@@ -17,31 +18,18 @@ export interface ConnectDialogProps {
 /** Signs this browser in to Seerr as the current Jellyfin user; only the password is asked. */
 export function ConnectDialog({ userName, isOpen, onOpenChange }: ConnectDialogProps) {
   const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
+  const connect = useMutation({
+    mutationFn: () => signIn(userName, password),
+    onSuccess: () => close(),
+  })
   const close = () => {
     onOpenChange(false)
     setPassword('')
-    setError(null)
+    connect.reset()
   }
-
-  const submit = async (e: FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      await signIn(userName, password)
-      close()
-    } catch (err) {
-      setError(
-        err instanceof SeerrError && err.status === 401
-          ? 'Seerr didn’t accept that password'
-          : 'Couldn’t reach Seerr',
-      )
-    } finally {
-      setBusy(false)
-    }
+    connect.mutate()
   }
 
   return (
@@ -64,23 +52,24 @@ export function ConnectDialog({ userName, isOpen, onOpenChange }: ConnectDialogP
             <TextField
               label="Password"
               type="password"
-              name="password"
               value={password}
               onChange={setPassword}
               isRequired
               autoFocus
             />
-            {error && (
+            {connect.error && (
               <p role="alert" {...stylex.props(styles.error)}>
-                {error}
+                {connect.error instanceof SeerrError && connect.error.status === 401
+                  ? 'Seerr didn’t accept that password'
+                  : 'Couldn’t reach Seerr'}
               </p>
             )}
             <div {...stylex.props(styles.actions)}>
               <Button variant="ghost" onPress={close}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" isPending={busy}>
-                {busy ? 'Connecting…' : 'Connect'}
+              <Button type="submit" variant="primary" isPending={connect.isPending}>
+                {connect.isPending ? 'Connecting…' : 'Connect'}
               </Button>
             </div>
           </Form>

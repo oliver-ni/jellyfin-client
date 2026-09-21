@@ -17,6 +17,7 @@ import { plainText } from '@/lib/format'
 import { fadeUp, springs, stagger } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { getSession, useRequiredSession } from '@/lib/session'
+import { detail } from '@/theme/detail'
 import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
@@ -77,7 +78,7 @@ function ItemPage() {
 
   if (item.isError) {
     return (
-      <div {...stylex.props(styles.state)}>
+      <div {...stylex.props(detail.state)}>
         <Notice
           title="Couldn’t load this title"
           text="It may have been removed from the server, or the link is wrong."
@@ -87,7 +88,7 @@ function ItemPage() {
       </div>
     )
   }
-  if (!item.data) return <div {...stylex.props(styles.heroSkeleton)} />
+  if (!item.data) return <div {...stylex.props(detail.heroSkeleton)} />
 
   return <ItemDetail key={itemId} item={item.data} userId={userId} />
 }
@@ -100,17 +101,17 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
   const sidebar = type === 'Series'
 
   return (
-    <article {...stylex.props(styles.page)}>
+    <article {...stylex.props(detail.page)}>
       <ItemHero item={item} userId={userId} />
 
       <m.div
         initial="hidden"
         animate="show"
         variants={stagger(0.03, 0.1)}
-        {...stylex.props(styles.body, sidebar && styles.bodySplit)}
+        {...stylex.props(detail.body, styles.body, sidebar && styles.bodySplit)}
       >
         <m.div variants={fadeUp} {...stylex.props(styles.main)}>
-          {overview && <p {...stylex.props(styles.overview)}>{overview}</p>}
+          {overview && <p {...stylex.props(detail.overview)}>{overview}</p>}
           {sidebar && <SeriesEpisodes series={item} userId={userId} />}
         </m.div>
         <m.aside variants={fadeUp} {...stylex.props(sidebar && styles.aside)}>
@@ -253,26 +254,12 @@ function Episodes({
 }
 
 const styles = stylex.create({
-  page: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xxl,
-    paddingBottom: space.xxxl,
-  },
-  heroSkeleton: {
-    minHeight: 'clamp(460px, 72vh, 820px)',
-    backgroundImage: `linear-gradient(to top, ${colors.bg}, ${colors.skeleton})`,
-  },
   body: {
     display: 'grid',
     gridTemplateColumns: 'minmax(0, 1fr)',
     columnGap: space.xxxl,
     rowGap: space.xl,
     alignItems: 'start',
-    paddingInline: sizes.pageGutter,
-    maxWidth: sizes.maxContent,
-    marginInline: 'auto',
-    width: '100%',
   },
   bodySplit: {
     gridTemplateColumns: {
@@ -292,13 +279,6 @@ const styles = stylex.create({
       '@media (max-width: 1024px)': 'static',
     },
     top: `calc(${sizes.navHeight} + ${space.lg})`,
-  },
-  overview: {
-    fontSize: 16,
-    lineHeight: 1.6,
-    color: colors.textMuted,
-    maxWidth: 760,
-    whiteSpace: 'pre-line',
   },
   section: {
     display: 'flex',
@@ -371,8 +351,5 @@ const styles = stylex.create({
     maxWidth: sizes.maxContent,
     marginInline: 'auto',
     width: '100%',
-  },
-  state: {
-    paddingTop: sizes.navHeight,
   },
 })

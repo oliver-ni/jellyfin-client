@@ -14,9 +14,10 @@ import * as seerr from '@/seerr/api'
 import { ConnectDialog } from '@/seerr/ConnectDialog'
 import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL } from '@/seerr/labels'
 import { invalidateTitle, seerrQueries, useSeerr } from '@/seerr/queries'
+import { detail } from '@/theme/detail'
 import { focus } from '@/theme/focus'
 import { playPill } from '@/theme/media'
-import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
+import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 /** A film or series that Seerr knows about, whether or not the library has it. */
 export const Route = createFileRoute('/_app/request/$type/$tmdbId')({
@@ -28,6 +29,7 @@ export const Route = createFileRoute('/_app/request/$type/$tmdbId')({
     },
     stringify: ({ type, tmdbId }) => ({ type, tmdbId: String(tmdbId) }),
   },
+  // Lands on the hero rather than a skeleton when this browser already holds a Seerr session.
   loader: ({ context: { queryClient }, params }) =>
     queryClient.getQueryData(seerrQueries.me().queryKey)
       ? queryClient
@@ -42,24 +44,24 @@ function RequestPage() {
   const state = useSeerr()
   const title = useQuery({ ...seerrQueries.title(type, tmdbId), enabled: state === 'signedIn' })
 
-  if (state === undefined) return <div {...stylex.props(styles.heroSkeleton)} />
+  if (state === undefined) return <div {...stylex.props(detail.heroSkeleton)} />
   if (state !== 'signedIn') return <Gate state={state} />
   if (title.isError) {
     return (
-      <div {...stylex.props(styles.state)}>
+      <div {...stylex.props(detail.state)}>
         <Notice title="Couldn’t load this title" text="Seerr may be signed out or offline.">
           <Button onPress={() => void title.refetch()}>Try again</Button>
         </Notice>
       </div>
     )
   }
-  if (!title.data) return <div {...stylex.props(styles.heroSkeleton)} />
+  if (!title.data) return <div {...stylex.props(detail.heroSkeleton)} />
   const t = title.data
   const open =
     t.type === 'movie' ? seerr.requestable(t.availability) : seerr.openSeasons(t).length > 0
 
   return (
-    <article {...stylex.props(styles.page)}>
+    <article {...stylex.props(detail.page)}>
       <DetailHero
         backdrop={t.backdrop ? { url: t.backdrop } : null}
         tile={t.poster ? { url: t.poster } : null}
@@ -93,10 +95,10 @@ function RequestPage() {
         initial="hidden"
         animate="show"
         variants={stagger(0.03, 0.1)}
-        {...stylex.props(styles.body)}
+        {...stylex.props(detail.body, styles.body)}
       >
         {t.overview && (
-          <m.p variants={fadeUp} {...stylex.props(styles.overview)}>
+          <m.p variants={fadeUp} {...stylex.props(detail.overview)}>
             {t.overview}
           </m.p>
         )}
@@ -115,7 +117,7 @@ function Gate({ state }: { state: 'unavailable' | 'signedOut' }) {
   const { userName } = useRequiredSession()
   const [connectOpen, setConnectOpen] = useState(false)
   return (
-    <div {...stylex.props(styles.state)}>
+    <div {...stylex.props(detail.state)}>
       {state === 'unavailable' ? (
         <Notice
           title="Seerr isn’t available"
@@ -260,34 +262,10 @@ function SeasonPicker({ title }: { title: seerr.TvDetails }) {
 }
 
 const styles = stylex.create({
-  page: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xxl,
-    paddingBottom: space.xxxl,
-  },
-  heroSkeleton: {
-    minHeight: 'clamp(460px, 72vh, 820px)',
-    backgroundImage: `linear-gradient(to top, ${colors.bg}, ${colors.skeleton})`,
-  },
-  state: {
-    paddingTop: sizes.navHeight,
-  },
   body: {
     display: 'flex',
     flexDirection: 'column',
     gap: space.xxl,
-    paddingInline: sizes.pageGutter,
-    maxWidth: sizes.maxContent,
-    marginInline: 'auto',
-    width: '100%',
-  },
-  overview: {
-    fontSize: 16,
-    lineHeight: 1.6,
-    color: colors.textMuted,
-    maxWidth: 760,
-    whiteSpace: 'pre-line',
   },
   requestButton: {
     height: 46,

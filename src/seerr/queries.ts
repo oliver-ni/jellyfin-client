@@ -34,10 +34,8 @@ export const seerrQueries = {
     }),
 }
 
-export type SeerrState = 'unavailable' | 'signedOut' | 'signedIn'
-
 /** Whether Seerr is reachable and this browser holds a session for it; `undefined` while probing. */
-export function useSeerr(): SeerrState | undefined {
+export function useSeerr(): 'unavailable' | 'signedOut' | 'signedIn' | undefined {
   const configured = useQuery(seerrQueries.configured())
   const me = useQuery({ ...seerrQueries.me(), enabled: configured.data === true })
   if (configured.isPending) return undefined
@@ -46,22 +44,13 @@ export function useSeerr(): SeerrState | undefined {
   return me.data ? 'signedIn' : 'signedOut'
 }
 
-/**
- * Rejects with a `SeerrError` when Seerr is missing, unreachable or refuses the credentials.
- * The password is only ever sent once a Seerr has answered `/status`.
- */
-export async function signIn(username: string, password: string): Promise<void> {
-  if (!(await queryClient.fetchQuery(seerrQueries.configured()))) {
-    throw new seerr.SeerrError(0, 'Seerr is not configured')
-  }
-  const user = await seerr.signIn(username, password)
-  queryClient.setQueryData(seerrQueries.me().queryKey, user)
+/** Rejects with a `SeerrError` when Seerr is missing, unreachable or refuses the credentials. */
+export async function signIn(username: string, password: string) {
+  queryClient.setQueryData(seerrQueries.me().queryKey, await seerr.signIn(username, password))
 }
 
 export async function signOut() {
-  if (queryClient.getQueryData(seerrQueries.me().queryKey)) {
-    await seerr.signOut().catch(() => null)
-  }
+  await seerr.signOut().catch(() => null)
   queryClient.setQueryData(seerrQueries.me().queryKey, null)
 }
 

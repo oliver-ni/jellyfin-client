@@ -50,7 +50,7 @@ export interface Title {
   jellyfinId: string | null
 }
 
-export interface Season {
+interface Season {
   number: number
   name: string
   episodeCount: number
@@ -72,24 +72,17 @@ export const openSeasons = (tv: TvDetails) => tv.seasons.filter((s) => requestab
 
 export interface SeerrUser {
   id: number
-  displayName: string
 }
 
 /** Seerr's `MediaRequestStatus` enum. */
-export type RequestStatus = 'pending' | 'approved' | 'declined' | 'failed' | 'completed'
-
-const REQUEST_STATUS: Record<number, RequestStatus> = {
-  1: 'pending',
-  2: 'approved',
-  3: 'declined',
-  4: 'failed',
-  5: 'completed',
-}
-
-export interface MediaRequest {
-  id: number
-  status: RequestStatus
-}
+const REQUEST_STATUS: Record<number, 'pending' | 'approved' | 'declined' | 'failed' | 'completed'> =
+  {
+    1: 'pending',
+    2: 'approved',
+    3: 'declined',
+    4: 'failed',
+    5: 'completed',
+  }
 
 export class SeerrError extends Error {
   status: number
@@ -99,17 +92,11 @@ export class SeerrError extends Error {
   }
 }
 
-interface RawRequest {
-  id: number
-  status: number
-  seasons?: { seasonNumber: number }[]
-}
-
 interface RawMediaInfo {
   status?: number
   jellyfinMediaId?: string | null
   seasons?: { seasonNumber: number; status: number }[]
-  requests?: RawRequest[]
+  requests?: { status: number; seasons?: { seasonNumber: number }[] }[]
 }
 
 interface RawTitle {
@@ -175,7 +162,7 @@ function toTitle(raw: RawTitle): Title {
 
 /** `true` when the proxy reaches a Seerr. Needs no session. */
 export async function isConfigured(): Promise<boolean> {
-  return request<{ version: string }>('/status').then(
+  return request('/status').then(
     () => true,
     () => false,
   )
@@ -194,7 +181,7 @@ export function signIn(username: string, password: string): Promise<SeerrUser> {
   return request<SeerrUser>('/auth/jellyfin', json({ username, password }))
 }
 
-export function signOut(): Promise<unknown> {
+export function signOut() {
   return request('/auth/logout', { method: 'POST' })
 }
 
@@ -247,19 +234,10 @@ export async function tv(tmdbId: number): Promise<TvDetails> {
   }
 }
 
-const toRequest = (raw: RawRequest): MediaRequest => ({
-  id: raw.id,
-  status: REQUEST_STATUS[raw.status] ?? 'pending',
-})
-
-export async function requestMovie(tmdbId: number): Promise<MediaRequest> {
-  return toRequest(
-    await request<RawRequest>('/request', json({ mediaType: 'movie', mediaId: tmdbId })),
-  )
+export function requestMovie(tmdbId: number) {
+  return request('/request', json({ mediaType: 'movie', mediaId: tmdbId }))
 }
 
-export async function requestSeasons(tmdbId: number, seasons: number[]): Promise<MediaRequest> {
-  return toRequest(
-    await request<RawRequest>('/request', json({ mediaType: 'tv', mediaId: tmdbId, seasons })),
-  )
+export function requestSeasons(tmdbId: number, seasons: number[]) {
+  return request('/request', json({ mediaType: 'tv', mediaId: tmdbId, seasons }))
 }

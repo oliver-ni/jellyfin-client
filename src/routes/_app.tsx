@@ -87,13 +87,11 @@ function TopNav({ session }: { session: Session }) {
   return (
     <header {...stylex.props(styles.nav)}>
       <SearchPalette userId={session.userId} isOpen={searchOpen} onOpenChange={setSearchOpen} />
-      {seerr !== 'unavailable' && (
-        <ConnectDialog
-          userName={session.userName}
-          isOpen={connectOpen}
-          onOpenChange={setConnectOpen}
-        />
-      )}
+      <ConnectDialog
+        userName={session.userName}
+        isOpen={connectOpen}
+        onOpenChange={setConnectOpen}
+      />
       <Link
         to="/"
         aria-label={session.serverName}
