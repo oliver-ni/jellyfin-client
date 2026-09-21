@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { createLink, Link } from '@tanstack/react-router'
 import { Check, Heart, Play } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
-import { useRef, type Ref } from 'react'
+import { useEffect, useRef, type Ref } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useMorphTarget } from '@/hooks/useMorphTarget'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
@@ -88,9 +88,24 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
     .join('  ·  ')
   const stillRef = useRef<HTMLAnchorElement>(null)
   const morph = useMorphTarget(id, 'landscape', stillRef)
+  const rowRef = useRef<HTMLLIElement>(null)
+
+  useEffect(() => {
+    const row = rowRef.current
+    if (!expanded || !row) return
+    const frame = requestAnimationFrame(() => {
+      const { top, bottom } = row.getBoundingClientRect()
+      const viewport = window.innerHeight
+      if (top >= 0 && bottom <= viewport) return
+      const far = Math.abs((top + bottom) / 2 - viewport / 2) > viewport
+      row.scrollIntoView({ block: 'center', behavior: far ? 'instant' : 'smooth' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [expanded])
 
   return (
     <m.li
+      ref={rowRef}
       variants={fadeUp}
       initial={morph.morphing ? false : undefined}
       {...stylex.props(styles.row, expanded && styles.rowExpanded, stylex.defaultMarker())}

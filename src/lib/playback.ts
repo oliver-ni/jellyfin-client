@@ -27,7 +27,7 @@ import type {
   Thumbnail,
 } from '@/player'
 import { buildDeviceProfile } from './device-profile'
-import { codecLabel, episodeCode, languageName, resolutionLabel } from './format'
+import { audioStreamLabel, codecLabel, episodeCode, languageName, resolutionLabel } from './format'
 import { CARD_FIELDS } from './home-queries'
 import { landscapeImage } from './images'
 import { getDeviceId, getSession } from './session'
@@ -205,13 +205,20 @@ function deliveryLabel(method: PlayMethod, ms: MediaSourceInfo): string {
   return parts.filter((p): p is string => Boolean(p)).join(' · ')
 }
 
+/** "Language · codec · channels", led by the stream title only when it says something more. */
 function trackLabel(s: MediaStream): string {
-  const lang = languageName(s.Language)
-  const parts = [s.Title?.trim() || lang || 'Unknown', codecLabel(s.Codec)]
-  if (s.Type === 'Audio' && s.ChannelLayout) parts.push(s.ChannelLayout)
-  if (s.Title && lang && !s.Title.toLowerCase().includes(lang.toLowerCase()))
-    parts.splice(1, 0, lang)
-  return parts.filter((p): p is string => Boolean(p)).join(' · ')
+  const tech =
+    s.Type === 'Audio'
+      ? audioStreamLabel(s)
+      : [languageName(s.Language), codecLabel(s.Codec)].filter(Boolean).join(' · ')
+  const title = s.Title?.trim()
+  if (!title) return tech || 'Unknown'
+  const known = tech.toLowerCase()
+  const novel = title
+    .toLowerCase()
+    .split(/[^a-z0-9.]+/)
+    .some((w) => w && !known.includes(w))
+  return novel && tech ? `${title} · ${tech}` : novel ? title : tech
 }
 
 function toAudioTrack(s: MediaStream): AudioTrack {

@@ -43,11 +43,11 @@ function useDebounced(value: string, ms: number) {
   return value === '' ? '' : debounced
 }
 
-/** Titles that start with the query first, then whole shows/films before single episodes. */
+/** Whole shows/films before single episodes, then titles that start with the query. */
 function rank(items: readonly BaseItemDto[], query: string): BaseItemDto[] {
   const q = query.toLowerCase()
   const score = (item: BaseItemDto) =>
-    (item.Name?.toLowerCase().startsWith(q) ? 0 : 2) + (item.Type === 'Episode' ? 1 : 0)
+    (item.Type === 'Episode' ? 2 : 0) + (item.Name?.toLowerCase().startsWith(q) ? 0 : 1)
   return [...items].sort((a, b) => score(a) - score(b))
 }
 
