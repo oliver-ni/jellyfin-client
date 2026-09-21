@@ -26,7 +26,8 @@ function seriesYears(item: BaseItemDto): string | undefined {
 function RequestMissing({ tmdbId }: { tmdbId: number }) {
   const seerr = useSeerr()
   const title = useQuery({ ...seerrQueries.title('tv', tmdbId), enabled: seerr === 'signedIn' })
-  if (!title.data || title.data.type !== 'tv' || openSeasons(title.data).length === 0) return null
+  const tv = seerr === 'signedIn' && title.data?.type === 'tv' ? title.data : null
+  if (!tv || openSeasons(tv).length === 0) return null
   return (
     <Link
       to="/request/$type/$tmdbId"

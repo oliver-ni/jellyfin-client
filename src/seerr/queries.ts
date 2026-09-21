@@ -36,11 +36,13 @@ export const seerrQueries = {
 
 export type SeerrState = 'unavailable' | 'signedOut' | 'signedIn'
 
-/** Whether Seerr is reachable and this browser holds a session for it. */
-export function useSeerr(): SeerrState {
+/** Whether Seerr is reachable and this browser holds a session for it; `undefined` while probing. */
+export function useSeerr(): SeerrState | undefined {
   const configured = useQuery(seerrQueries.configured())
   const me = useQuery({ ...seerrQueries.me(), enabled: configured.data === true })
+  if (configured.isPending) return undefined
   if (!configured.data) return 'unavailable'
+  if (me.isPending) return undefined
   return me.data ? 'signedIn' : 'signedOut'
 }
 
@@ -61,10 +63,6 @@ export async function signOut() {
     await seerr.signOut().catch(() => null)
   }
   queryClient.setQueryData(seerrQueries.me().queryKey, null)
-  queryClient.removeQueries({
-    queryKey: ['seerr'],
-    predicate: (q) => q.queryKey[1] !== 'configured' && q.queryKey[1] !== 'me',
-  })
 }
 
 /** Refetches a title after a request so its availability moves to `pending`/`processing`. */

@@ -9,9 +9,11 @@ import { Button } from '@/components/Button'
 import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
 import { fadeUp, stagger } from '@/lib/motion'
+import { useRequiredSession } from '@/lib/session'
 import * as seerr from '@/seerr/api'
+import { ConnectDialog } from '@/seerr/ConnectDialog'
 import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL } from '@/seerr/labels'
-import { invalidateTitle, seerrQueries } from '@/seerr/queries'
+import { invalidateTitle, seerrQueries, useSeerr } from '@/seerr/queries'
 import { focus } from '@/theme/focus'
 import { playPill } from '@/theme/media'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
@@ -27,14 +29,21 @@ export const Route = createFileRoute('/_app/request/$type/$tmdbId')({
     stringify: ({ type, tmdbId }) => ({ type, tmdbId: String(tmdbId) }),
   },
   loader: ({ context: { queryClient }, params }) =>
-    queryClient.ensureQueryData(seerrQueries.title(params.type, params.tmdbId)).catch(() => null),
+    queryClient.getQueryData(seerrQueries.me().queryKey)
+      ? queryClient
+          .ensureQueryData(seerrQueries.title(params.type, params.tmdbId))
+          .catch(() => null)
+      : null,
   component: RequestPage,
 })
 
 function RequestPage() {
   const { type, tmdbId } = Route.useParams()
-  const title = useQuery(seerrQueries.title(type, tmdbId))
+  const state = useSeerr()
+  const title = useQuery({ ...seerrQueries.title(type, tmdbId), enabled: state === 'signedIn' })
 
+  if (state === undefined) return <div {...stylex.props(styles.heroSkeleton)} />
+  if (state !== 'signedIn') return <Gate state={state} />
   if (title.isError) {
     return (
       <div {...stylex.props(styles.state)}>
@@ -98,6 +107,32 @@ function RequestPage() {
         )}
       </m.div>
     </article>
+  )
+}
+
+/** What stands in for a title while this browser has no Seerr session to look it up with. */
+function Gate({ state }: { state: 'unavailable' | 'signedOut' }) {
+  const { userName } = useRequiredSession()
+  const [connectOpen, setConnectOpen] = useState(false)
+  return (
+    <div {...stylex.props(styles.state)}>
+      {state === 'unavailable' ? (
+        <Notice
+          title="Seerr isn’t available"
+          text="Requests need a Seerr server connected to this client."
+        />
+      ) : (
+        <Notice
+          title="Connect Seerr to request titles"
+          text="Sign in with your Jellyfin password to see whether this title is available and request it."
+        >
+          <Button variant="primary" onPress={() => setConnectOpen(true)}>
+            Connect Seerr
+          </Button>
+          <ConnectDialog userName={userName} isOpen={connectOpen} onOpenChange={setConnectOpen} />
+        </Notice>
+      )}
+    </div>
   )
 }
 

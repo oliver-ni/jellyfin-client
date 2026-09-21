@@ -29,6 +29,7 @@ export function ConnectDialog({ userName, isOpen, onOpenChange }: ConnectDialogP
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)
+    setError(null)
     try {
       await signIn(userName, password)
       close()
@@ -67,10 +68,13 @@ export function ConnectDialog({ userName, isOpen, onOpenChange }: ConnectDialogP
               value={password}
               onChange={setPassword}
               isRequired
-              isInvalid={error !== null}
-              errorMessage={error ?? undefined}
               autoFocus
             />
+            {error && (
+              <p role="alert" {...stylex.props(styles.error)}>
+                {error}
+              </p>
+            )}
             <div {...stylex.props(styles.actions)}>
               <Button variant="ghost" onPress={close}>
                 Cancel
@@ -113,6 +117,11 @@ const styles = stylex.create({
   strong: {
     fontWeight: 600,
     color: colors.text,
+  },
+  error: {
+    fontSize: 13,
+    color: colors.danger,
+    marginTop: `calc(-1 * ${space.sm})`,
   },
   actions: {
     display: 'flex',
