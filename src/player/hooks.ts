@@ -13,7 +13,7 @@ export function useControlsVisibility(store: PlayerStore) {
   const api = useMemo(() => {
     const pinned = () => {
       const s = store.getState()
-      return s.paused || s.menu !== null || s.scrubbing || s.hoveringControls
+      return s.paused || s.waiting || s.menu !== null || s.scrubbing || s.hoveringControls
     }
     const schedule = () => {
       window.clearTimeout(timer.current)
@@ -46,6 +46,7 @@ export function useControlsVisibility(store: PlayerStore) {
       store.subscribe((s, prev) => {
         if (
           s.paused !== prev.paused ||
+          s.waiting !== prev.waiting ||
           s.menu !== prev.menu ||
           s.scrubbing !== prev.scrubbing ||
           s.hoveringControls !== prev.hoveringControls

@@ -3,6 +3,7 @@ import {
   ArrowClockwise,
   ArrowCounterClockwise,
   Pause,
+  PictureInPicture,
   Play,
   SkipForward,
   SpeakerHigh,
@@ -146,6 +147,35 @@ export function EndedOverlay({ next, onNext, onBack }: EndedOverlayProps) {
   )
 }
 
+/** Covers the browser's own "playing picture-in-picture" placeholder with ours. */
+export function PipOverlay() {
+  const pip = usePlayerState((s) => s.pip)
+  return (
+    <AnimatePresence>
+      {pip && (
+        <m.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.14 } }}
+          transition={spring.gentle}
+          {...stylex.props(styles.sheet, styles.pipSheet)}
+        >
+          <div {...stylex.props(styles.card)}>
+            <PictureInPicture size={28} />
+            <p {...stylex.props(styles.cardText)}>Playing in picture in picture</p>
+            <Button
+              {...stylex.props(styles.bigButton)}
+              onPress={() => void document.exitPictureInPicture()}
+            >
+              Bring back
+            </Button>
+          </div>
+        </m.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 export function ErrorOverlay({ onBack }: { onBack?: () => void }) {
   const error = usePlayerState((s) => (s.status === 'error' ? s.error : null))
   return (
@@ -158,9 +188,9 @@ export function ErrorOverlay({ onBack }: { onBack?: () => void }) {
           transition={spring.gentle}
           {...stylex.props(styles.sheet)}
         >
-          <div {...stylex.props(styles.errorCard)}>
+          <div {...stylex.props(styles.card)}>
             <Warning size={28} />
-            <p {...stylex.props(styles.errorText)}>{error}</p>
+            <p {...stylex.props(styles.cardText)}>{error}</p>
             {onBack && (
               <Button {...stylex.props(styles.bigButton)} onPress={onBack}>
                 Back
@@ -221,6 +251,10 @@ const styles = stylex.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     zIndex: 3,
   },
+  pipSheet: {
+    backgroundColor: '#000',
+    zIndex: 0,
+  },
   endedActions: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -264,7 +298,7 @@ const styles = stylex.create({
     fontWeight: 500,
     opacity: 0.7,
   },
-  errorCard: {
+  card: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -274,7 +308,7 @@ const styles = stylex.create({
     textAlign: 'center',
     color: player.text,
   },
-  errorText: {
+  cardText: {
     margin: 0,
     fontSize: 15,
     lineHeight: 1.5,

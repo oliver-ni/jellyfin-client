@@ -3,7 +3,7 @@ import { useMotionValue } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PlayerContext, type PlayerContextValue } from './context'
 import { Controls } from './controls/Controls'
-import { CenterFlash, EndedOverlay, ErrorOverlay, Spinner } from './controls/Overlays'
+import { CenterFlash, EndedOverlay, ErrorOverlay, PipOverlay, Spinner } from './controls/Overlays'
 import { SegmentAction } from './controls/SegmentAction'
 import { TopBar } from './controls/TopBar'
 import { PlayerEngine } from './engine'
@@ -145,6 +145,7 @@ export function Player({
             {...stylex.props(styles.video)}
           />
           <Subtitles />
+          <PipOverlay />
           <CenterFlash />
           <Spinner />
           <TopBar title={title} subtitle={subtitle} onBack={onBack} />

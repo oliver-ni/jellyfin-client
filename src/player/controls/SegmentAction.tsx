@@ -168,6 +168,12 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: 14,
     maxWidth: 'calc(100vw - 48px)',
+    paddingBlock: 8,
+    paddingInlineStart: 16,
+    paddingInlineEnd: 8,
+    borderRadius: player.radiusMd,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backdropFilter: 'blur(12px)',
   },
   nextText: {
     display: 'flex',
@@ -176,7 +182,6 @@ const styles = stylex.create({
     gap: 1,
     minWidth: 0,
     textAlign: 'right',
-    textShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)',
   },
   nextKicker: {
     fontSize: 12,
