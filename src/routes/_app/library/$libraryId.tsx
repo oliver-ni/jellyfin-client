@@ -101,62 +101,70 @@ function LibraryPage() {
         </span>
       </header>
 
-      <div {...stylex.props(styles.toolbar)}>
-        <Select
-          label="Sort"
-          aria-label="Sort by"
-          value={sort.key}
-          options={SORT_CHOICES}
-          onChange={(key) => update({ sort: key, order: undefined })}
-        />
-        {sort.key !== 'random' && (
-          <button
-            type="button"
-            aria-label={
-              order === 'asc'
-                ? 'Ascending, click for descending'
-                : 'Descending, click for ascending'
-            }
-            onClick={() => update({ order: order === 'asc' ? 'desc' : 'asc' })}
-            {...stylex.props(focus.ring, glass.surface, styles.orderButton)}
-          >
-            {order === 'asc' ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
-          </button>
-        )}
-        <span {...stylex.props(styles.gap)} />
-        <FilterMenu
-          label="Genre"
-          options={genres}
-          selected={search.genre ?? []}
-          onChange={(genre) => update({ genre })}
-        />
-        <FilterMenu
-          label="Year"
-          options={years}
-          selected={search.year ?? []}
-          onChange={(year) => update({ year })}
-        />
-        <FilterToggle selected={!!search.unplayed} onChange={(v) => update({ unplayed: v })}>
-          Unplayed
-        </FilterToggle>
-        <FilterToggle selected={!!search.favorite} onChange={(v) => update({ favorite: v })}>
-          Favorites
-        </FilterToggle>
-        {filterCount > 0 && (
-          <button type="button" onClick={clearFilters} {...stylex.props(focus.ring, styles.clear)}>
-            Clear filters
-          </button>
-        )}
-      </div>
+      {!library.isError && (
+        <div {...stylex.props(styles.toolbar)}>
+          <Select
+            label="Sort"
+            aria-label="Sort by"
+            value={sort.key}
+            options={SORT_CHOICES}
+            onChange={(key) => update({ sort: key, order: undefined })}
+          />
+          {sort.key !== 'random' && (
+            <button
+              type="button"
+              aria-label={
+                order === 'asc'
+                  ? 'Ascending, click for descending'
+                  : 'Descending, click for ascending'
+              }
+              onClick={() => update({ order: order === 'asc' ? 'desc' : 'asc' })}
+              {...stylex.props(focus.ring, glass.surface, styles.orderButton)}
+            >
+              {order === 'asc' ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
+            </button>
+          )}
+          <span {...stylex.props(styles.gap)} />
+          <FilterMenu
+            label="Genre"
+            options={genres}
+            selected={search.genre ?? []}
+            onChange={(genre) => update({ genre })}
+          />
+          <FilterMenu
+            label="Year"
+            options={years}
+            selected={search.year ?? []}
+            onChange={(year) => update({ year })}
+          />
+          <FilterToggle selected={!!search.unplayed} onChange={(v) => update({ unplayed: v })}>
+            Unplayed
+          </FilterToggle>
+          <FilterToggle selected={!!search.favorite} onChange={(v) => update({ favorite: v })}>
+            Favorites
+          </FilterToggle>
+          {filterCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              {...stylex.props(focus.ring, styles.clear)}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
 
       <AnimatePresence mode="popLayout" initial={false}>
-        {items.isError ? (
+        {library.isError || items.isError ? (
           <Notice
             key="error"
             title="Couldn’t load this library"
             text="Check that the server is reachable, then try again."
           >
-            <Button onPress={() => void items.refetch()}>Try again</Button>
+            <Button onPress={() => void (library.isError ? library : items).refetch()}>
+              Try again
+            </Button>
           </Notice>
         ) : items.isSuccess && total === 0 ? (
           <Notice
