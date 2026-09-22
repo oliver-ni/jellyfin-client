@@ -2,6 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import type { BaseItemDto } from '@/api/gen/types.gen'
+import { titleHead } from '@/brand'
 import { HeroCarousel, type HeroSlide } from '@/components/HeroCarousel'
 import { ItemCard } from '@/components/ItemCard'
 import { Rail, type RailProps } from '@/components/Rail'
@@ -15,6 +16,7 @@ const POSTER_W = 150
 const LANDSCAPE_W = 280
 
 export const Route = createFileRoute('/_app/')({
+  head: () => titleHead('Home'),
   loader: async ({ context: { queryClient } }) => {
     const session = getSession()
     if (!session) return

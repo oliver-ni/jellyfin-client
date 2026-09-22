@@ -4,7 +4,6 @@ import { HeadContent, Link, Outlet, createRootRouteWithContext } from '@tanstack
 import { MotionConfig } from 'motion/react'
 import { useLayoutEffect } from 'react'
 import { Notice } from '@/components/Notice'
-import { titleHead } from '@/brand'
 import { useTheme } from '@/lib/theme'
 import { focus } from '@/theme/focus'
 import { colors, fonts } from '@/theme/tokens.stylex'
@@ -14,7 +13,6 @@ export interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  head: () => titleHead(),
   component: Root,
   notFoundComponent: NotFound,
 })

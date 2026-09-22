@@ -1,10 +1,10 @@
 import * as stylex from '@stylexjs/stylex'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { ArrowRight } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { Button as AriaButton, Form } from 'react-aria-components'
+import { Form } from 'react-aria-components'
+import { titleHead } from '@/brand'
 import { BrandMark } from '@/components/BrandMark'
 import { Button } from '@/components/Button'
 import { TextField } from '@/components/TextField'
@@ -12,10 +12,7 @@ import { AuthError, login, probeServer, type Server } from '@/lib/auth'
 import { fadeUp, stagger } from '@/lib/motion'
 import { getSession, normalizeServerUrl } from '@/lib/session'
 import * as seerr from '@/seerr/queries'
-import { titleHead } from '@/brand'
-import { focus } from '@/theme/focus'
 import { glass } from '@/theme/glass'
-import { playPill } from '@/theme/media'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
 const RECENT_SERVER_KEY = 'jf.recentServer'
@@ -55,7 +52,7 @@ function LoginPage() {
   // A fixed server is signed into straight away; its name catches up when the probe answers.
   const server: Server | null =
     probe.data ??
-    (FIXED_SERVER ? { serverUrl: FIXED_SERVER, serverName: host(FIXED_SERVER), version: '' } : null)
+    (FIXED_SERVER ? { serverUrl: FIXED_SERVER, serverName: host(FIXED_SERVER) } : null)
 
   const signIn = useMutation({
     mutationFn: async ({ username, password }: { username: string; password: string }) => {
@@ -72,10 +69,6 @@ function LoginPage() {
 
   return (
     <main {...stylex.props(styles.page)}>
-      <div {...stylex.props(styles.glow)} />
-      <span {...stylex.props(glass.surface, styles.brand)}>
-        <BrandMark />
-      </span>
       {server && !pickingServer ? (
         <CredentialsStep
           key={server.serverUrl}
@@ -120,9 +113,9 @@ function ServerStep({ initial, busy, error, onSubmit }: ServerStepProps) {
   }
   return (
     <Step
-      eyebrow="Connect to"
-      title="Jellyfin"
+      title="Connect to Jellyfin"
       subtitle="The address of the server you watch from."
+      error={error}
     >
       <Form onSubmit={submit} {...stylex.props(styles.form)}>
         <TextField
@@ -134,11 +127,9 @@ function ServerStep({ initial, busy, error, onSubmit }: ServerStepProps) {
           isRequired
           type="text"
           autoComplete="url"
-          inputStyle={styles.input}
         />
         <Submit label={busy ? 'Connecting…' : 'Continue'} isDisabled={busy || !input} />
       </Form>
-      <Alert message={error} />
     </Step>
   )
 }
@@ -156,11 +147,19 @@ function CredentialsStep({ server, busy, error, onSubmit, onChangeServer }: Cred
     e.preventDefault()
     onSubmit({ username, password })
   }
-  const subtitle = [host(server.serverUrl), server.version && `Jellyfin ${server.version}`]
-    .filter(Boolean)
-    .join(' · ')
   return (
-    <Step eyebrow="Sign in to" title={server.serverName} subtitle={subtitle}>
+    <Step
+      title="Sign in"
+      subtitle={host(server.serverUrl)}
+      error={error}
+      footer={
+        onChangeServer && (
+          <Button variant="ghost" size="sm" onPress={onChangeServer}>
+            Use a different server
+          </Button>
+        )
+      }
+    >
       <Form onSubmit={submit} {...stylex.props(styles.form)}>
         <TextField
           label="Username"
@@ -169,7 +168,6 @@ function CredentialsStep({ server, busy, error, onSubmit, onChangeServer }: Cred
           autoFocus
           isRequired
           autoComplete="username"
-          inputStyle={styles.input}
         />
         <TextField
           label="Password"
@@ -177,53 +175,32 @@ function CredentialsStep({ server, busy, error, onSubmit, onChangeServer }: Cred
           value={password}
           onChange={setPassword}
           autoComplete="current-password"
-          inputStyle={styles.input}
         />
         <Submit label={busy ? 'Signing in…' : 'Sign in'} isDisabled={busy || !username} />
       </Form>
-      <Alert message={error} />
-      {onChangeServer && (
-        <m.div variants={fadeUp}>
-          <Button variant="ghost" size="sm" onPress={onChangeServer} style={styles.changeServer}>
-            Use a different server
-          </Button>
-        </m.div>
-      )}
     </Step>
   )
 }
 
 function Submit({ label, isDisabled }: { label: string; isDisabled: boolean }) {
   return (
-    <m.div variants={fadeUp}>
-      <AriaButton
-        type="submit"
-        isDisabled={isDisabled}
-        {...stylex.props(focus.ring, playPill.base, styles.submit)}
-      >
+    <m.div variants={fadeUp} {...stylex.props(styles.submit)}>
+      <Button type="submit" variant="primary" size="lg" isDisabled={isDisabled} style={styles.wide}>
         {label}
-        <ArrowRight size={16} weight="bold" />
-      </AriaButton>
+      </Button>
     </m.div>
   )
 }
 
-function Alert({ message }: { message: string | null }) {
-  return (
-    <p role="alert" {...stylex.props(styles.error)}>
-      {message}
-    </p>
-  )
-}
-
 interface StepLayoutProps {
-  eyebrow: string
   title: string
   subtitle: string
+  error: string | null
+  footer?: ReactNode
   children: ReactNode
 }
 
-function Step({ eyebrow, title, subtitle, children }: StepLayoutProps) {
+function Step({ title, subtitle, error, footer, children }: StepLayoutProps) {
   return (
     <m.section
       variants={stagger(0.04)}
@@ -231,8 +208,8 @@ function Step({ eyebrow, title, subtitle, children }: StepLayoutProps) {
       animate="show"
       {...stylex.props(styles.step)}
     >
-      <m.span variants={fadeUp} {...stylex.props(styles.eyebrow)}>
-        {eyebrow}
+      <m.span variants={fadeUp} {...stylex.props(glass.surface, styles.brand)}>
+        <BrandMark />
       </m.span>
       <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
         {title}
@@ -241,106 +218,72 @@ function Step({ eyebrow, title, subtitle, children }: StepLayoutProps) {
         {subtitle}
       </m.p>
       {children}
+      <p role="alert" {...stylex.props(styles.error)}>
+        {error}
+      </p>
+      {footer && <m.div variants={fadeUp}>{footer}</m.div>}
     </m.section>
   )
 }
 
 const styles = stylex.create({
   page: {
-    position: 'relative',
     minHeight: '100dvh',
+    display: 'grid',
+    placeItems: 'center',
+    paddingInline: sizes.pageGutter,
+    paddingBlock: space.xxl,
+  },
+  step: {
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'flex-end',
-    paddingInline: sizes.pageGutter,
-    paddingTop: sizes.navHeight,
-    paddingBottom: {
-      default: 'clamp(48px, 12vh, 128px)',
-      '@media (max-width: 720px)': `calc(${space.xxl} + env(safe-area-inset-bottom))`,
-    },
-    overflow: 'hidden',
-  },
-  glow: {
-    position: 'absolute',
-    left: '-10%',
-    bottom: '-30%',
-    width: '70vw',
-    height: '80vh',
-    backgroundImage: `radial-gradient(ellipse at 30% 80%, ${colors.glow} 0%, transparent 60%)`,
-    pointerEvents: 'none',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 320,
   },
   brand: {
-    position: 'absolute',
-    top: `calc((${sizes.navHeight} - ${sizes.navControl}) / 2)`,
-    left: sizes.pageGutter,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: sizes.navControl,
-    height: sizes.navControl,
-    fontSize: 18,
+    width: 44,
+    height: 44,
+    fontSize: 20,
     lineHeight: 1,
     borderRadius: radii.full,
   },
-  step: {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    maxWidth: 720,
-  },
-  eyebrow: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: colors.textMuted,
-  },
   title: {
-    marginTop: space.sm,
-    fontSize: 'clamp(40px, 5vw, 64px)',
-    fontWeight: 700,
-    letterSpacing: '-0.03em',
-    lineHeight: 1.02,
+    marginTop: space.xl,
+    fontSize: 20,
+    fontWeight: 600,
+    letterSpacing: '-0.01em',
     color: colors.text,
+    textAlign: 'center',
     textWrap: 'balance',
-    overflowWrap: 'anywhere',
   },
   subtitle: {
-    marginTop: space.md,
-    fontSize: 15,
+    marginTop: space.xs,
+    fontSize: 13,
     color: colors.textMuted,
+    textAlign: 'center',
   },
   form: {
     display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'flex-end',
+    flexDirection: 'column',
     gap: space.md,
-    marginTop: space.xxl,
-  },
-  input: {
-    height: 46,
-    minWidth: 240,
-    paddingInline: space.lg,
-    borderRadius: radii.full,
+    width: '100%',
+    marginTop: space.xl,
   },
   submit: {
-    borderWidth: 0,
-    fontFamily: 'inherit',
-    cursor: {
-      default: 'pointer',
-      '[data-disabled]': 'default',
-    },
-    opacity: {
-      default: 1,
-      '[data-disabled]': 0.4,
-    },
+    marginTop: space.xs,
+  },
+  wide: {
+    width: '100%',
   },
   error: {
     minHeight: 20,
     marginTop: space.md,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.danger,
-  },
-  changeServer: {
-    marginTop: space.sm,
-    marginInlineStart: `calc(-1 * ${space.md})`,
+    textAlign: 'center',
   },
 })

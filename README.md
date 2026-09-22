@@ -22,8 +22,8 @@ or as Docker `--build-arg`s); leave both unset for a generic build:
 
 - `VITE_JELLYFIN_URL=https://jellyfin.example.com` — the server this build signs into, so the login
   page skips the address step. Otherwise the server is entered at runtime.
-- `VITE_BRAND_MARK=🍵` — an emoji or short glyph used as the header mark, favicon and tab-title
-  suffix (`Frieren · 🍵`). Otherwise a neutral icon and the server name are used.
+- `VITE_BRAND_MARK=🍵` — an emoji or short glyph used as the header mark and favicon. Otherwise a
+  neutral icon is used.
 
 Seerr is reached through the app's own origin at `/seerr`; point the dev proxy at an instance with
 `SEERR_URL=https://seerr.example.com npm run dev` (or a `.env.local`).

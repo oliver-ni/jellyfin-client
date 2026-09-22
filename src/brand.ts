@@ -1,13 +1,8 @@
-import { getSession } from '@/lib/session'
-
-/** `VITE_BRAND_MARK`: an emoji or short glyph shown in the header, on sign-in and in tab titles. */
+/** `VITE_BRAND_MARK`: an emoji or short glyph shown in the header, on sign-in and as the favicon. */
 export const brandMark = import.meta.env.VITE_BRAND_MARK || null
 
-/** Route `head`: `Frieren · 🍵`, with the server name standing in when the build has no mark. */
-export function titleHead(name?: string | null) {
-  const suffix = brandMark ?? getSession()?.serverName ?? 'Jellyfin'
-  return { meta: [{ title: name ? `${name} · ${suffix}` : suffix }] }
-}
+/** Route `head` with just the page name; the favicon says which site it is. */
+export const titleHead = (name?: string | null) => ({ meta: [{ title: name ?? 'Jellyfin' }] })
 
 /** Rasterises the mark into the favicon so the tab matches the header. */
 export function installFavicon() {

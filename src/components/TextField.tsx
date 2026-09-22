@@ -13,7 +13,6 @@ export interface TextFieldProps extends Omit<AriaTextFieldProps, 'className' | '
   placeholder?: string
   errorMessage?: string
   autoFocus?: boolean
-  inputStyle?: stylex.StyleXStyles
 }
 
 export function TextField({
@@ -21,17 +20,12 @@ export function TextField({
   placeholder,
   errorMessage,
   autoFocus,
-  inputStyle,
   ...props
 }: TextFieldProps) {
   return (
     <AriaTextField {...props} {...stylex.props(styles.field)}>
       <Label {...stylex.props(styles.label)}>{label}</Label>
-      <Input
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-        {...stylex.props(styles.input, inputStyle)}
-      />
+      <Input placeholder={placeholder} autoFocus={autoFocus} {...stylex.props(styles.input)} />
       <FieldError {...stylex.props(styles.error)}>{errorMessage}</FieldError>
     </AriaTextField>
   )

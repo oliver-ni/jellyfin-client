@@ -26,7 +26,6 @@ export class AuthError extends Error {}
 export interface Server {
   serverUrl: string
   serverName: string
-  version: string
 }
 
 export async function probeServer(input: string): Promise<Server> {
@@ -39,7 +38,7 @@ export async function probeServer(input: string): Promise<Server> {
       signal: controller.signal,
     })
     if (data) {
-      return { serverUrl, serverName: data.ServerName ?? serverUrl, version: data.Version ?? '' }
+      return { serverUrl, serverName: data.ServerName ?? serverUrl }
     }
     const status = response?.status
     throw new AuthError(
