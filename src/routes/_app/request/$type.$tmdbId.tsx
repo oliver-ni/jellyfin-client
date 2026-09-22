@@ -4,6 +4,7 @@ import { Navigate, createFileRoute, notFound } from '@tanstack/react-router'
 import { Check, Prohibit } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useState } from 'react'
+import { titleHead } from '@/brand'
 import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
 import { SeasonTabs } from '@/components/SeasonTabs'
@@ -41,6 +42,7 @@ export const Route = createFileRoute('/_app/request/$type/$tmdbId')({
           .ensureQueryData(seerrQueries.title(params.type, params.tmdbId))
           .catch(() => null)
       : null,
+  head: ({ loaderData }) => titleHead(loaderData?.name),
   component: RequestPage,
 })
 

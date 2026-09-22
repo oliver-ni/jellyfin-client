@@ -23,7 +23,13 @@ applySession(getSession())
 /** A failure with a message fit to show the user. */
 export class AuthError extends Error {}
 
-export async function probeServer(input: string) {
+export interface Server {
+  serverUrl: string
+  serverName: string
+  version: string
+}
+
+export async function probeServer(input: string): Promise<Server> {
   const serverUrl = normalizeServerUrl(input)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 8000)
@@ -32,7 +38,9 @@ export async function probeServer(input: string) {
       baseUrl: serverUrl,
       signal: controller.signal,
     })
-    if (data) return { serverUrl, info: data }
+    if (data) {
+      return { serverUrl, serverName: data.ServerName ?? serverUrl, version: data.Version ?? '' }
+    }
     const status = response?.status
     throw new AuthError(
       status
@@ -46,11 +54,7 @@ export async function probeServer(input: string) {
   }
 }
 
-export async function login(
-  server: { serverUrl: string; serverName: string },
-  username: string,
-  password: string,
-) {
+export async function login(server: Server, username: string, password: string) {
   const { serverUrl, serverName } = server
   const { data, error, response } = await authenticateUserByName({
     baseUrl: serverUrl,

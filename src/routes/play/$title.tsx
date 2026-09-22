@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { createFileRoute, notFound, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
+import { titleHead } from '@/brand'
 import { episodeCode } from '@/lib/format'
 import { idFromHandle } from '@/lib/handle'
 import { itemLink, playLink } from '@/lib/item-link'
@@ -32,15 +33,16 @@ export const Route = createFileRoute('/play/$title')({
     const id = idFromHandle(params.title)
     if (!id) throw notFound()
     const session = getSession()
-    if (!session) return { id }
+    if (!session) return { id, name: null }
     const item = await queryClient
       .ensureQueryData(queries.item(session.userId, id))
       .catch(() => null)
-    if (item?.Type !== 'Series') return { id }
+    if (item?.Type !== 'Series') return { id, name: item?.SeriesName ?? item?.Name ?? null }
     const episode = await seriesStartEpisode(session.userId, id).catch(() => null)
     if (episode) throw redirect({ ...playLink(episode), replace: true })
-    return { id }
+    return { id, name: item.Name ?? null }
   },
+  head: ({ loaderData }) => titleHead(loaderData?.name),
   component: PlayPage,
 })
 

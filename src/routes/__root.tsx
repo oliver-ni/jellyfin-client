@@ -1,9 +1,10 @@
 import * as stylex from '@stylexjs/stylex'
 import type { QueryClient } from '@tanstack/react-query'
-import { Link, Outlet, createRootRouteWithContext } from '@tanstack/react-router'
+import { HeadContent, Link, Outlet, createRootRouteWithContext } from '@tanstack/react-router'
 import { MotionConfig } from 'motion/react'
 import { useLayoutEffect } from 'react'
 import { Notice } from '@/components/Notice'
+import { titleHead } from '@/brand'
 import { useTheme } from '@/lib/theme'
 import { focus } from '@/theme/focus'
 import { colors, fonts } from '@/theme/tokens.stylex'
@@ -13,6 +14,7 @@ export interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  head: () => titleHead(),
   component: Root,
   notFoundComponent: NotFound,
 })
@@ -39,6 +41,7 @@ function Root() {
 
   return (
     <MotionConfig reducedMotion="user">
+      <HeadContent />
       <div {...stylex.props(styles.root)}>
         <Outlet />
       </div>

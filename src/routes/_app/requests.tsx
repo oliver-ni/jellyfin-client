@@ -2,6 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { motion as m } from 'motion/react'
+import { titleHead } from '@/brand'
 import { BlurImage } from '@/components/BlurImage'
 import { Notice } from '@/components/Notice'
 import { Segmented } from '@/components/Segmented'
@@ -29,6 +30,7 @@ export const Route = createFileRoute('/_app/requests')({
   validateSearch: (raw: Record<string, unknown>) => ({
     from: raw.from === 'everyone' ? ('everyone' as const) : undefined,
   }),
+  head: () => titleHead('Requests'),
   component: RequestsPage,
 })
 

@@ -17,7 +17,13 @@ npm install
 npm run dev
 ```
 
-The server URL is entered at runtime on the login page; nothing is baked into the build.
+Two optional build-time variables tailor a build to one setup (set them in the shell, a `.env.local`,
+or as Docker `--build-arg`s); leave both unset for a generic build:
+
+- `VITE_JELLYFIN_URL=https://jellyfin.example.com` — the server this build signs into, so the login
+  page skips the address step. Otherwise the server is entered at runtime.
+- `VITE_BRAND_MARK=🍵` — an emoji or short glyph used as the header mark, favicon and tab-title
+  suffix (`Frieren · 🍵`). Otherwise a neutral icon and the server name are used.
 
 Seerr is reached through the app's own origin at `/seerr`; point the dev proxy at an instance with
 `SEERR_URL=https://seerr.example.com npm run dev` (or a `.env.local`).

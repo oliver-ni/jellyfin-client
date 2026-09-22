@@ -14,6 +14,7 @@ import {
   Separator,
   Button as AriaButton,
 } from 'react-aria-components'
+import { BrandMark } from '@/components/BrandMark'
 import { SearchPalette } from '@/components/SearchPalette'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
 import { logout } from '@/lib/auth'
@@ -22,7 +23,6 @@ import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { requireSession, useSession, type Session } from '@/lib/session'
 import { THEMES, setThemeId, useTheme } from '@/lib/theme'
-import { brandMark } from '@/brand'
 import { ConnectDialog } from '@/seerr/ConnectDialog'
 import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
 import { glass, overlay } from '@/theme/glass'
@@ -94,7 +94,7 @@ function TopNav({ session }: { session: Session }) {
         aria-label={session.serverName}
         {...stylex.props(focus.ring, glass.surface, styles.brand)}
       >
-        <span aria-hidden="true">{brandMark}</span>
+        <BrandMark />
       </Link>
       <nav aria-label="Libraries" {...stylex.props(glass.surface, styles.links)}>
         <NavLink to="/">Home</NavLink>

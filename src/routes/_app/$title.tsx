@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion as m } from 'motion/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
+import { titleHead } from '@/brand'
 import { CastRail } from '@/components/CastRail'
 import { EpisodeList } from '@/components/EpisodeList'
 import { FactSheet } from '@/components/FactSheet'
@@ -47,7 +48,7 @@ export const Route = createFileRoute('/_app/$title')({
     const id = idFromHandle(params.title)
     if (!id) throw notFound()
     const session = getSession()
-    if (!session) return { id }
+    if (!session) return { id, name: null }
     const { userId } = session
     const item = await queryClient.ensureQueryData(queries.item(userId, id)).catch(() => null)
     if (item?.SeriesId && (item.Type === 'Season' || item.Type === 'Episode')) {
@@ -62,8 +63,9 @@ export const Route = createFileRoute('/_app/$title')({
         await queryClient.ensureQueryData(queries.episodes(userId, id, season.Id)).catch(() => null)
       }
     }
-    return { id }
+    return { id, name: item?.Name ?? null }
   },
+  head: ({ loaderData }) => titleHead(loaderData?.name),
   component: ItemPage,
 })
 

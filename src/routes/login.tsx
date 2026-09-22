@@ -1,17 +1,28 @@
 import * as stylex from '@stylexjs/stylex'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft } from '@phosphor-icons/react'
-import { useState, type FormEvent } from 'react'
-import { Form } from 'react-aria-components'
+import { ArrowRight } from '@phosphor-icons/react'
+import { motion as m } from 'motion/react'
+import { useState, type FormEvent, type ReactNode } from 'react'
+import { Button as AriaButton, Form } from 'react-aria-components'
+import { BrandMark } from '@/components/BrandMark'
 import { Button } from '@/components/Button'
 import { TextField } from '@/components/TextField'
-import { AuthError, login, probeServer } from '@/lib/auth'
-import { getSession } from '@/lib/session'
+import { AuthError, login, probeServer, type Server } from '@/lib/auth'
+import { fadeUp, stagger } from '@/lib/motion'
+import { getSession, normalizeServerUrl } from '@/lib/session'
 import * as seerr from '@/seerr/queries'
-import { brandMark } from '@/brand'
-import { colors, radii, shadows, space } from '@/theme/tokens.stylex'
+import { titleHead } from '@/brand'
+import { focus } from '@/theme/focus'
+import { glass } from '@/theme/glass'
+import { playPill } from '@/theme/media'
+import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
 const RECENT_SERVER_KEY = 'jf.recentServer'
+/** A build made for one server skips the address step entirely. */
+const FIXED_SERVER = import.meta.env.VITE_JELLYFIN_URL
+  ? normalizeServerUrl(import.meta.env.VITE_JELLYFIN_URL)
+  : null
 
 export const Route = createFileRoute('/login')({
   validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
@@ -20,146 +31,217 @@ export const Route = createFileRoute('/login')({
   beforeLoad: () => {
     if (getSession()) throw redirect({ to: '/' })
   },
+  head: () => titleHead('Sign in'),
   component: LoginPage,
 })
 
-type Step =
-  | { kind: 'server' }
-  | { kind: 'credentials'; serverUrl: string; serverName: string; version: string }
+const host = (url: string) => url.replace(/^https?:\/\//, '')
+const messageOf = (err: unknown) =>
+  err instanceof AuthError ? err.message : 'Something went wrong'
 
 function LoginPage() {
   const navigate = useNavigate()
   const { redirect: redirectTo } = Route.useSearch()
-  const [step, setStep] = useState<Step>({ kind: 'server' })
-  const [serverInput, setServerInput] = useState(
-    () => localStorage.getItem(RECENT_SERVER_KEY) ?? '',
-  )
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [serverUrl, setServerUrl] = useState<string | null>(FIXED_SERVER)
+  const [pickingServer, setPickingServer] = useState(false)
+  const probe = useQuery({
+    queryKey: ['server', serverUrl],
+    queryFn: () => probeServer(serverUrl ?? ''),
+    enabled: serverUrl !== null,
+    staleTime: Infinity,
+    retry: false,
+    persister: undefined,
+  })
+  // A fixed server is signed into straight away; its name catches up when the probe answers.
+  const server: Server | null =
+    probe.data ??
+    (FIXED_SERVER ? { serverUrl: FIXED_SERVER, serverName: host(FIXED_SERVER), version: '' } : null)
 
-  async function onConnect(e: FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      const { serverUrl, info } = await probeServer(serverInput)
-      localStorage.setItem(RECENT_SERVER_KEY, serverUrl)
-      setStep({
-        kind: 'credentials',
-        serverUrl,
-        serverName: info.ServerName ?? serverUrl,
-        version: info.Version ?? '',
-      })
-    } catch (err) {
-      setError(err instanceof AuthError ? err.message : 'Something went wrong')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function onLogin(e: FormEvent) {
-    e.preventDefault()
-    if (step.kind !== 'credentials') return
-    setBusy(true)
-    setError(null)
-    try {
-      await login(step, username, password)
+  const signIn = useMutation({
+    mutationFn: async ({ username, password }: { username: string; password: string }) => {
+      if (!server) return
+      await login(server, username, password)
+      localStorage.setItem(RECENT_SERVER_KEY, server.serverUrl)
       void seerr.signIn(username, password).catch(() => null)
-      if (redirectTo) await navigate({ href: redirectTo, replace: true })
-      else await navigate({ to: '/', replace: true })
-    } catch (err) {
-      setError(err instanceof AuthError ? err.message : 'Something went wrong')
-      setBusy(false)
-    }
-  }
+    },
+    onSuccess: () =>
+      redirectTo
+        ? navigate({ href: redirectTo, replace: true })
+        : navigate({ to: '/', replace: true }),
+  })
 
   return (
     <main {...stylex.props(styles.page)}>
       <div {...stylex.props(styles.glow)} />
-      <section {...stylex.props(styles.card)}>
-        <header {...stylex.props(styles.header)}>
-          <span aria-hidden="true" {...stylex.props(styles.logo)}>
-            {brandMark}
-          </span>
-          {step.kind === 'server' ? (
-            <>
-              <h1 {...stylex.props(styles.title)}>Connect to Jellyfin</h1>
-              <p {...stylex.props(styles.subtitle)}>Enter the address of your server.</p>
-            </>
-          ) : (
-            <>
-              <h1 {...stylex.props(styles.title)}>{step.serverName}</h1>
-              <p {...stylex.props(styles.subtitle)}>
-                {step.serverUrl.replace(/^https?:\/\//, '')}
-                {step.version ? ` · v${step.version}` : ''}
-              </p>
-            </>
-          )}
-        </header>
-
-        {step.kind === 'server' ? (
-          <Form onSubmit={onConnect} {...stylex.props(styles.form)}>
-            <TextField
-              label="Server address"
-              placeholder="jellyfin.example.com"
-              value={serverInput}
-              onChange={setServerInput}
-              autoFocus
-              isRequired
-              type="text"
-              autoComplete="url"
-            />
-            {error && (
-              <p role="alert" {...stylex.props(styles.error)}>
-                {error}
-              </p>
-            )}
-            <Button type="submit" variant="primary" size="lg" isDisabled={busy || !serverInput}>
-              {busy ? 'Connecting…' : 'Continue'}
-            </Button>
-          </Form>
-        ) : (
-          <Form onSubmit={onLogin} {...stylex.props(styles.form)}>
-            <TextField
-              label="Username"
-              value={username}
-              onChange={setUsername}
-              autoFocus
-              isRequired
-              autoComplete="username"
-            />
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={setPassword}
-              autoComplete="current-password"
-            />
-            {error && (
-              <p role="alert" {...stylex.props(styles.error)}>
-                {error}
-              </p>
-            )}
-            <Button type="submit" variant="primary" size="lg" isDisabled={busy || !username}>
-              {busy ? 'Signing in…' : 'Sign in'}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onPress={() => {
-                setStep({ kind: 'server' })
-                setError(null)
-              }}
-            >
-              <ArrowLeft size={14} />
-              Change server
-            </Button>
-          </Form>
-        )}
-      </section>
+      <span {...stylex.props(glass.surface, styles.brand)}>
+        <BrandMark />
+      </span>
+      {server && !pickingServer ? (
+        <CredentialsStep
+          key={server.serverUrl}
+          server={server}
+          busy={signIn.isPending}
+          error={signIn.error ? messageOf(signIn.error) : null}
+          onSubmit={signIn.mutate}
+          onChangeServer={FIXED_SERVER ? undefined : () => setPickingServer(true)}
+        />
+      ) : (
+        <ServerStep
+          initial={serverUrl ?? localStorage.getItem(RECENT_SERVER_KEY) ?? ''}
+          busy={probe.isFetching}
+          error={probe.error ? messageOf(probe.error) : null}
+          onSubmit={(url) => {
+            if (url === serverUrl) void probe.refetch()
+            else setServerUrl(url)
+            setPickingServer(false)
+            signIn.reset()
+          }}
+        />
+      )}
     </main>
+  )
+}
+
+interface StepProps {
+  busy: boolean
+  error: string | null
+}
+
+interface ServerStepProps extends StepProps {
+  initial: string
+  onSubmit: (url: string) => void
+}
+
+function ServerStep({ initial, busy, error, onSubmit }: ServerStepProps) {
+  const [input, setInput] = useState(initial)
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    onSubmit(normalizeServerUrl(input))
+  }
+  return (
+    <Step
+      eyebrow="Connect to"
+      title="Jellyfin"
+      subtitle="The address of the server you watch from."
+    >
+      <Form onSubmit={submit} {...stylex.props(styles.form)}>
+        <TextField
+          label="Server address"
+          placeholder="jellyfin.example.com"
+          value={input}
+          onChange={setInput}
+          autoFocus
+          isRequired
+          type="text"
+          autoComplete="url"
+          inputStyle={styles.input}
+        />
+        <Submit label={busy ? 'Connecting…' : 'Continue'} isDisabled={busy || !input} />
+      </Form>
+      <Alert message={error} />
+    </Step>
+  )
+}
+
+interface CredentialsStepProps extends StepProps {
+  server: Server
+  onSubmit: (credentials: { username: string; password: string }) => void
+  onChangeServer?: () => void
+}
+
+function CredentialsStep({ server, busy, error, onSubmit, onChangeServer }: CredentialsStepProps) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    onSubmit({ username, password })
+  }
+  const subtitle = [host(server.serverUrl), server.version && `Jellyfin ${server.version}`]
+    .filter(Boolean)
+    .join(' · ')
+  return (
+    <Step eyebrow="Sign in to" title={server.serverName} subtitle={subtitle}>
+      <Form onSubmit={submit} {...stylex.props(styles.form)}>
+        <TextField
+          label="Username"
+          value={username}
+          onChange={setUsername}
+          autoFocus
+          isRequired
+          autoComplete="username"
+          inputStyle={styles.input}
+        />
+        <TextField
+          label="Password"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          autoComplete="current-password"
+          inputStyle={styles.input}
+        />
+        <Submit label={busy ? 'Signing in…' : 'Sign in'} isDisabled={busy || !username} />
+      </Form>
+      <Alert message={error} />
+      {onChangeServer && (
+        <m.div variants={fadeUp}>
+          <Button variant="ghost" size="sm" onPress={onChangeServer} style={styles.changeServer}>
+            Use a different server
+          </Button>
+        </m.div>
+      )}
+    </Step>
+  )
+}
+
+function Submit({ label, isDisabled }: { label: string; isDisabled: boolean }) {
+  return (
+    <m.div variants={fadeUp}>
+      <AriaButton
+        type="submit"
+        isDisabled={isDisabled}
+        {...stylex.props(focus.ring, playPill.base, styles.submit)}
+      >
+        {label}
+        <ArrowRight size={16} weight="bold" />
+      </AriaButton>
+    </m.div>
+  )
+}
+
+function Alert({ message }: { message: string | null }) {
+  return (
+    <p role="alert" {...stylex.props(styles.error)}>
+      {message}
+    </p>
+  )
+}
+
+interface StepLayoutProps {
+  eyebrow: string
+  title: string
+  subtitle: string
+  children: ReactNode
+}
+
+function Step({ eyebrow, title, subtitle, children }: StepLayoutProps) {
+  return (
+    <m.section
+      variants={stagger(0.04)}
+      initial="hidden"
+      animate="show"
+      {...stylex.props(styles.step)}
+    >
+      <m.span variants={fadeUp} {...stylex.props(styles.eyebrow)}>
+        {eyebrow}
+      </m.span>
+      <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
+        {title}
+      </m.h1>
+      <m.p variants={fadeUp} {...stylex.props(styles.subtitle)}>
+        {subtitle}
+      </m.p>
+      {children}
+    </m.section>
   )
 }
 
@@ -167,63 +249,98 @@ const styles = stylex.create({
   page: {
     position: 'relative',
     minHeight: '100dvh',
-    display: 'grid',
-    placeItems: 'center',
-    padding: space.xl,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    paddingInline: sizes.pageGutter,
+    paddingTop: sizes.navHeight,
+    paddingBottom: {
+      default: 'clamp(48px, 12vh, 128px)',
+      '@media (max-width: 720px)': `calc(${space.xxl} + env(safe-area-inset-bottom))`,
+    },
     overflow: 'hidden',
   },
   glow: {
     position: 'absolute',
-    top: '-20%',
-    left: '50%',
-    width: 800,
-    height: 600,
-    transform: 'translateX(-50%)',
-    backgroundImage: `radial-gradient(ellipse at center, ${colors.glow} 0%, transparent 60%)`,
+    left: '-10%',
+    bottom: '-30%',
+    width: '70vw',
+    height: '80vh',
+    backgroundImage: `radial-gradient(ellipse at 30% 80%, ${colors.glow} 0%, transparent 60%)`,
     pointerEvents: 'none',
   },
-  card: {
-    position: 'relative',
-    width: '100%',
-    maxWidth: 400,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xl,
-    padding: space.xxl,
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.border,
-    borderRadius: radii.xl,
-    boxShadow: shadows.popover,
-  },
-  header: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xs,
-  },
-  logo: {
-    fontSize: 28,
+  brand: {
+    position: 'absolute',
+    top: `calc((${sizes.navHeight} - ${sizes.navControl}) / 2)`,
+    left: sizes.pageGutter,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: sizes.navControl,
+    height: sizes.navControl,
+    fontSize: 18,
     lineHeight: 1,
-    marginBottom: space.md,
+    borderRadius: radii.full,
+  },
+  step: {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    maxWidth: 720,
+  },
+  eyebrow: {
+    fontSize: 14,
+    fontWeight: 500,
+    color: colors.textMuted,
   },
   title: {
-    fontSize: 22,
+    marginTop: space.sm,
+    fontSize: 'clamp(40px, 5vw, 64px)',
     fontWeight: 700,
-    letterSpacing: '-0.01em',
+    letterSpacing: '-0.03em',
+    lineHeight: 1.02,
     color: colors.text,
+    textWrap: 'balance',
+    overflowWrap: 'anywhere',
   },
   subtitle: {
-    fontSize: 14,
+    marginTop: space.md,
+    fontSize: 15,
     color: colors.textMuted,
   },
   form: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: space.lg,
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    gap: space.md,
+    marginTop: space.xxl,
+  },
+  input: {
+    height: 46,
+    minWidth: 240,
+    paddingInline: space.lg,
+    borderRadius: radii.full,
+  },
+  submit: {
+    borderWidth: 0,
+    fontFamily: 'inherit',
+    cursor: {
+      default: 'pointer',
+      '[data-disabled]': 'default',
+    },
+    opacity: {
+      default: 1,
+      '[data-disabled]': 0.4,
+    },
   },
   error: {
-    fontSize: 13,
+    minHeight: 20,
+    marginTop: space.md,
+    fontSize: 14,
     color: colors.danger,
+  },
+  changeServer: {
+    marginTop: space.sm,
+    marginInlineStart: `calc(-1 * ${space.md})`,
   },
 })

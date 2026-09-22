@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp } from '@phosphor-icons/react'
 import { AnimatePresence } from 'motion/react'
 import { useCallback } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
+import { titleHead } from '@/brand'
 import { Button } from '@/components/Button'
 import { FilterMenu, FilterToggle } from '@/components/FilterMenu'
 import { ItemGrid } from '@/components/ItemGrid'
@@ -25,7 +26,7 @@ import {
   type Order,
 } from '@/lib/library'
 import { queries } from '@/lib/queries'
-import { useRequiredSession } from '@/lib/session'
+import { getSession, useRequiredSession } from '@/lib/session'
 import { focus } from '@/theme/focus'
 import { glass } from '@/theme/glass'
 import { list } from '@/theme/list'
@@ -34,11 +35,16 @@ import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/library/$library')({
   validateSearch: validateLibrarySearch,
-  loader: ({ params }) => {
+  loader: async ({ context: { queryClient }, params }) => {
     const id = idFromHandle(params.library)
     if (!id) throw notFound()
-    return { id }
+    const session = getSession()
+    const views = session
+      ? await queryClient.ensureQueryData(queries.views(session.userId)).catch(() => null)
+      : null
+    return { id, name: views?.Items?.find((v) => v.Id === id)?.Name ?? null }
   },
+  head: ({ loaderData }) => titleHead(loaderData?.name),
   component: LibraryPage,
 })
 

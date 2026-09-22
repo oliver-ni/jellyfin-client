@@ -4,6 +4,8 @@ COPY package.json package-lock.json ./
 COPY patches ./patches
 RUN npm ci
 COPY . .
+ARG VITE_JELLYFIN_URL
+ARG VITE_BRAND_MARK
 RUN npm run build
 
 FROM nginx:1.27-alpine
