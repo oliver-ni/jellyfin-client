@@ -73,14 +73,15 @@ if (typeof window !== 'undefined') {
 /**
  * Offer `el` as the morph origin. The element the user pressed is the only origin. When the
  * press was elsewhere (a nav link, the hero) nothing morphs; a navigation without a press
- * (history, keyboard) morphs from every on-screen element the next page has a target for.
+ * (history, keyboard) morphs from every element near the screen the next page has a target
+ * for.
  */
 export function offerMorphSource(el: Element, source: Omit<MorphSource, 'rect'>) {
-  const rect = rectOf(el)
-  if (rect.width === 0) return
   const now = performance.now()
   const pressed = lastPress.target instanceof Node && el.contains(lastPress.target)
-  if (!pressed && (now - lastPress.at < SOURCE_TTL || !inViewport(rect))) return
+  if (!pressed && now - lastPress.at < SOURCE_TTL) return
+  const rect = pressed ? rectOf(el) : nearViewport(rectOf(el))
+  if (!rect || rect.width === 0) return
   if (pressed || pendingExpires < now) pending = new Map()
   pendingExpires = now + SOURCE_TTL
   pending.set(sourceKey(source.itemId, source.shape), { ...source, rect })
@@ -88,6 +89,21 @@ export function offerMorphSource(el: Element, source: Omit<MorphSource, 'rect'>)
 
 export const inViewport = (r: Rect) =>
   r.y < window.innerHeight && r.y + r.height > 0 && r.x < window.innerWidth && r.x + r.width > 0
+
+/** Shift needed to bring a span back to just outside the [0, extent] edge it lies beyond. */
+const toEdge = (start: number, size: number, extent: number) =>
+  start + size < 0 ? -(start + size) : start > extent ? extent - start : 0
+
+/**
+ * `r` if on screen; moved to just outside the nearest edge if it was scrolled off by less
+ * than a screen, so it still flies in from the side it went; null if further than that.
+ */
+function nearViewport(r: Rect): Rect | null {
+  const dx = toEdge(r.x, r.width, window.innerWidth)
+  const dy = toEdge(r.y, r.height, window.innerHeight)
+  if (Math.abs(dx) > window.innerWidth || Math.abs(dy) > window.innerHeight) return null
+  return { ...r, x: r.x + dx, y: r.y + dy }
+}
 
 /** Claim the pending handoff for this item and shape, if one was offered and is still fresh. */
 export function takeMorphSource(itemId: string, shape: MorphShape): MorphSource | null {
