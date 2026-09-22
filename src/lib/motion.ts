@@ -103,6 +103,24 @@ export function rectOf(el: Element): Rect {
   return { x, y, width, height }
 }
 
+/**
+ * Where `el` rests once every transform on it and its ancestors has played out. A morph
+ * target is measured on mount, while the page around it is still sliding in, so its
+ * bounding rect would be a few pixels off from where it ends up.
+ */
+export function layoutRect(el: HTMLElement): Rect {
+  const rect = { x: 0, y: 0, width: el.offsetWidth, height: el.offsetHeight }
+  for (let o: Element | null = el; o instanceof HTMLElement; o = o.offsetParent) {
+    rect.x += o.offsetLeft + (o.offsetParent?.clientLeft ?? 0)
+    rect.y += o.offsetTop + (o.offsetParent?.clientTop ?? 0)
+  }
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    rect.x -= p.scrollLeft
+    rect.y -= p.scrollTop
+  }
+  return rect
+}
+
 /** Same slot, ignoring hover scale: compare centres, not corners. */
 const near = (a: Rect, b: Rect) =>
   Math.abs(a.x + a.width / 2 - (b.x + b.width / 2)) < 4 &&
@@ -143,7 +161,7 @@ export function concealMorphOrigin(source: MorphSource) {
  * back. Used when the target sits inside stacking contexts and can't be lifted itself.
  */
 export function flyMorph(source: MorphSource, target: HTMLElement, onDone: () => void) {
-  const to = rectOf(target)
+  const to = layoutRect(target)
   const flyer = document.createElement('div')
   Object.assign(flyer.style, {
     position: 'absolute',

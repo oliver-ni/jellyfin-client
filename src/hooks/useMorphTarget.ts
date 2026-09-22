@@ -4,8 +4,8 @@ import {
   concealMorphOrigin,
   flyMorph,
   inViewport,
+  layoutRect,
   offerMorphSource,
-  rectOf,
   takeMorphSource,
   type MorphShape,
   type MorphSource,
@@ -63,7 +63,7 @@ export function useMorphTarget(
     let stop: (() => void) | undefined
     let retry = true
     const measure = () => {
-      if (inViewport(rectOf(el))) {
+      if (inViewport(layoutRect(el))) {
         concealMorphOrigin(source)
         stop = flyMorph(source, el, reveal)
       } else if (retry) {
