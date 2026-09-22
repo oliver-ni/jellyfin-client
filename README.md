@@ -19,6 +19,23 @@ npm run dev
 
 The server URL is entered at runtime on the login page; nothing is baked into the build.
 
+Seerr is reached through the app's own origin at `/seerr`; point the dev proxy at an instance with
+`SEERR_URL=https://seerr.example.com npm run dev` (or a `.env.local`).
+
+### Throwaway Jellyfin + Seerr
+
+`dev/seed.sh` brings up both in Docker (needs `docker compose`, `ffmpeg`, `jq`), generates a small
+library of test-pattern clips filed under real titles so metadata and artwork resolve, and completes
+both setup wizards. Re-running it is a no-op for everything already done; data lives in `dev/data`.
+
+```sh
+./dev/seed.sh
+SEERR_URL=http://localhost:5055 npm run dev
+```
+
+Sign in with server `http://localhost:8096`, user `devin`, password `devin`. Haikyu!! and Mob Psycho
+100 are deliberately incomplete so the request flows have something to do.
+
 ## Regenerate the API client
 
 `api/openapi.json` is a pinned copy of the server's `/api-docs/openapi.json` with the `servers` entry removed.

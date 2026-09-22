@@ -1,0 +1,19 @@
+name: jellyfin-client-dev
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:10.10.7
+    ports:
+      - '8096:8096'
+    volumes:
+      - ./data/jellyfin:/config
+      - ./data/media:/media:ro
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:v3.4.1
+    ports:
+      - '5055:5055'
+    volumes:
+      - ./data/seerr:/app/config
+    depends_on:
+      - jellyfin
