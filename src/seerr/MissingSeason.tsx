@@ -19,7 +19,7 @@ export function MissingSeason({ title, season }: { title: TvDetails; season: Sea
       <SeasonStatus season={season} />
       {requestable(season.availability) && (
         <RequestButton title={title} seasons={[season.number]}>
-          Request {season.name.toLowerCase()}
+          Request season {season.number}
         </RequestButton>
       )}
     </m.div>

@@ -104,7 +104,7 @@ function RequestPage() {
         )}
         {t.type === 'movie' ? (
           <m.div variants={fadeUp} {...stylex.props(styles.progress)}>
-            <Progress downloads={t.downloads} />
+            <Progress downloads={t.downloads} titled />
           </m.div>
         ) : (
           <m.section variants={fadeUp}>

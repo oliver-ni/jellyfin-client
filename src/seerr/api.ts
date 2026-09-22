@@ -54,8 +54,15 @@ export interface Title {
   jellyfinId: string | null
 }
 
+/** Where a download sits in Radarr/Sonarr's queue, in order of how alive it is. */
+export const DOWNLOAD_STATES = ['downloading', 'importing', 'queued', 'paused', 'stalled'] as const
+export type DownloadState = (typeof DOWNLOAD_STATES)[number]
+
 /** One download the connected Radarr/Sonarr is working on. */
 export interface Download {
+  /** Release name as the downloader shows it. */
+  title: string
+  state: DownloadState
   size: number
   sizeLeft: number
   /** Downloader's estimate as `HH:MM:SS` (or `D.HH:MM:SS`); gone once it stops guessing. */
@@ -151,6 +158,8 @@ export class SeerrError extends Error {
 
 interface RawDownload {
   downloadId?: string
+  title: string
+  status: string
   size: number
   sizeLeft: number
   timeLeft?: string
@@ -223,11 +232,28 @@ const year = (date?: string) => (date ? Number(date.slice(0, 4)) || null : null)
 const image = (path: string | null | undefined, size: string) =>
   path ? `${TMDB_IMAGE}/${size}${path}` : null
 
+const DOWNLOAD_STATE: Record<string, DownloadState> = {
+  downloading: 'downloading',
+  completed: 'importing',
+  queued: 'queued',
+  delay: 'queued',
+  paused: 'paused',
+  warning: 'stalled',
+  failed: 'stalled',
+  downloadClientUnavailable: 'stalled',
+}
+
 /** Sonarr lists a season pack once per episode; one entry per actual download. */
 const toDownloads = (raw: RawDownload[]): Download[] =>
   raw
     .filter((d, i) => !d.downloadId || raw.findIndex((o) => o.downloadId === d.downloadId) === i)
-    .map((d) => ({ size: d.size, sizeLeft: d.sizeLeft, timeLeft: d.timeLeft ?? null }))
+    .map((d) => ({
+      title: d.title,
+      state: DOWNLOAD_STATE[d.status] ?? 'queued',
+      size: d.size,
+      sizeLeft: d.sizeLeft,
+      timeLeft: d.timeLeft ?? null,
+    }))
 
 function toTitle(raw: RawTitle): Title {
   return {

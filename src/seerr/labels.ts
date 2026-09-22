@@ -1,4 +1,12 @@
-import type { Availability, Download, MediaType, Request, Season } from './api'
+import {
+  DOWNLOAD_STATES,
+  type Availability,
+  type Download,
+  type DownloadState,
+  type MediaType,
+  type Request,
+  type Season,
+} from './api'
 
 export const MEDIA_TYPE_LABEL: Record<MediaType, string> = { movie: 'Film', tv: 'Series' }
 
@@ -43,16 +51,29 @@ function formatLeft(minutes: number): string {
   return `${parts.join(' ')} left`
 }
 
-/** How far along a set of downloads is, or `null` when nothing is downloading. */
+const DOWNLOAD_STATE_LABEL: Record<DownloadState, string> = {
+  downloading: 'Downloading',
+  importing: 'Importing',
+  queued: 'Queued',
+  paused: 'Paused',
+  stalled: 'Stalled',
+}
+
+/**
+ * How far along a set of downloads is — `Downloading · 42% · 12m left` — or `null` when nothing is
+ * downloading. The liveliest download's state stands for the set.
+ */
 export function progress(downloads: Download[]): { fraction: number; text: string } | null {
   const size = downloads.reduce((sum, d) => sum + d.size, 0)
   if (!size) return null
   const left = downloads.reduce((sum, d) => sum + d.sizeLeft, 0)
   const fraction = 1 - left / size
+  const state = DOWNLOAD_STATES.find((s) => downloads.some((d) => d.state === s))
   const estimates = downloads.flatMap((d) => (d.timeLeft ? [minutesLeft(d.timeLeft)] : []))
   return {
     fraction,
     text: [
+      state && DOWNLOAD_STATE_LABEL[state],
       `${Math.round(fraction * 100)}%`,
       estimates.length > 0 && formatLeft(Math.max(...estimates)),
     ]

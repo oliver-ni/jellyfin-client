@@ -9,7 +9,7 @@ export function SeasonStatus({ season, owned = 0 }: { season: Season; owned?: nu
   return (
     <div {...stylex.props(styles.root)}>
       <p {...stylex.props(styles.meta)}>{seasonLabel(season, owned)}</p>
-      <Progress downloads={season.downloads} />
+      <Progress downloads={season.downloads} titled />
     </div>
   )
 }
