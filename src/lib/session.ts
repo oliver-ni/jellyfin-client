@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from 'react'
+import { redirect } from '@tanstack/react-router'
+import { createStore } from '@/lib/store'
 
 const SESSION_KEY = 'jf.session'
 const DEVICE_ID_KEY = 'jf.deviceId'
@@ -14,33 +15,21 @@ export interface Session {
   accessToken: string
 }
 
-let cached: Session | null | undefined
-const listeners = new Set<() => void>()
+const stored = localStorage.getItem(SESSION_KEY)
+const store = createStore<Session | null>(stored ? (JSON.parse(stored) as Session) : null)
 
-export function getSession(): Session | null {
-  if (cached === undefined) {
-    const raw = localStorage.getItem(SESSION_KEY)
-    cached = raw ? (JSON.parse(raw) as Session) : null
-  }
-  return cached
-}
+export const getSession = store.get
+export const useSession = store.useValue
 
 export function setSession(session: Session | null) {
-  cached = session
   if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   else localStorage.removeItem(SESSION_KEY)
-  for (const l of listeners) l()
+  store.set(session)
 }
 
-function subscribe(listener: () => void) {
-  listeners.add(listener)
-  return () => {
-    listeners.delete(listener)
-  }
-}
-
-export function useSession() {
-  return useSyncExternalStore(subscribe, getSession, getSession)
+/** Route `beforeLoad` that sends signed-out visitors to the login page and back afterwards. */
+export function requireSession({ location }: { location: { href: string } }) {
+  if (!getSession()) throw redirect({ to: '/login', search: { redirect: location.href } })
 }
 
 /** For routes under `_app`, whose `beforeLoad` guarantees a session. */

@@ -4,7 +4,6 @@ import { Navigate, createFileRoute, notFound } from '@tanstack/react-router'
 import { Check, Prohibit } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useState } from 'react'
-import { Button } from '@/components/Button'
 import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
 import { SeasonTabs } from '@/components/SeasonTabs'
@@ -58,9 +57,11 @@ function RequestPage() {
   if (title.isError) {
     return (
       <div {...stylex.props(detail.state)}>
-        <Notice title="Couldn’t load this title" text="Seerr may be signed out or offline.">
-          <Button onPress={() => void title.refetch()}>Try again</Button>
-        </Notice>
+        <Notice
+          title="Couldn’t load this title"
+          text="Seerr may be signed out or offline."
+          onRetry={() => void title.refetch()}
+        />
       </div>
     )
   }

@@ -1,5 +1,5 @@
 import type * as stylex from '@stylexjs/stylex'
-import { useSyncExternalStore } from 'react'
+import { createStore } from '@/lib/store'
 import { amberTheme, lightTheme, violetTheme } from '@/theme/themes.stylex'
 import type { colors } from '@/theme/tokens.stylex'
 
@@ -20,30 +20,16 @@ export const THEMES: readonly ThemeInfo[] = [
 ]
 
 const STORAGE_KEY = 'jf.theme'
-const listeners = new Set<() => void>()
+const store = createStore(
+  THEMES.find((t) => t.id === localStorage.getItem(STORAGE_KEY)) ?? THEMES[0],
+)
 
-let current = THEMES.find((t) => t.id === localStorage.getItem(STORAGE_KEY)) ?? THEMES[0]
+export const useTheme = store.useValue
 
 /** Unknown ids are ignored, so this can take a raw menu key. */
 export function setThemeId(id: unknown) {
   const next = THEMES.find((t) => t.id === id)
-  if (!next || next === current) return
-  current = next
+  if (!next || next === store.get()) return
   localStorage.setItem(STORAGE_KEY, next.id)
-  for (const l of listeners) l()
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener)
-  return () => {
-    listeners.delete(listener)
-  }
-}
-
-export function useTheme(): ThemeInfo {
-  return useSyncExternalStore(
-    subscribe,
-    () => current,
-    () => current,
-  )
+  store.set(next)
 }

@@ -22,16 +22,12 @@ import {
   type PlaybackSelection,
   type PlaybackSession,
 } from '@/lib/playback'
-import { getSession, useRequiredSession } from '@/lib/session'
+import { getSession, requireSession, useRequiredSession } from '@/lib/session'
 import { Player, type PlaybackSnapshot, type PlayerSource, type ProgressReason } from '@/player'
 import { fonts } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/play/$title')({
-  beforeLoad: ({ location }) => {
-    if (!getSession()) {
-      throw redirect({ to: '/login', search: { redirect: location.href } })
-    }
-  },
+  beforeLoad: requireSession,
   // A series has no stream of its own; play its next-up episode instead.
   loader: async ({ context: { queryClient }, params }) => {
     const id = idFromHandle(params.title)

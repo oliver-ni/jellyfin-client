@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
-import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check, MagnifyingGlass, PlugsConnected, SignOut } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -20,7 +20,7 @@ import { logout } from '@/lib/auth'
 import { libraryLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
-import { getSession, useSession, type Session } from '@/lib/session'
+import { requireSession, useSession, type Session } from '@/lib/session'
 import { THEMES, setThemeId, useTheme } from '@/lib/theme'
 import { brandMark } from '@/brand'
 import { ConnectDialog } from '@/seerr/ConnectDialog'
@@ -31,11 +31,7 @@ import { focus } from '@/theme/focus'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app')({
-  beforeLoad: ({ location }) => {
-    if (!getSession()) {
-      throw redirect({ to: '/login', search: { redirect: location.href } })
-    }
-  },
+  beforeLoad: requireSession,
   component: AppLayout,
 })
 

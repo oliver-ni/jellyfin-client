@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePlayerContext, usePlayerState } from '../context'
 import { usePlayerPrefs } from '../store'
 import { player } from '../tokens.stylex'
-import type { SubtitleTrack } from '../types'
 import { createAssRenderer } from './jassub'
 import { cuesAt, parseVtt, type Cue } from './vtt'
 
@@ -14,12 +13,13 @@ export function Subtitles() {
   const id = usePlayerState((s) => s.subtitleTrackId)
   const track = id ? source.subtitleTracks.find((t) => t.id === id) : undefined
   if (!track || !track.url) return null
-  if (track.kind === 'ass') return <AssSubtitles key={track.id} track={track} />
-  if (track.kind === 'vtt') return <VttSubtitles key={track.id} track={track} />
+  if (track.kind === 'ass')
+    return <AssSubtitles key={track.id} url={track.url} fonts={track.fonts} />
+  if (track.kind === 'vtt') return <VttSubtitles key={track.id} url={track.url} />
   return null
 }
 
-function VttSubtitles({ track }: { track: SubtitleTrack }) {
+function VttSubtitles({ url }: { url: string }) {
   const { time } = usePlayerContext()
   const controlsVisible = usePlayerState((s) => s.controlsVisible)
   const scale = usePlayerPrefs((p) => p.subtitleScale)
@@ -27,9 +27,7 @@ function VttSubtitles({ track }: { track: SubtitleTrack }) {
   const [active, setActive] = useState<Cue[]>([])
   const last = useRef('')
 
-  const url = track.url
   useEffect(() => {
-    if (!url) return
     const ctrl = new AbortController()
     fetch(url, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
@@ -71,15 +69,15 @@ function VttSubtitles({ track }: { track: SubtitleTrack }) {
   )
 }
 
-function AssSubtitles({ track }: { track: SubtitleTrack }) {
+function AssSubtitles({ url, fonts }: { url: string; fonts?: string[] }) {
   const { engine } = usePlayerContext()
   const hostRef = useRef<HTMLDivElement>(null)
-  const fontKey = (track.fonts ?? []).join('\n')
+  const fontKey = (fonts ?? []).join('\n')
 
   useEffect(() => {
     const video = engine.video
     const host = hostRef.current
-    if (!video || !host || !track.url) return
+    if (!video || !host) return
     // A canvas can hand off to an OffscreenCanvas only once, so each renderer gets its own.
     const canvas = document.createElement('canvas')
     canvas.style.position = 'absolute'
@@ -89,7 +87,7 @@ function AssSubtitles({ track }: { track: SubtitleTrack }) {
     const instance = createAssRenderer({
       video,
       canvas,
-      subUrl: track.url,
+      subUrl: url,
       fonts: fontKey ? fontKey.split('\n') : [],
       prescaleFactor: 0.8,
     })
@@ -103,7 +101,7 @@ function AssSubtitles({ track }: { track: SubtitleTrack }) {
         .catch(() => undefined)
         .finally(() => canvas.remove())
     }
-  }, [engine, track.url, fontKey])
+  }, [engine, url, fontKey])
 
   return <div ref={hostRef} {...stylex.props(styles.assHost)} />
 }

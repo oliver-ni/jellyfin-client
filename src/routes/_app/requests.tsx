@@ -3,7 +3,6 @@ import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { motion as m } from 'motion/react'
 import { BlurImage } from '@/components/BlurImage'
-import { Button } from '@/components/Button'
 import { Notice } from '@/components/Notice'
 import { Segmented } from '@/components/Segmented'
 import { titleLink } from '@/lib/item-link'
@@ -22,8 +21,9 @@ import { MEDIA_TYPE_LABEL, requestLabel } from '@/seerr/labels'
 import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
 import { focus } from '@/theme/focus'
+import { list } from '@/theme/list'
 import { text } from '@/theme/text'
-import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
+import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/requests')({
   validateSearch: (raw: Record<string, unknown>) => ({
@@ -72,10 +72,10 @@ function RequestList({ user }: { user: SeerrUser }) {
   )
 
   return (
-    <div {...stylex.props(styles.page)}>
-      <header {...stylex.props(styles.head)}>
-        <h1 {...stylex.props(styles.title)}>Requests</h1>
-        {requests.data && <span {...stylex.props(styles.faint)}>{requests.data.length}</span>}
+    <div {...stylex.props(list.page, styles.page)}>
+      <header {...stylex.props(list.head)}>
+        <h1 {...stylex.props(list.title)}>Requests</h1>
+        {requests.data && <span {...stylex.props(list.faint)}>{requests.data.length}</span>}
         {canViewAll && (
           <span {...stylex.props(styles.filters)}>
             <Segmented
@@ -93,9 +93,11 @@ function RequestList({ user }: { user: SeerrUser }) {
         )}
       </header>
       {requests.isError ? (
-        <Notice title="Couldn’t load your requests" text="Seerr may be signed out or offline.">
-          <Button onPress={() => void requests.refetch()}>Try again</Button>
-        </Notice>
+        <Notice
+          title="Couldn’t load your requests"
+          text="Seerr may be signed out or offline."
+          onRetry={() => void requests.refetch()}
+        />
       ) : requests.data?.length === 0 ? (
         <Notice
           title="Nothing requested yet"
@@ -112,7 +114,7 @@ function RequestList({ user }: { user: SeerrUser }) {
           {active.length > 0 && rows(active)}
           {done.length > 0 && (
             <section {...stylex.props(styles.group)}>
-              <h2 {...stylex.props(styles.faint)}>Done</h2>
+              <h2 {...stylex.props(list.faint)}>Done</h2>
               {rows(done)}
             </section>
           )}
@@ -175,32 +177,7 @@ function RequestRow({
 
 const styles = stylex.create({
   page: {
-    paddingInline: sizes.pageGutter,
-    paddingTop: `calc(${sizes.navHeight} + ${space.xxl})`,
-    paddingBottom: space.xxxl,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.lg,
     maxWidth: 960,
-    marginInline: 'auto',
-    width: '100%',
-  },
-  head: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: space.md,
-  },
-  title: {
-    fontSize: 'clamp(28px, 3vw, 40px)',
-    fontWeight: 700,
-    letterSpacing: '-0.03em',
-    lineHeight: 1.05,
-  },
-  faint: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: colors.textFaint,
-    letterSpacing: '0.02em',
   },
   filters: {
     marginLeft: 'auto',

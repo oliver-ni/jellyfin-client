@@ -28,6 +28,7 @@ import { queries } from '@/lib/queries'
 import { useRequiredSession } from '@/lib/session'
 import { focus } from '@/theme/focus'
 import { glass } from '@/theme/glass'
+import { list } from '@/theme/list'
 import { toolbarControl } from '@/theme/toolbar'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
@@ -101,10 +102,10 @@ function LibraryPage() {
     .map((y) => ({ key: y, label: String(y) }))
 
   return (
-    <div {...stylex.props(styles.page)}>
-      <header {...stylex.props(styles.head)}>
-        <h1 {...stylex.props(styles.title)}>{title ?? '\u00a0'}</h1>
-        <span {...stylex.props(styles.count)}>
+    <div {...stylex.props(list.page, styles.page)}>
+      <header {...stylex.props(list.head)}>
+        <h1 {...stylex.props(list.title)}>{title ?? '\u00a0'}</h1>
+        <span {...stylex.props(list.faint)}>
           {items.isSuccess ? `${total.toLocaleString()} ${total === 1 ? 'title' : 'titles'}` : ''}
         </span>
       </header>
@@ -168,11 +169,8 @@ function LibraryPage() {
             key="error"
             title="Couldn’t load this library"
             text="Check that the server is reachable, then try again."
-          >
-            <Button onPress={() => void (library.isError ? library : items).refetch()}>
-              Try again
-            </Button>
-          </Notice>
+            onRetry={() => void (library.isError ? library : items).refetch()}
+          />
         ) : items.isSuccess && total === 0 ? (
           <Notice
             key="empty"
@@ -196,32 +194,7 @@ function LibraryPage() {
 
 const styles = stylex.create({
   page: {
-    paddingInline: sizes.pageGutter,
-    paddingTop: `calc(${sizes.navHeight} + ${space.xxl})`,
-    paddingBottom: space.xxxl,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.lg,
     maxWidth: sizes.maxContent,
-    marginInline: 'auto',
-    width: '100%',
-  },
-  head: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: space.md,
-  },
-  title: {
-    fontSize: 'clamp(28px, 3vw, 40px)',
-    fontWeight: 700,
-    letterSpacing: '-0.03em',
-    lineHeight: 1.05,
-  },
-  count: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: colors.textFaint,
-    letterSpacing: '0.02em',
   },
   toolbar: {
     position: 'sticky',

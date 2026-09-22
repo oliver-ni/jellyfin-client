@@ -3,7 +3,6 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion as m } from 'motion/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import { Button } from '@/components/Button'
 import { CastRail } from '@/components/CastRail'
 import { EpisodeList } from '@/components/EpisodeList'
 import { FactSheet } from '@/components/FactSheet'
@@ -79,9 +78,8 @@ function ItemPage() {
         <Notice
           title="Couldn’t load this title"
           text="It may have been removed from the server, or the link is wrong."
-        >
-          <Button onPress={() => void item.refetch()}>Try again</Button>
-        </Notice>
+          onRetry={() => void item.refetch()}
+        />
       </div>
     )
   }
