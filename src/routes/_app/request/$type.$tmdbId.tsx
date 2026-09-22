@@ -119,13 +119,8 @@ function RequestPage() {
   )
 }
 
-/** Stays pending until the title has refetched, so the action can't be sent twice. */
-function useRequest(title: seerr.Title) {
-  return useMutation({ mutationFn: (seasons: number[]) => requestTitle(title, seasons) })
-}
-
 function MovieAction({ title }: { title: seerr.MovieDetails }) {
-  const request = useRequest(title)
+  const request = useMutation({ mutationFn: () => requestTitle(title, []) })
   return (
     <div {...stylex.props(styles.actionGroup)}>
       <Button
@@ -133,7 +128,7 @@ function MovieAction({ title }: { title: seerr.MovieDetails }) {
         size="lg"
         style={styles.requestButton}
         isPending={request.isPending}
-        onPress={() => request.mutate([])}
+        onPress={() => request.mutate()}
       >
         <Plus size={18} weight="bold" />
         {request.isPending ? 'Requesting…' : 'Request'}
@@ -191,7 +186,7 @@ function SeasonStatus({ title }: { title: seerr.TvDetails }) {
 }
 
 function SeasonPicker({ title }: { title: seerr.TvDetails }) {
-  const request = useRequest(title)
+  const request = useMutation({ mutationFn: (seasons: number[]) => requestTitle(title, seasons) })
   const open = seerr.openSeasons(title)
   const [selected, setSelected] = useState<Selection>(new Set(open.map((s) => s.number)))
   // Intersect with what is still requestable, so seasons just requested drop out of the selection.

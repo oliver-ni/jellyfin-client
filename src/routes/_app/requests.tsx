@@ -4,8 +4,8 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { motion as m } from 'motion/react'
 import { BlurImage } from '@/components/BlurImage'
 import { Button } from '@/components/Button'
-import { FilterToggle } from '@/components/FilterMenu'
 import { Notice } from '@/components/Notice'
+import { Segmented } from '@/components/Segmented'
 import { fadeUp, stagger } from '@/lib/motion'
 import {
   canViewAllRequests,
@@ -13,6 +13,7 @@ import {
   type MediaType,
   type Request,
   type SeerrUser,
+  type Title,
 } from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
 import { MEDIA_TYPE_LABEL, requestLabel } from '@/seerr/labels'
@@ -23,7 +24,7 @@ import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/requests')({
   validateSearch: (raw: Record<string, unknown>) => ({
-    everyone: raw.everyone === true ? true : undefined,
+    from: raw.from === 'everyone' ? ('everyone' as const) : undefined,
   }),
   component: RequestsPage,
 })
@@ -36,11 +37,11 @@ function RequestsPage() {
 }
 
 function RequestList({ user }: { user: SeerrUser }) {
-  const { everyone } = Route.useSearch()
+  const { from } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const everyoneAllowed = canViewAllRequests(user)
-  const showEveryone = !!everyone && everyoneAllowed
-  const requests = useQuery(seerrQueries.requests(showEveryone ? undefined : user.id))
+  const canViewAll = canViewAllRequests(user)
+  const everyone = from === 'everyone' && canViewAll
+  const requests = useQuery(seerrQueries.requests(everyone ? undefined : user.id))
   // Requests only carry ids; the titles behind them come from Seerr, once per distinct title.
   const distinct = [...new Map((requests.data ?? []).map((r) => [titleKey(r), r])).values()]
   const titles = useQueries({
@@ -56,16 +57,19 @@ function RequestList({ user }: { user: SeerrUser }) {
       <header {...stylex.props(styles.head)}>
         <h1 {...stylex.props(styles.title)}>Requests</h1>
         {requests.data && <span {...stylex.props(styles.count)}>{requests.data.length}</span>}
-        {everyoneAllowed && (
+        {canViewAll && (
           <span {...stylex.props(styles.filters)}>
-            <FilterToggle
-              selected={showEveryone}
-              onChange={(v) =>
-                void navigate({ search: { everyone: v || undefined }, replace: true })
+            <Segmented
+              label="Requested by"
+              options={FROM_OPTIONS}
+              selected={everyone ? 'everyone' : 'me'}
+              onChange={(key) =>
+                void navigate({
+                  search: { from: key === 'everyone' ? key : undefined },
+                  replace: true,
+                })
               }
-            >
-              Everyone
-            </FilterToggle>
+            />
           </span>
         )}
       </header>
@@ -80,7 +84,7 @@ function RequestList({ user }: { user: SeerrUser }) {
         />
       ) : requests.data && !titles.pending ? (
         <m.ul
-          key={String(showEveryone)}
+          key={String(everyone)}
           initial="hidden"
           animate="show"
           variants={stagger()}
@@ -91,7 +95,7 @@ function RequestList({ user }: { user: SeerrUser }) {
               key={r.id}
               request={r}
               title={titles.byKey.get(titleKey(r))}
-              requester={showEveryone ? r.requestedBy : null}
+              requester={everyone ? r.requestedBy : null}
             />
           ))}
         </m.ul>
@@ -99,6 +103,11 @@ function RequestList({ user }: { user: SeerrUser }) {
     </div>
   )
 }
+
+const FROM_OPTIONS = [
+  { key: 'me', label: 'Yours' },
+  { key: 'everyone', label: 'Everyone' },
+] as const
 
 const titleKey = (t: { type: MediaType; tmdbId: number }) => `${t.type}/${t.tmdbId}`
 
@@ -144,7 +153,7 @@ function RequestRow({
   requester,
 }: {
   request: Request
-  title: { name: string; year: number | null; poster: string | null } | undefined
+  title: Pick<Title, 'name' | 'year' | 'poster'> | undefined
   requester: string | null
 }) {
   const link = r.jellyfinId

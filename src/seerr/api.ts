@@ -111,7 +111,6 @@ export interface Request {
   /** Where the title as a whole stands, from the media record the request points at. */
   availability: Availability
   seasons: number[]
-  requestedAt: string
   requestedBy: string
   jellyfinId: string | null
   downloads: Download[]
@@ -135,7 +134,6 @@ interface RawDownload {
 interface RawRequest {
   id: number
   status: number
-  createdAt: string
   type: string
   media: {
     tmdbId: number
@@ -289,11 +287,7 @@ export async function tv(tmdbId: number): Promise<TvDetails> {
   }
 }
 
-/**
- * Requests newest first: one user's, or everyone's when `userId` is omitted (Seerr still
- * scopes that to the caller unless they may view all). Download progress only covers the
- * seasons requested.
- */
+/** Newest first; one user's, or everyone's when `userId` is omitted. */
 export async function requests(userId?: number): Promise<Request[]> {
   const page = await request<{ results: RawRequest[] }>(
     `/request?take=100&sort=added${userId === undefined ? '' : `&requestedBy=${userId}`}`,
@@ -307,7 +301,6 @@ export async function requests(userId?: number): Promise<Request[]> {
       status: REQUEST_STATUS[r.status] ?? 'pending',
       availability: AVAILABILITY[r.media.status] ?? 'unknown',
       seasons,
-      requestedAt: r.createdAt,
       requestedBy: r.requestedBy.displayName,
       jellyfinId: r.media.jellyfinMediaId,
       downloads: (r.media.downloadStatus ?? [])
