@@ -1,4 +1,4 @@
-import type { Availability, Download, MediaType, Request } from './api'
+import type { Availability, Download, MediaType, Request, Season } from './api'
 
 export const MEDIA_TYPE_LABEL: Record<MediaType, string> = { movie: 'Film', tv: 'Series' }
 
@@ -13,16 +13,35 @@ export const AVAILABILITY_LABEL: Record<Availability, string | null> = {
   blocklisted: 'Unavailable',
 }
 
+/**
+ * One line on a season: how many episodes, how many of them the library already holds, and
+ * what Seerr is doing about the rest. A count of owned episodes says "partly here" on its own.
+ */
+export function seasonLabel(s: Season, owned: number): string {
+  const count = owned
+    ? `${owned} of ${s.episodeCount} episodes`
+    : `${s.episodeCount} ${s.episodeCount === 1 ? 'episode' : 'episodes'}`
+  const state =
+    s.downloads.length > 0
+      ? 'On its way'
+      : owned && s.availability === 'partial'
+        ? null
+        : (AVAILABILITY_LABEL[s.availability] ?? 'Not in your library')
+  return [count, state].filter(Boolean).join(' · ')
+}
+
 /** Radarr/Sonarr's `D.HH:MM:SS` estimate, in minutes. */
 function minutesLeft(timeLeft: string): number {
   const [s = 0, min = 0, h = 0, d = 0] = timeLeft.split(/[.:]/).map(Number).reverse()
   return d * 1440 + h * 60 + min + (s >= 30 ? 1 : 0)
 }
 
-const formatLeft = (minutes: number) =>
-  minutes < 1
-    ? 'under a minute left'
-    : `${minutes >= 60 ? `${Math.floor(minutes / 60)}h ` : ''}${minutes % 60}m left`
+function formatLeft(minutes: number): string {
+  if (minutes < 1) return 'under a minute left'
+  const [d, h, min] = [Math.floor(minutes / 1440), Math.floor(minutes / 60) % 24, minutes % 60]
+  const parts = d ? [`${d}d`, `${h}h`] : h ? [`${h}h`, `${min}m`] : [`${min}m`]
+  return `${parts.join(' ')} left`
+}
 
 /** How far along a set of downloads is, or `null` when nothing is downloading. */
 export function progress(downloads: Download[]): { fraction: number; text: string } | null {

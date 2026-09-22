@@ -1,23 +1,29 @@
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import type { Season, TvDetails } from '@/seerr/api'
+import { incoming, type Season, type TvDetails } from '@/seerr/api'
 
 /**
- * A series' seasons from both sides: the library's, with episodes to play, and the ones Seerr
- * knows it lacks, to request or watch arrive. Library seasons are keyed by Jellyfin id and
- * missing ones by season number, so one `?season=` can point at either.
+ * A series' seasons as one list: those in the library, each with Seerr's view of it when
+ * Seerr tracks it, and those only Seerr knows about, which can be requested.
  */
 export type SeasonEntry =
-  | { key: string; kind: 'library'; item: BaseItemDto }
+  | { key: string; kind: 'library'; item: BaseItemDto; season: Season | null }
   | { key: string; kind: 'missing'; title: TvDetails; season: Season }
 
 export function seasonEntries(
   library: readonly BaseItemDto[],
   title: TvDetails | null,
 ): SeasonEntry[] {
-  const owned = new Set(library.map((s) => s.IndexNumber))
+  const known = new Map(title?.seasons.map((s) => [s.number, s]))
+  const owned = library.map((item): SeasonEntry => ({
+    key: item.Id ?? '',
+    kind: 'library',
+    item,
+    season: known.get(item.IndexNumber ?? -1) ?? null,
+  }))
+  for (const s of library) known.delete(s.IndexNumber ?? -1)
   const missing = title
-    ? title.seasons
-        .filter((s) => !owned.has(s.number) && s.availability !== 'available')
+    ? [...known.values()]
+        .filter((s) => s.availability !== 'available')
         .map((season): SeasonEntry => ({
           key: String(season.number),
           kind: 'missing',
@@ -25,23 +31,23 @@ export function seasonEntries(
           season,
         }))
     : []
-  return [
-    ...library.map((item): SeasonEntry => ({ key: item.Id ?? '', kind: 'library', item })),
-    ...missing,
-  ].sort((a, b) => {
+
+  return [...owned, ...missing].sort((a, b) => {
     const [an, bn] = [seasonNumber(a), seasonNumber(b)]
-    // Specials (season 0) trail the numbered seasons.
     if ((an === 0) !== (bn === 0)) return an === 0 ? 1 : -1
     return an - bn
   })
 }
+
+/** Seerr's season when it still has news on this one: not here at all, or on its way. */
+export const newsFor = (e: SeasonEntry): Season | null =>
+  e.kind === 'missing' || (e.season && incoming(e.season.availability)) ? e.season : null
 
 const seasonNumber = (e: SeasonEntry) =>
   e.kind === 'library' ? (e.item.IndexNumber ?? 0) : e.season.number
 
 export const unplayed = (item: BaseItemDto) => item.UserData?.UnplayedItemCount ?? 0
 
-/** First season worth landing on: the one asked for, else the first with something unplayed. */
 export const defaultSeason = (entries: SeasonEntry[], key: string | undefined) =>
   entries.find((e) => e.key === key) ??
   entries.find((e) => e.kind === 'library' && unplayed(e.item) > 0) ??

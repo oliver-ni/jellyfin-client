@@ -4,20 +4,26 @@ import { motion as m } from 'motion/react'
 import type { ReactNode } from 'react'
 import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components'
 import { springs } from '@/lib/motion'
-import { unplayed, type SeasonEntry } from '@/lib/seasons'
+import { newsFor, unplayed, type SeasonEntry } from '@/lib/seasons'
 import type { Availability } from '@/seerr/api'
 import { focus } from '@/theme/focus'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
-/** What a missing season's tab hints at: requestable, waiting, downloading or refused. */
-const MISSING_ICON: Record<Availability, Icon | null> = {
+/** What a season's tab hints at: requestable, waiting, downloading or refused. */
+const ICON: Record<Availability, Icon | null> = {
   unknown: Plus,
   deleted: Plus,
-  partial: Plus,
+  partial: null,
   pending: Clock,
   processing: DownloadSimple,
   blocklisted: Prohibit,
   available: null,
+}
+
+function hint(e: SeasonEntry): Icon | null {
+  const s = newsFor(e)
+  if (!s) return null
+  return s.downloads.length > 0 ? DownloadSimple : ICON[s.availability]
 }
 
 /** Season tabs over library and missing seasons alike; the panel is the caller's. */
@@ -41,7 +47,7 @@ export function SeasonTabs({
       <TabList aria-label="Seasons" {...stylex.props(styles.tabs)}>
         {entries.map((e) => {
           const active = e.key === selected.key
-          const Hint = e.kind === 'missing' ? MISSING_ICON[e.season.availability] : null
+          const Hint = hint(e)
           return (
             <Tab
               key={e.key}

@@ -16,10 +16,11 @@ import { useSettled } from '@/hooks/useSettled'
 import { plainText } from '@/lib/format'
 import { fadeUp, stagger } from '@/lib/motion'
 import { queries } from '@/lib/queries'
-import { defaultSeason, seasonEntries } from '@/lib/seasons'
+import { defaultSeason, newsFor, seasonEntries } from '@/lib/seasons'
 import { getSession, useRequiredSession } from '@/lib/session'
 import { MissingSeason } from '@/seerr/MissingSeason'
 import { useSeerrSeries } from '@/seerr/queries'
+import { SeasonStatus } from '@/seerr/SeasonStatus'
 import { detail } from '@/theme/detail'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
@@ -168,13 +169,22 @@ function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string
         })
       }
     >
-      {(entry) =>
-        entry.kind === 'library' ? (
-          <Episodes userId={userId} seriesId={seriesId} seasonId={entry.key} expandedId={episode} />
-        ) : (
-          <MissingSeason title={entry.title} season={entry.season} />
+      {(entry) => {
+        if (entry.kind === 'missing')
+          return <MissingSeason title={entry.title} season={entry.season} />
+        const news = newsFor(entry)
+        return (
+          <div {...stylex.props(styles.season)}>
+            {news && <SeasonStatus season={news} owned={entry.item.ChildCount ?? 0} />}
+            <Episodes
+              userId={userId}
+              seriesId={seriesId}
+              seasonId={entry.key}
+              expandedId={episode}
+            />
+          </div>
         )
-      }
+      }}
     </SeasonTabs>
   )
 }
@@ -241,6 +251,11 @@ const styles = stylex.create({
       '@media (max-width: 1024px)': 'static',
     },
     top: `calc(${sizes.navHeight} + ${space.lg})`,
+  },
+  season: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: space.lg,
   },
   listSkeleton: {
     height: 320,

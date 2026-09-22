@@ -47,7 +47,7 @@ export const queries = {
   seasons: (userId: string, seriesId: string) =>
     getSeasonsOptions({
       path: { seriesId },
-      query: { userId, fields: CARD_FIELDS, enableImageTypes: CARD_IMAGES },
+      query: { userId, fields: [...CARD_FIELDS, 'ChildCount'], enableImageTypes: CARD_IMAGES },
     }),
   episodes: (userId: string, seriesId: string, seasonId: string) =>
     getEpisodesOptions({

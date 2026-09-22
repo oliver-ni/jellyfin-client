@@ -34,6 +34,10 @@ const AVAILABILITY: Record<number, Availability> = {
 export const requestable = (a: Availability) =>
   a === 'unknown' || a === 'deleted' || a === 'partial'
 
+/** Seerr has been asked for this and hasn't delivered all of it yet. */
+export const incoming = (a: Availability) =>
+  a === 'pending' || a === 'processing' || a === 'partial'
+
 export interface Title {
   type: MediaType
   tmdbId: number
@@ -146,6 +150,7 @@ export class SeerrError extends Error {
 }
 
 interface RawDownload {
+  downloadId?: string
   size: number
   sizeLeft: number
   timeLeft?: string
@@ -218,11 +223,11 @@ const year = (date?: string) => (date ? Number(date.slice(0, 4)) || null : null)
 const image = (path: string | null | undefined, size: string) =>
   path ? `${TMDB_IMAGE}/${size}${path}` : null
 
-const toDownload = (d: RawDownload): Download => ({
-  size: d.size,
-  sizeLeft: d.sizeLeft,
-  timeLeft: d.timeLeft ?? null,
-})
+/** Sonarr lists a season pack once per episode; one entry per actual download. */
+const toDownloads = (raw: RawDownload[]): Download[] =>
+  raw
+    .filter((d, i) => !d.downloadId || raw.findIndex((o) => o.downloadId === d.downloadId) === i)
+    .map((d) => ({ size: d.size, sizeLeft: d.sizeLeft, timeLeft: d.timeLeft ?? null }))
 
 function toTitle(raw: RawTitle): Title {
   return {
@@ -279,7 +284,7 @@ export async function movie(tmdbId: number): Promise<MovieDetails> {
     ...toTitle(raw),
     type: 'movie',
     runtimeMinutes: raw.runtime || null,
-    downloads: (raw.mediaInfo?.downloadStatus ?? []).map(toDownload),
+    downloads: toDownloads(raw.mediaInfo?.downloadStatus ?? []),
   }
 }
 
@@ -317,9 +322,7 @@ export async function tv(tmdbId: number): Promise<TvDetails> {
         name: s.name,
         episodeCount: s.episodeCount,
         availability: availability.get(s.seasonNumber) ?? 'unknown',
-        downloads: downloads
-          .filter((d) => d.episode?.seasonNumber === s.seasonNumber)
-          .map(toDownload),
+        downloads: toDownloads(downloads.filter((d) => d.episode?.seasonNumber === s.seasonNumber)),
       })),
   }
 }
@@ -340,9 +343,11 @@ export async function requests(userId?: number): Promise<Request[]> {
       seasons,
       requestedBy: r.requestedBy.displayName,
       jellyfinId: r.media.jellyfinMediaId,
-      downloads: (r.media.downloadStatus ?? [])
-        .filter((d) => !d.episode || seasons.includes(d.episode.seasonNumber))
-        .map(toDownload),
+      downloads: toDownloads(
+        (r.media.downloadStatus ?? []).filter(
+          (d) => !d.episode || seasons.includes(d.episode.seasonNumber),
+        ),
+      ),
     }
   })
 }
