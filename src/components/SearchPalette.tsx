@@ -87,7 +87,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
   })
   const discover = useQuery({
     ...seerrQueries.search(query),
-    enabled: enabled && seerr === 'signedIn',
+    enabled: enabled && seerr?.state === 'signedIn',
     placeholderData: keepPreviousData,
   })
 
@@ -118,7 +118,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
               <MagnifyingGlass size={20} {...stylex.props(styles.fieldIcon)} />
               <Input
                 placeholder={
-                  seerr === 'signedIn'
+                  seerr?.state === 'signedIn'
                     ? 'Search your library and everything else'
                     : 'Search films, series and episodes'
                 }

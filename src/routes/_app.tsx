@@ -106,7 +106,7 @@ function TopNav({ session }: { session: Session }) {
             {lib.Name}
           </NavLink>
         ))}
-        {seerr === 'signedIn' && <NavLink to="/requests">Requests</NavLink>}
+        {seerr?.state === 'signedIn' && <NavLink to="/requests">Requests</NavLink>}
       </nav>
       <div {...stylex.props(styles.right)}>
         <AriaButton
@@ -134,7 +134,7 @@ function TopNav({ session }: { session: Session }) {
               <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
               <span {...stylex.props(styles.menuServer)}>
                 {session.serverName}
-                {seerr === 'signedIn' && ' · Seerr'}
+                {seerr?.state === 'signedIn' && ' · Seerr'}
               </span>
             </div>
             <div {...stylex.props(menu.separator)} />
@@ -175,7 +175,7 @@ function TopNav({ session }: { session: Session }) {
               </MenuSection>
               <Separator {...stylex.props(menu.separator)} />
               <MenuSection {...stylex.props(menu.list)}>
-                {seerr === 'signedOut' && (
+                {seerr?.state === 'signedOut' && (
                   <MenuItem id="seerr-connect" {...stylex.props(menu.item)}>
                     <span {...stylex.props(menu.check)}>
                       <PlugsConnected size={14} />

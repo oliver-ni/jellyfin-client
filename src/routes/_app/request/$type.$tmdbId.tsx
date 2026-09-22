@@ -12,7 +12,7 @@ import { fadeUp, springs, stagger, vanish } from '@/lib/motion'
 import * as seerr from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
 import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL } from '@/seerr/labels'
-import { invalidateTitle, seerrQueries, useSeerr } from '@/seerr/queries'
+import { requestTitle, seerrQueries, useSeerr } from '@/seerr/queries'
 import { detail } from '@/theme/detail'
 import { focus } from '@/theme/focus'
 import { playPill } from '@/theme/media'
@@ -40,11 +40,14 @@ export const Route = createFileRoute('/_app/request/$type/$tmdbId')({
 
 function RequestPage() {
   const { type, tmdbId } = Route.useParams()
-  const state = useSeerr()
-  const title = useQuery({ ...seerrQueries.title(type, tmdbId), enabled: state === 'signedIn' })
+  const session = useSeerr()
+  const title = useQuery({
+    ...seerrQueries.title(type, tmdbId),
+    enabled: session?.state === 'signedIn',
+  })
 
-  if (state === undefined) return <div {...stylex.props(detail.heroSkeleton)} />
-  if (state !== 'signedIn') return <Gate state={state} />
+  if (session === undefined) return <div {...stylex.props(detail.heroSkeleton)} />
+  if (session.state !== 'signedIn') return <Gate state={session.state} />
   if (title.isError) {
     return (
       <div {...stylex.props(detail.state)}>
@@ -118,13 +121,7 @@ function RequestPage() {
 
 /** Stays pending until the title has refetched, so the action can't be sent twice. */
 function useRequest(title: seerr.Title) {
-  return useMutation({
-    mutationFn: (seasons: number[]) =>
-      title.type === 'movie'
-        ? seerr.requestMovie(title.tmdbId)
-        : seerr.requestSeasons(title.tmdbId, seasons),
-    onSuccess: () => invalidateTitle(title.type, title.tmdbId),
-  })
+  return useMutation({ mutationFn: (seasons: number[]) => requestTitle(title, seasons) })
 }
 
 function MovieAction({ title }: { title: seerr.MovieDetails }) {

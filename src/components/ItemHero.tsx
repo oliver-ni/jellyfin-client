@@ -25,8 +25,11 @@ function seriesYears(item: BaseItemDto): string | undefined {
 /** Offers the Seerr request page when Seerr knows this series has seasons still missing. */
 function RequestMissing({ tmdbId }: { tmdbId: number }) {
   const seerr = useSeerr()
-  const title = useQuery({ ...seerrQueries.title('tv', tmdbId), enabled: seerr === 'signedIn' })
-  const tv = seerr === 'signedIn' && title.data?.type === 'tv' ? title.data : null
+  const title = useQuery({
+    ...seerrQueries.title('tv', tmdbId),
+    enabled: seerr?.state === 'signedIn',
+  })
+  const tv = seerr?.state === 'signedIn' && title.data?.type === 'tv' ? title.data : null
   if (!tv || openSeasons(tv).length === 0) return null
   return (
     <Link

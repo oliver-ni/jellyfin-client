@@ -6,7 +6,7 @@ import { BlurImage } from '@/components/BlurImage'
 import { Button } from '@/components/Button'
 import { Notice } from '@/components/Notice'
 import { fadeUp, stagger } from '@/lib/motion'
-import type { Download, MediaType, Request } from '@/seerr/api'
+import type { Download, MediaType, Request, SeerrUser } from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
 import { MEDIA_TYPE_LABEL, requestLabel } from '@/seerr/labels'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
@@ -19,9 +19,14 @@ export const Route = createFileRoute('/_app/requests')({
 })
 
 function RequestsPage() {
-  const state = useSeerr()
-  const me = useQuery({ ...seerrQueries.me(), enabled: state === 'signedIn' })
-  const requests = useQuery({ ...seerrQueries.requests(me.data?.id ?? 0), enabled: !!me.data })
+  const session = useSeerr()
+  if (session === undefined) return null
+  if (session.state !== 'signedIn') return <Gate state={session.state} />
+  return <RequestList user={session.user} />
+}
+
+function RequestList({ user }: { user: SeerrUser }) {
+  const requests = useQuery(seerrQueries.requests(user.id))
   // Requests only carry ids; the titles behind them come from Seerr, once per distinct title.
   const distinct = [...new Map((requests.data ?? []).map((r) => [titleKey(r), r])).values()]
   const titles = useQueries({
@@ -31,9 +36,6 @@ function RequestsPage() {
       byKey: new Map(results.flatMap((t) => (t.data ? [[titleKey(t.data), t.data] as const] : []))),
     }),
   })
-
-  if (state === undefined) return null
-  if (state !== 'signedIn') return <Gate state={state} />
 
   return (
     <div {...stylex.props(styles.page)}>
