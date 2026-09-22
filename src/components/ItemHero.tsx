@@ -1,13 +1,10 @@
 import * as stylex from '@stylexjs/stylex'
 import { Link } from '@tanstack/react-router'
-import { Check, Heart, Play, Plus } from '@phosphor-icons/react'
-import { useQuery } from '@tanstack/react-query'
+import { Check, Heart, Play } from '@phosphor-icons/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
 import { formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
 import { backdropImage, itemImage, logoImage } from '@/lib/images'
-import { openSeasons } from '@/seerr/api'
-import { seerrQueries, useSeerr } from '@/seerr/queries'
 import { focus } from '@/theme/focus'
 import { playPill } from '@/theme/media'
 import { DetailHero } from './DetailHero'
@@ -22,34 +19,12 @@ function seriesYears(item: BaseItemDto): string | undefined {
   return end === item.ProductionYear ? String(end) : `${item.ProductionYear}–${end}`
 }
 
-/** Offers the Seerr request page when Seerr knows this series has seasons still missing. */
-function RequestMissing({ tmdbId }: { tmdbId: number }) {
-  const seerr = useSeerr()
-  const title = useQuery({
-    ...seerrQueries.title('tv', tmdbId),
-    enabled: seerr?.state === 'signedIn',
-  })
-  const tv = seerr?.state === 'signedIn' && title.data?.type === 'tv' ? title.data : null
-  if (!tv || openSeasons(tv).length === 0) return null
-  return (
-    <Link
-      to="/request/$type/$tmdbId"
-      params={{ type: 'tv', tmdbId }}
-      {...stylex.props(focus.ring, playPill.base, playPill.secondary)}
-    >
-      <Plus size={18} weight="bold" />
-      Request more
-    </Link>
-  )
-}
-
 /** Hero for a library film or series: play, favorite and watched actions. */
 export function ItemHero({ item, userId }: { item: BaseItemDto; userId: string }) {
   const itemId = item.Id ?? ''
   const remaining = remainingMinutes(item)
   const toggles = useUserDataToggles(userId, item)
   const isSeries = item.Type === 'Series'
-  const tmdbId = Number(item.ProviderIds?.Tmdb) || null
   const seasons = item.ChildCount
     ? `${item.ChildCount} ${item.ChildCount === 1 ? 'season' : 'seasons'}`
     : null
@@ -77,7 +52,6 @@ export function ItemHero({ item, userId }: { item: BaseItemDto; userId: string }
           {remaining ? `Resume · ${remaining} min left` : 'Play'}
         </Link>
       )}
-      {isSeries && tmdbId && <RequestMissing tmdbId={tmdbId} />}
       <IconToggle
         onMedia
         aria-label={toggles.isFavorite ? 'Remove from favorites' : 'Add to favorites'}

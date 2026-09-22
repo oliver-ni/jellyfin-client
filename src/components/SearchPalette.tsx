@@ -70,7 +70,7 @@ const titleKey = (t: Title) => `${t.type}/${t.tmdbId}`
  * Global search, opened with `/` or the header's search capsule. Library results navigate to
  * the item; with Seerr signed in, titles the library lacks follow in a second section and
  * open their request page. Seerr titles already matched to a library item are left to the
- * library results, whose series page offers "Request more" for missing seasons.
+ * library results, whose series page carries the missing seasons.
  */
 export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPaletteProps) {
   const navigate = useNavigate()

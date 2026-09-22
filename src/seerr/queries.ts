@@ -77,6 +77,16 @@ export function useSeerr(): SeerrSession | undefined {
   return me.data ? { state: 'signedIn', user: me.data } : { state: 'signedOut' }
 }
 
+/** Seerr's view of a library series, or `null` without a session, a TMDB id or an answer yet. */
+export function useSeerrSeries(tmdbId: number | null): seerr.TvDetails | null {
+  const session = useSeerr()
+  const title = useQuery({
+    ...seerrQueries.title('tv', tmdbId ?? 0),
+    enabled: session?.state === 'signedIn' && tmdbId !== null,
+  })
+  return session?.state === 'signedIn' && title.data?.type === 'tv' ? title.data : null
+}
+
 /** Rejects with a `SeerrError` when Seerr is missing, unreachable or refuses the credentials. */
 export async function signIn(username: string, password: string) {
   setUser(await seerr.signIn(username, password))

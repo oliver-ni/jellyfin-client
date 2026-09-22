@@ -50,11 +50,20 @@ export interface Title {
   jellyfinId: string | null
 }
 
-interface Season {
+/** One download the connected Radarr/Sonarr is working on. */
+export interface Download {
+  size: number
+  sizeLeft: number
+  /** Downloader's estimate as `HH:MM:SS` (or `D.HH:MM:SS`); gone once it stops guessing. */
+  timeLeft: string | null
+}
+
+export interface Season {
   number: number
   name: string
   episodeCount: number
   availability: Availability
+  downloads: Download[]
 }
 
 export interface TvDetails extends Title {
@@ -62,13 +71,14 @@ export interface TvDetails extends Title {
   seasons: Season[]
 }
 
+/** Seasons nobody has asked for yet. */
+export const openSeasons = (t: TvDetails) => t.seasons.filter((s) => requestable(s.availability))
+
 export interface MovieDetails extends Title {
   type: 'movie'
   runtimeMinutes: number | null
+  downloads: Download[]
 }
-
-/** Seasons still open to a request; a series is requestable while any remain. */
-export const openSeasons = (tv: TvDetails) => tv.seasons.filter((s) => requestable(s.availability))
 
 export interface SeerrUser {
   id: number
@@ -95,14 +105,6 @@ const REQUEST_STATUS: Record<number, RequestStatus> = {
   5: 'completed',
 }
 
-/** One download the connected Radarr/Sonarr is working on for a request. */
-export interface Download {
-  size: number
-  sizeLeft: number
-  /** Downloader's estimate as `HH:MM:SS` (or `D.HH:MM:SS`); gone once it stops guessing. */
-  timeLeft: string | null
-}
-
 export interface Request {
   id: number
   type: MediaType
@@ -116,11 +118,24 @@ export interface Request {
   downloads: Download[]
 }
 
-/** Whether a request has reached a state Seerr will no longer move it out of. */
-export const settled = (r: Request) =>
-  r.status === 'completed' ||
-  r.status === 'declined' ||
-  (r.status === 'approved' && r.availability === 'available')
+/** Ranks from here on are states Seerr will no longer move a request out of. */
+export const DONE_RANK = 3
+
+/** Order for a list of requests: the closer one is to landing, the earlier it sorts. */
+export function requestRank(r: Request): number {
+  if (r.downloads.length > 0) return 0
+  switch (r.status) {
+    case 'approved':
+      return r.availability === 'available' ? DONE_RANK : 1
+    case 'pending':
+      return 2
+    case 'completed':
+      return DONE_RANK
+    case 'declined':
+    case 'failed':
+      return DONE_RANK + 1
+  }
+}
 
 export class SeerrError extends Error {
   status: number
@@ -156,6 +171,7 @@ interface RawMediaInfo {
   jellyfinMediaId?: string | null
   seasons?: { seasonNumber: number; status: number }[]
   requests?: { status: number; seasons?: { seasonNumber: number }[] }[]
+  downloadStatus?: RawDownload[]
 }
 
 interface RawTitle {
@@ -201,6 +217,12 @@ const json = (body: unknown): RequestInit => ({
 const year = (date?: string) => (date ? Number(date.slice(0, 4)) || null : null)
 const image = (path: string | null | undefined, size: string) =>
   path ? `${TMDB_IMAGE}/${size}${path}` : null
+
+const toDownload = (d: RawDownload): Download => ({
+  size: d.size,
+  sizeLeft: d.sizeLeft,
+  timeLeft: d.timeLeft ?? null,
+})
 
 function toTitle(raw: RawTitle): Title {
   return {
@@ -253,7 +275,12 @@ export async function search(query: string): Promise<Title[]> {
 
 export async function movie(tmdbId: number): Promise<MovieDetails> {
   const raw = await request<RawTitle>(`/movie/${tmdbId}`)
-  return { ...toTitle(raw), type: 'movie', runtimeMinutes: raw.runtime || null }
+  return {
+    ...toTitle(raw),
+    type: 'movie',
+    runtimeMinutes: raw.runtime || null,
+    downloads: (raw.mediaInfo?.downloadStatus ?? []).map(toDownload),
+  }
 }
 
 /**
@@ -279,6 +306,7 @@ function seasonAvailability(info: RawMediaInfo | undefined): Map<number, Availab
 export async function tv(tmdbId: number): Promise<TvDetails> {
   const raw = await request<RawTitle>(`/tv/${tmdbId}`)
   const availability = seasonAvailability(raw.mediaInfo)
+  const downloads = raw.mediaInfo?.downloadStatus ?? []
   return {
     ...toTitle(raw),
     type: 'tv',
@@ -289,6 +317,9 @@ export async function tv(tmdbId: number): Promise<TvDetails> {
         name: s.name,
         episodeCount: s.episodeCount,
         availability: availability.get(s.seasonNumber) ?? 'unknown',
+        downloads: downloads
+          .filter((d) => d.episode?.seasonNumber === s.seasonNumber)
+          .map(toDownload),
       })),
   }
 }
@@ -311,7 +342,7 @@ export async function requests(userId?: number): Promise<Request[]> {
       jellyfinId: r.media.jellyfinMediaId,
       downloads: (r.media.downloadStatus ?? [])
         .filter((d) => !d.episode || seasons.includes(d.episode.seasonNumber))
-        .map((d) => ({ size: d.size, sizeLeft: d.sizeLeft, timeLeft: d.timeLeft ?? null })),
+        .map(toDownload),
     }
   })
 }

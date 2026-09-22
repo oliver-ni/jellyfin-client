@@ -20,7 +20,7 @@ const persister = experimental_createQueryPersister<PersistedQuery>({
   serialize: (q) => q,
   deserialize: (q) => q,
   maxAge: 1000 * 60 * 60 * 24 * 7,
-  buster: __APP_VERSION__,
+  buster: __BUILD_ID__,
 })
 
 export const queryClient = new QueryClient({

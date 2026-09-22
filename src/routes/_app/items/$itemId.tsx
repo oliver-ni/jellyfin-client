@@ -2,7 +2,6 @@ import * as stylex from '@stylexjs/stylex'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion as m } from 'motion/react'
-import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { Button } from '@/components/Button'
 import { CastRail } from '@/components/CastRail'
@@ -12,21 +11,25 @@ import { ItemCard } from '@/components/ItemCard'
 import { ItemHero } from '@/components/ItemHero'
 import { Notice } from '@/components/Notice'
 import { Rail } from '@/components/Rail'
+import { SeasonTabs } from '@/components/SeasonTabs'
 import { useSettled } from '@/hooks/useSettled'
 import { plainText } from '@/lib/format'
-import { fadeUp, springs, stagger } from '@/lib/motion'
+import { fadeUp, stagger } from '@/lib/motion'
 import { queries } from '@/lib/queries'
+import { defaultSeason, seasonEntries } from '@/lib/seasons'
 import { getSession, useRequiredSession } from '@/lib/session'
+import { MissingSeason } from '@/seerr/MissingSeason'
+import { useSeerrSeries } from '@/seerr/queries'
 import { detail } from '@/theme/detail'
-import { focus } from '@/theme/focus'
-import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
+import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export interface ItemSearch {
   season?: string
   episode?: string
 }
 
-const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
+const str = (v: unknown) =>
+  typeof v === 'number' ? String(v) : typeof v === 'string' && v ? v : undefined
 
 export const Route = createFileRoute('/_app/items/$itemId')({
   validateSearch: (raw: Record<string, unknown>): ItemSearch => ({
@@ -112,7 +115,7 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
       >
         <m.div variants={fadeUp} {...stylex.props(styles.main)}>
           {overview && <p {...stylex.props(detail.overview)}>{overview}</p>}
-          {sidebar && <SeriesEpisodes series={item} userId={userId} />}
+          {sidebar && <SeriesSeasons series={item} userId={userId} />}
         </m.div>
         <m.aside variants={fadeUp} {...stylex.props(sidebar && styles.aside)}>
           <FactSheet item={item} layout={sidebar ? 'column' : 'grid'} />
@@ -138,82 +141,41 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
   )
 }
 
-function sortSeasons(seasons: readonly BaseItemDto[]): BaseItemDto[] {
-  return [...seasons].sort((a, b) => {
-    const ai = a.IndexNumber ?? 0
-    const bi = b.IndexNumber ?? 0
-    if ((ai === 0) !== (bi === 0)) return ai === 0 ? 1 : -1
-    return ai - bi
-  })
-}
-
-function SeriesEpisodes({ series, userId }: { series: BaseItemDto; userId: string }) {
+/** The library's seasons plus, with Seerr connected, the ones it could still fetch. */
+function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string }) {
   const { season: selected, episode } = Route.useSearch()
   const navigate = useNavigate()
   const seriesId = series.Id ?? ''
   const seasons = useQuery(queries.seasons(userId, seriesId))
-  const list = sortSeasons(seasons.data?.Items ?? [])
-
-  const active =
-    list.find((s) => s.Id === selected) ??
-    list.find((s) => (s.UserData?.UnplayedItemCount ?? 0) > 0) ??
-    list[0]
+  const title = useSeerrSeries(Number(series.ProviderIds?.Tmdb) || null)
+  const entries = seasonEntries(seasons.data?.Items ?? [], title)
+  const active = defaultSeason(entries, selected)
 
   if (seasons.isPending) return <div {...stylex.props(styles.listSkeleton)} />
-  if (list.length === 0) return null
+  if (!active) return null
 
   return (
-    <Tabs
-      selectedKey={active?.Id ?? undefined}
-      onSelectionChange={(key) =>
+    <SeasonTabs
+      entries={entries}
+      selected={active}
+      onSelect={(season) =>
         void navigate({
           to: '/items/$itemId',
           params: { itemId: seriesId },
-          search: { season: String(key) },
+          search: { season },
           replace: true,
           resetScroll: false,
         })
       }
-      {...stylex.props(styles.section)}
     >
-      <TabList aria-label="Seasons" {...stylex.props(styles.seasons)}>
-        {list.map((s) => (
-          <Tab
-            key={s.Id}
-            id={s.Id ?? undefined}
-            {...stylex.props(
-              focus.ring,
-              styles.seasonTab,
-              s.Id === active?.Id && styles.seasonTabActive,
-            )}
-          >
-            {s.Id === active?.Id && (
-              <m.span
-                layoutId="season-pill"
-                layoutCrossfade={false}
-                transition={springs.gentle}
-                {...stylex.props(styles.seasonPill)}
-              />
-            )}
-            <span {...stylex.props(styles.seasonLabel)}>
-              {s.Name}
-              {(s.UserData?.UnplayedItemCount ?? 0) > 0 && (
-                <span
-                  role="img"
-                  aria-label={`${s.UserData?.UnplayedItemCount} unplayed`}
-                  {...stylex.props(styles.unplayedDot)}
-                />
-              )}
-            </span>
-          </Tab>
-        ))}
-      </TabList>
-      {active?.Id && (
-        <TabPanel id={active.Id}>
-          <Episodes userId={userId} seriesId={seriesId} seasonId={active.Id} expandedId={episode} />
-        </TabPanel>
-      )}
-    </Tabs>
+      {(entry) =>
+        entry.kind === 'library' ? (
+          <Episodes userId={userId} seriesId={seriesId} seasonId={entry.key} expandedId={episode} />
+        ) : (
+          <MissingSeason title={entry.title} season={entry.season} />
+        )
+      }
+    </SeasonTabs>
   )
 }
 
@@ -279,65 +241,6 @@ const styles = stylex.create({
       '@media (max-width: 1024px)': 'static',
     },
     top: `calc(${sizes.navHeight} + ${space.lg})`,
-  },
-  section: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.md,
-  },
-  seasons: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: space.xs,
-  },
-  seasonTab: {
-    position: 'relative',
-    display: 'inline-flex',
-    alignItems: 'center',
-    cursor: 'pointer',
-    height: 34,
-    paddingInline: space.md,
-    borderRadius: radii.full,
-    fontSize: 13,
-    fontWeight: 600,
-    color: {
-      default: colors.textMuted,
-      ':hover': colors.text,
-    },
-    backgroundColor: {
-      default: 'transparent',
-      ':hover': colors.surface,
-    },
-    transitionProperty: 'background-color, color',
-    transitionDuration: motion.base,
-  },
-  seasonTabActive: {
-    color: colors.accentText,
-    backgroundColor: {
-      default: 'transparent',
-      ':hover': 'transparent',
-    },
-  },
-  seasonPill: {
-    position: 'absolute',
-    inset: 0,
-    zIndex: 0,
-    borderRadius: radii.full,
-    backgroundColor: colors.accent,
-  },
-  seasonLabel: {
-    position: 'relative',
-    zIndex: 1,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: space.sm,
-  },
-  unplayedDot: {
-    width: 6,
-    height: 6,
-    borderRadius: radii.full,
-    backgroundColor: 'currentColor',
-    opacity: 0.6,
   },
   listSkeleton: {
     height: 320,

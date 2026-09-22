@@ -8,9 +8,9 @@ import { Notice } from '@/components/Notice'
 import { Segmented } from '@/components/Segmented'
 import { fadeUp } from '@/lib/motion'
 import {
+  DONE_RANK,
   canViewAllRequests,
-  settled,
-  type Download,
+  requestRank,
   type MediaType,
   type Request,
   type SeerrUser,
@@ -18,6 +18,7 @@ import {
 } from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
 import { MEDIA_TYPE_LABEL, requestLabel } from '@/seerr/labels'
+import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
 import { focus } from '@/theme/focus'
 import { text } from '@/theme/text'
@@ -52,8 +53,10 @@ function RequestList({ user }: { user: SeerrUser }) {
       byKey: new Map(results.flatMap((t) => (t.data ? [[titleKey(t.data), t.data] as const] : []))),
     }),
   })
-  const active = requests.data?.filter((r) => !settled(r)) ?? []
-  const done = requests.data?.filter(settled) ?? []
+  // Seerr hands them back newest first; a stable sort keeps that within each rank.
+  const ranked = [...(requests.data ?? [])].sort((a, b) => requestRank(a) - requestRank(b))
+  const active = ranked.filter((r) => requestRank(r) < DONE_RANK)
+  const done = ranked.filter((r) => requestRank(r) >= DONE_RANK)
   const rows = (list: Request[]) => (
     <ul {...stylex.props(styles.list)}>
       {list.map((r) => (
@@ -132,35 +135,6 @@ const seasonList = (seasons: number[]) =>
       ? `Season ${seasons[0]}`
       : `Seasons ${seasons.join(', ')}`
 
-/** Radarr/Sonarr's `D.HH:MM:SS` estimate, in minutes. */
-function minutesLeft(timeLeft: string): number {
-  const [s = 0, min = 0, h = 0, d = 0] = timeLeft.split(/[.:]/).map(Number).reverse()
-  return d * 1440 + h * 60 + min + (s >= 30 ? 1 : 0)
-}
-
-const formatLeft = (minutes: number) =>
-  minutes < 1
-    ? 'under a minute left'
-    : `${minutes >= 60 ? `${Math.floor(minutes / 60)}h ` : ''}${minutes % 60}m left`
-
-/** How far along the request's downloads are, or `null` when nothing is downloading. */
-function progress(downloads: Download[]): { fraction: number; text: string } | null {
-  const size = downloads.reduce((sum, d) => sum + d.size, 0)
-  if (!size) return null
-  const left = downloads.reduce((sum, d) => sum + d.sizeLeft, 0)
-  const fraction = 1 - left / size
-  const estimates = downloads.flatMap((d) => (d.timeLeft ? [minutesLeft(d.timeLeft)] : []))
-  return {
-    fraction,
-    text: [
-      `${Math.round(fraction * 100)}%`,
-      estimates.length > 0 && formatLeft(Math.max(...estimates)),
-    ]
-      .filter(Boolean)
-      .join(' · '),
-  }
-}
-
 function RequestRow({
   request: r,
   title,
@@ -173,7 +147,6 @@ function RequestRow({
   const link = r.jellyfinId
     ? ({ to: '/items/$itemId', params: { itemId: r.jellyfinId } } as const)
     : ({ to: '/request/$type/$tmdbId', params: { type: r.type, tmdbId: r.tmdbId } } as const)
-  const download = progress(r.downloads)
   return (
     <li>
       <Link {...link} {...stylex.props(focus.ring, styles.row)}>
@@ -192,17 +165,7 @@ function RequestRow({
           <span {...stylex.props(styles.statusLabel, r.status === 'failed' && styles.failed)}>
             {requestLabel(r)}
           </span>
-          {download && (
-            <>
-              <span {...stylex.props(styles.meta)}>{download.text}</span>
-              <span {...stylex.props(styles.track)}>
-                <span
-                  {...stylex.props(styles.bar)}
-                  style={{ width: `${download.fraction * 100}%` }}
-                />
-              </span>
-            </>
-          )}
+          <Progress downloads={r.downloads} />
         </span>
       </Link>
     </li>
@@ -317,18 +280,5 @@ const styles = stylex.create({
   },
   failed: {
     color: colors.danger,
-  },
-  track: {
-    width: '100%',
-    height: 3,
-    marginTop: space.xs,
-    borderRadius: radii.full,
-    backgroundColor: colors.surfaceHover,
-    overflow: 'hidden',
-  },
-  bar: {
-    display: 'block',
-    height: '100%',
-    backgroundColor: colors.progress,
   },
 })

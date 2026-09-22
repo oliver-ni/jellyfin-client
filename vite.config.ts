@@ -24,6 +24,8 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    // Persisted query data is parsed into the client's own shapes, so a new build drops it.
+    __BUILD_ID__: JSON.stringify(Date.now().toString(36)),
   },
   resolve: {
     alias: { '@': srcDir },
