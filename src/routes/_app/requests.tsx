@@ -4,9 +4,16 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { motion as m } from 'motion/react'
 import { BlurImage } from '@/components/BlurImage'
 import { Button } from '@/components/Button'
+import { FilterToggle } from '@/components/FilterMenu'
 import { Notice } from '@/components/Notice'
 import { fadeUp, stagger } from '@/lib/motion'
-import type { Download, MediaType, Request, SeerrUser } from '@/seerr/api'
+import {
+  canViewAllRequests,
+  type Download,
+  type MediaType,
+  type Request,
+  type SeerrUser,
+} from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
 import { MEDIA_TYPE_LABEL, requestLabel } from '@/seerr/labels'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
@@ -15,6 +22,9 @@ import { text } from '@/theme/text'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/requests')({
+  validateSearch: (raw: Record<string, unknown>) => ({
+    everyone: raw.everyone === true ? true : undefined,
+  }),
   component: RequestsPage,
 })
 
@@ -26,7 +36,11 @@ function RequestsPage() {
 }
 
 function RequestList({ user }: { user: SeerrUser }) {
-  const requests = useQuery(seerrQueries.requests(user.id))
+  const { everyone } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const everyoneAllowed = canViewAllRequests(user)
+  const showEveryone = !!everyone && everyoneAllowed
+  const requests = useQuery(seerrQueries.requests(showEveryone ? undefined : user.id))
   // Requests only carry ids; the titles behind them come from Seerr, once per distinct title.
   const distinct = [...new Map((requests.data ?? []).map((r) => [titleKey(r), r])).values()]
   const titles = useQueries({
@@ -42,6 +56,18 @@ function RequestList({ user }: { user: SeerrUser }) {
       <header {...stylex.props(styles.head)}>
         <h1 {...stylex.props(styles.title)}>Requests</h1>
         {requests.data && <span {...stylex.props(styles.count)}>{requests.data.length}</span>}
+        {everyoneAllowed && (
+          <span {...stylex.props(styles.filters)}>
+            <FilterToggle
+              selected={showEveryone}
+              onChange={(v) =>
+                void navigate({ search: { everyone: v || undefined }, replace: true })
+              }
+            >
+              Everyone
+            </FilterToggle>
+          </span>
+        )}
       </header>
       {requests.isError ? (
         <Notice title="Couldn’t load your requests" text="Seerr may be signed out or offline.">
@@ -53,9 +79,20 @@ function RequestList({ user }: { user: SeerrUser }) {
           text="Search with / for something the library is missing and request it."
         />
       ) : requests.data && !titles.pending ? (
-        <m.ul initial="hidden" animate="show" variants={stagger()} {...stylex.props(styles.list)}>
+        <m.ul
+          key={String(showEveryone)}
+          initial="hidden"
+          animate="show"
+          variants={stagger()}
+          {...stylex.props(styles.list)}
+        >
           {requests.data.map((r) => (
-            <RequestRow key={r.id} request={r} title={titles.byKey.get(titleKey(r))} />
+            <RequestRow
+              key={r.id}
+              request={r}
+              title={titles.byKey.get(titleKey(r))}
+              requester={showEveryone ? r.requestedBy : null}
+            />
           ))}
         </m.ul>
       ) : null}
@@ -104,9 +141,11 @@ function progress(downloads: Download[]): { fraction: number; text: string } | n
 function RequestRow({
   request: r,
   title,
+  requester,
 }: {
   request: Request
   title: { name: string; year: number | null; poster: string | null } | undefined
+  requester: string | null
 }) {
   const link = r.jellyfinId
     ? ({ to: '/items/$itemId', params: { itemId: r.jellyfinId } } as const)
@@ -121,7 +160,7 @@ function RequestRow({
             {title?.name ?? 'Unknown title'}
           </span>
           <span {...stylex.props(text.ellipsis, styles.meta)}>
-            {[MEDIA_TYPE_LABEL[r.type], title?.year, seasonList(r.seasons)]
+            {[requester, MEDIA_TYPE_LABEL[r.type], title?.year, seasonList(r.seasons)]
               .filter(Boolean)
               .join(' · ')}
           </span>
@@ -175,6 +214,10 @@ const styles = stylex.create({
     fontWeight: 500,
     color: colors.textFaint,
     letterSpacing: '0.02em',
+  },
+  filters: {
+    marginLeft: 'auto',
+    alignSelf: 'center',
   },
   list: {
     display: 'flex',

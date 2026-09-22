@@ -56,9 +56,9 @@ export const seerrQueries = {
         ),
     }),
   /** Kept fresh while on screen so download progress moves. */
-  requests: (userId: number) =>
+  requests: (userId?: number) =>
     queryOptions({
-      queryKey: ['seerr', 'requests', userId],
+      queryKey: ['seerr', 'requests', userId ?? 'all'],
       queryFn: () => withSession(() => seerr.requests(userId)),
       refetchInterval: 15_000,
       ...live,

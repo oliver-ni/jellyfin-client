@@ -72,7 +72,17 @@ export const openSeasons = (tv: TvDetails) => tv.seasons.filter((s) => requestab
 
 export interface SeerrUser {
   id: number
+  /** Seerr's `Permission` bitmask. */
+  permissions: number
 }
+
+const ADMIN = 2
+const MANAGE_REQUESTS = 16
+const REQUEST_VIEW = 16384
+
+/** Whether Seerr will let this user list other people's requests. */
+export const canViewAllRequests = (u: SeerrUser) =>
+  (u.permissions & (ADMIN | MANAGE_REQUESTS | REQUEST_VIEW)) !== 0
 
 /** Seerr's `MediaRequestStatus` enum. */
 export type RequestStatus = 'pending' | 'approved' | 'declined' | 'failed' | 'completed'
@@ -102,6 +112,7 @@ export interface Request {
   availability: Availability
   seasons: number[]
   requestedAt: string
+  requestedBy: string
   jellyfinId: string | null
   downloads: Download[]
 }
@@ -133,6 +144,7 @@ interface RawRequest {
     downloadStatus?: RawDownload[]
   }
   seasons: { seasonNumber: number }[]
+  requestedBy: { displayName: string }
 }
 
 interface RawMediaInfo {
@@ -277,10 +289,14 @@ export async function tv(tmdbId: number): Promise<TvDetails> {
   }
 }
 
-/** A user's requests, newest first. Download progress only covers the seasons requested. */
-export async function requests(userId: number): Promise<Request[]> {
+/**
+ * Requests newest first: one user's, or everyone's when `userId` is omitted (Seerr still
+ * scopes that to the caller unless they may view all). Download progress only covers the
+ * seasons requested.
+ */
+export async function requests(userId?: number): Promise<Request[]> {
   const page = await request<{ results: RawRequest[] }>(
-    `/request?take=100&sort=added&requestedBy=${userId}`,
+    `/request?take=100&sort=added${userId === undefined ? '' : `&requestedBy=${userId}`}`,
   )
   return page.results.map((r) => {
     const seasons = r.seasons.map((s) => s.seasonNumber).sort((a, b) => a - b)
@@ -292,6 +308,7 @@ export async function requests(userId: number): Promise<Request[]> {
       availability: AVAILABILITY[r.media.status] ?? 'unknown',
       seasons,
       requestedAt: r.createdAt,
+      requestedBy: r.requestedBy.displayName,
       jellyfinId: r.media.jellyfinMediaId,
       downloads: (r.media.downloadStatus ?? [])
         .filter((d) => !d.episode || seasons.includes(d.episode.seasonNumber))
