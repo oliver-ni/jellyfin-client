@@ -1,5 +1,4 @@
 import { useRouter, type ParsedLocation } from '@tanstack/react-router'
-import { useMotionValue } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import {
   concealMorphOrigin,
@@ -47,45 +46,44 @@ export function useMorphHandoff(
 
 /**
  * Receives the handoff for `itemId`, if the page that navigated here offered one: `ref` is
- * hidden while a stand-in flies from the origin's rect to its own, then revealed in place.
- * Measuring waits a frame so the router's scroll reset has landed, and one more if the target
- * is still off screen (a deep-linked episode row scrolls itself into view on mount); a target
- * that stays off screen just appears.
+ * kept invisible while a stand-in flies from the origin's rect to its own, then revealed in
+ * place. Visibility is set on the element directly so it can't fight an entrance animation
+ * on the same node. Measuring waits a frame so the router's scroll reset has landed, and one
+ * more if the target is still off screen (a deep-linked episode row scrolls itself into view
+ * on mount); a target that stays off screen just appears.
  */
 export function useMorphTarget(
   itemId: string | undefined,
   shape: MorphShape,
   ref: RefObject<HTMLElement | null>,
-) {
-  const [source] = useState<MorphSource | null>(() =>
-    itemId ? takeMorphSource(itemId, shape) : null,
-  )
-  const opacity = useMotionValue(1)
+): MorphSource | null {
+  const [source] = useState(() => (itemId ? takeMorphSource(itemId, shape) : null))
 
   useLayoutEffect(() => {
-    if (!source) return
-    opacity.jump(0)
+    const el = ref.current
+    if (!source || !el) return
+    el.style.visibility = 'hidden'
+    const reveal = () => (el.style.visibility = '')
     let stop: (() => void) | undefined
     let retry = true
     const measure = () => {
-      const el = ref.current
-      if (el && inViewport(rectOf(el))) {
+      if (inViewport(rectOf(el))) {
         concealMorphOrigin(source)
-        stop = flyMorph(source, el, () => opacity.jump(1))
-      } else if (el && retry) {
+        stop = flyMorph(source, el, reveal)
+      } else if (retry) {
         retry = false
         frame = requestAnimationFrame(measure)
       } else {
-        opacity.jump(1)
+        reveal()
       }
     }
     let frame = requestAnimationFrame(measure)
     return () => {
       cancelAnimationFrame(frame)
       stop?.()
-      opacity.jump(1)
+      reveal()
     }
-  }, [source, ref, opacity])
+  }, [source, ref])
 
-  return { source, opacity }
+  return source
 }

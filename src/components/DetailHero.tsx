@@ -43,7 +43,7 @@ export function DetailHero({
   children,
 }: DetailHeroProps) {
   const tileRef = useRef<HTMLDivElement>(null)
-  const morph = useMorphTarget(morphId, 'poster', tileRef)
+  const source = useMorphTarget(morphId, 'poster', tileRef)
   useMorphHandoff(tileRef, morphId, 'poster', tile?.url)
 
   return (
@@ -67,14 +67,13 @@ export function DetailHero({
             ref={tileRef}
             data-morph={morphId || undefined}
             variants={pop}
-            initial={morph.source ? false : 'hidden'}
+            initial={source ? false : 'hidden'}
             animate="show"
-            style={{ opacity: morph.opacity }}
             {...stylex.props(styles.tile)}
           >
             <BlurImage
               src={tile.url}
-              placeholderSrc={morph.source?.src}
+              placeholderSrc={source?.src}
               blurhash={tile.blurhash}
               alt=""
               loading="eager"

@@ -39,13 +39,13 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
   const link = itemLink(item)
   const morphId = landingId(link)
   const tile = useRef<HTMLDivElement>(null)
-  const morph = useMorphTarget(morphId, shape, tile)
+  const source = useMorphTarget(morphId, shape, tile)
   useMorphHandoff(tile, morphId, shape, image?.url, (to) => opensItem(to, morphId))
 
   return (
     <m.div
       variants={fadeUp}
-      initial={morph.source ? false : undefined}
+      initial={source ? false : undefined}
       {...stylex.props(styles.root)}
       style={{ width }}
     >
@@ -56,7 +56,6 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
           transition={springs.snappy}
           whileHover={{ scale: 1.035 }}
           whileTap={{ scale: 0.97 }}
-          style={{ opacity: morph.opacity }}
           {...stylex.props(styles.media, shape === 'poster' ? styles.poster : styles.landscape)}
         >
           <BlurImage src={image?.url} blurhash={image?.blurhash} alt="" style={media.fill} />

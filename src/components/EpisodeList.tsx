@@ -91,7 +91,7 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
     .filter(Boolean)
     .join('  ·  ')
   const stillRef = useRef<HTMLAnchorElement>(null)
-  const morph = useMorphTarget(id, 'landscape', stillRef)
+  const source = useMorphTarget(id, 'landscape', stillRef)
   useMorphHandoff(stillRef, id, 'landscape', still?.url, (to) => to.pathname !== seriesPath)
   const rowRef = useRef<HTMLLIElement>(null)
 
@@ -103,17 +103,17 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
       const viewport = window.innerHeight
       if (top >= 0 && bottom <= viewport) return
       const far = Math.abs((top + bottom) / 2 - viewport / 2) > viewport
-      const jump = far || morph.source !== null
+      const jump = far || source !== null
       row.scrollIntoView({ block: 'center', behavior: jump ? 'instant' : 'smooth' })
     })
     return () => cancelAnimationFrame(frame)
-  }, [expanded, morph.source])
+  }, [expanded, source])
 
   return (
     <m.li
       ref={rowRef}
       variants={fadeUp}
-      initial={morph.source ? false : undefined}
+      initial={source ? false : undefined}
       {...stylex.props(styles.row, expanded && styles.rowExpanded, stylex.defaultMarker())}
     >
       <MotionLink
@@ -122,7 +122,6 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
         to="/play/$itemId"
         params={{ itemId: id }}
         aria-label={`Play ${episode.Name ?? 'episode'}`}
-        style={{ opacity: morph.opacity }}
         {...stylex.props(focus.ring, styles.still)}
       >
         <BlurImage src={still?.url} blurhash={still?.blurhash} alt="" style={media.fill} />
