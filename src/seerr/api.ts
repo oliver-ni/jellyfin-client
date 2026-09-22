@@ -95,7 +95,7 @@ export const canViewAllRequests = (u: SeerrUser) =>
   (u.permissions & (ADMIN | MANAGE_REQUESTS | REQUEST_VIEW)) !== 0
 
 /** Seerr's `MediaRequestStatus` enum. */
-export type RequestStatus = 'pending' | 'approved' | 'declined' | 'failed' | 'completed'
+type RequestStatus = 'pending' | 'approved' | 'declined' | 'failed' | 'completed'
 
 const REQUEST_STATUS: Record<number, RequestStatus> = {
   1: 'pending',
