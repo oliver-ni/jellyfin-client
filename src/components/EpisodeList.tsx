@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { createLink, Link } from '@tanstack/react-router'
 import { Check, Heart, Play } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
-import { useEffect, useRef, type Ref } from 'react'
+import { useLayoutEffect, useRef, type Ref } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
@@ -78,24 +78,31 @@ function EpisodeRow({ episode, userId, expanded }: EpisodeRowProps) {
   const sub = [formatRuntime(episode.RunTimeTicks), formatDate(episode.PremiereDate)]
     .filter(Boolean)
     .join('  ·  ')
-  const stillRef = useRef<HTMLAnchorElement>(null)
-  const source = useMorphTarget(id, 'landscape', stillRef)
-  useMorphHandoff(stillRef, id, 'landscape', still?.url, (to) => !onPage(to, link))
   const rowRef = useRef<HTMLLIElement>(null)
+  const stillRef = useRef<HTMLAnchorElement>(null)
 
-  useEffect(() => {
+  // Scrolls the open row into view a frame after the router's scroll reset; declared before the
+  // morph target so it runs first in that frame and the target is measured where the row ends up.
+  // Jumps when the row mounted open (arriving by link) and glides when it opened in place.
+  const lastExpanded = useRef(expanded)
+  useLayoutEffect(() => {
     const row = rowRef.current
+    const arriving = lastExpanded.current === expanded
+    lastExpanded.current = expanded
     if (!expanded || !row) return
     const frame = requestAnimationFrame(() => {
       const { top, bottom } = row.getBoundingClientRect()
       const viewport = window.innerHeight
       if (top >= 0 && bottom <= viewport) return
       const far = Math.abs((top + bottom) / 2 - viewport / 2) > viewport
-      const jump = far || source !== null
-      row.scrollIntoView({ block: 'center', behavior: jump ? 'instant' : 'smooth' })
+      const behavior = arriving || far ? 'instant' : 'smooth'
+      row.scrollIntoView({ block: 'center', behavior })
     })
     return () => cancelAnimationFrame(frame)
-  }, [expanded, source])
+  }, [expanded])
+
+  const source = useMorphTarget(id, 'landscape', stillRef)
+  useMorphHandoff(stillRef, id, 'landscape', still?.url, (to) => !onPage(to, link))
 
   return (
     <m.li
