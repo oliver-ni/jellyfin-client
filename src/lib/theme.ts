@@ -1,5 +1,5 @@
 import type * as stylex from '@stylexjs/stylex'
-import { createStore } from '@/lib/store'
+import { createStore, useStore } from 'zustand'
 import { amberTheme, lightTheme, violetTheme } from '@/theme/themes.stylex'
 import type { colors } from '@/theme/tokens.stylex'
 
@@ -20,16 +20,16 @@ export const THEMES: readonly ThemeInfo[] = [
 ]
 
 const STORAGE_KEY = 'jf.theme'
-const store = createStore(
-  THEMES.find((t) => t.id === localStorage.getItem(STORAGE_KEY)) ?? THEMES[0],
+const store = createStore<ThemeInfo>(
+  () => THEMES.find((t) => t.id === localStorage.getItem(STORAGE_KEY)) ?? THEMES[0],
 )
 
-export const useTheme = store.useValue
+export const useTheme = () => useStore(store)
 
 /** Unknown ids are ignored, so this can take a raw menu key. */
 export function setThemeId(id: unknown) {
   const next = THEMES.find((t) => t.id === id)
-  if (!next || next === store.get()) return
+  if (!next || next === store.getState()) return
   localStorage.setItem(STORAGE_KEY, next.id)
-  store.set(next)
+  store.setState(next, true)
 }

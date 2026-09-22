@@ -1,3 +1,4 @@
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
 import {
   getEpisodesOptions,
   getItemOptions,
@@ -16,6 +17,29 @@ const HERO_FIELDS: ItemFields[] = [...CARD_FIELDS, 'Overview', 'Genres']
 const EPISODE_FIELDS: ItemFields[] = [...CARD_FIELDS, 'Overview', 'MediaStreams']
 const HERO_IMAGES: ImageType[] = ['Primary', 'Backdrop', 'Thumb', 'Logo']
 const CARD_IMAGES: ImageType[] = ['Primary']
+
+/** Whether a generated query key belongs to the operation(s) named by `id`. */
+export function isQuery(key: QueryKey, id: string | RegExp): boolean {
+  const head: unknown = key[0]
+  if (
+    typeof head !== 'object' ||
+    head === null ||
+    !('_id' in head) ||
+    typeof head._id !== 'string'
+  ) {
+    return false
+  }
+  return typeof id === 'string' ? head._id === id : id.test(head._id)
+}
+
+/** Refetches every list that reflects watched / favorite / resume state, after it changed on the server. */
+export function invalidateUserData(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({
+    predicate: (q) =>
+      q.queryKey[0] === 'libraryItems' ||
+      isQuery(q.queryKey, /^get(Item|ResumeItems|NextUp|LatestMedia|Episodes|Seasons|Items)$/),
+  })
+}
 
 export const queries = {
   views: (userId: string) => getUserViewsOptions({ query: { userId } }),

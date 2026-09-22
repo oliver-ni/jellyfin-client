@@ -1,5 +1,5 @@
 import { redirect } from '@tanstack/react-router'
-import { createStore } from '@/lib/store'
+import { createStore, useStore } from 'zustand'
 
 const SESSION_KEY = 'jf.session'
 const DEVICE_ID_KEY = 'jf.deviceId'
@@ -16,15 +16,15 @@ export interface Session {
 }
 
 const stored = localStorage.getItem(SESSION_KEY)
-const store = createStore<Session | null>(stored ? (JSON.parse(stored) as Session) : null)
+const store = createStore<Session | null>(() => (stored ? (JSON.parse(stored) as Session) : null))
 
-export const getSession = store.get
-export const useSession = store.useValue
+export const getSession = store.getState
+export const useSession = () => useStore(store)
 
 export function setSession(session: Session | null) {
   if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   else localStorage.removeItem(SESSION_KEY)
-  store.set(session)
+  store.setState(session, true)
 }
 
 /** Route `beforeLoad` that sends signed-out visitors to the login page and back afterwards. */

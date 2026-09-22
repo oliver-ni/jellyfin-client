@@ -1,15 +1,14 @@
 import * as stylex from '@stylexjs/stylex'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, notFound, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeCode } from '@/lib/format'
 import { idFromHandle } from '@/lib/handle'
 import { itemLink, playLink } from '@/lib/item-link'
-import { queries } from '@/lib/queries'
+import { invalidateUserData, queries } from '@/lib/queries'
 import {
   AUTO_QUALITY,
-  negotiatePlayback,
   playbackQueries,
   reportProgress,
   reportStart,
@@ -79,7 +78,6 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
   const itemId = item.Id ?? ''
   const mediaSourceId = item.MediaSources?.[0]?.Id ?? undefined
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const segments = useQuery(playbackQueries.segments(itemId))
   const nextEpisode = useQuery({
     ...playbackQueries.nextEpisode(userId, item),
@@ -95,25 +93,13 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
   }))
   // Client-rendered subtitle choice; `undefined` defers to the server's default.
   const [subtitleId, setSubtitleId] = useState<string | null | undefined>(undefined)
-  const [session, setSession] = useState<PlaybackSession | null>(null)
-  const [failure, setFailure] = useState<{ selection: PlaybackSelection; message: string } | null>(
-    null,
-  )
-  const error = failure?.selection === selection ? failure.message : null
-
-  useEffect(() => {
-    const controller = new AbortController()
-    negotiatePlayback(itemId, mediaSourceId, userId, selection, controller.signal)
-      .then((next) => {
-        if (!controller.signal.aborted) setSession(next)
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return
-        const message = err instanceof Error ? err.message : 'Playback could not be started.'
-        setFailure({ selection, message })
-      })
-    return () => controller.abort()
-  }, [itemId, mediaSourceId, userId, selection])
+  // The previous session keeps playing until the new one is ready.
+  const negotiation = useQuery({
+    ...playbackQueries.session(itemId, mediaSourceId, userId, selection),
+    placeholderData: keepPreviousData,
+  })
+  const session = negotiation.data ?? null
+  const error = negotiation.error?.message ?? null
 
   const source = useMemo<PlayerSource | null>(() => {
     if (!session) return null
@@ -121,49 +107,7 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
     return { ...session.source, subtitleTrackId: subtitleId }
   }, [session, subtitleId])
 
-  // Reporting reads the session through a ref so unload of the previous session reports correctly.
-  const sessionRef = useRef<PlaybackSession | null>(null)
-  const startedFor = useRef<string | null>(null)
-  const lastSnapshot = useRef<PlaybackSnapshot | null>(null)
-  useEffect(() => {
-    sessionRef.current = session
-  }, [session])
-
-  const onProgress = useCallback(
-    (snap: PlaybackSnapshot, reason: ProgressReason) => {
-      const s = sessionRef.current
-      if (!s) return
-      lastSnapshot.current = snap
-      if (reason === 'unload') {
-        if (startedFor.current === s.playSessionId) {
-          startedFor.current = null
-          void reportStopped(s, itemId, snap).then(() => queryClient.invalidateQueries())
-        }
-        return
-      }
-      if (startedFor.current !== s.playSessionId) {
-        startedFor.current = s.playSessionId
-        void reportStart(s, itemId, snap)
-        return
-      }
-      void reportProgress(s, itemId, snap)
-    },
-    [itemId, queryClient],
-  )
-
-  // Closing the tab skips React cleanup; flush a final stop so the position sticks.
-  useEffect(() => {
-    const flush = () => {
-      const s = sessionRef.current
-      const snap = lastSnapshot.current
-      if (s && snap && startedFor.current === s.playSessionId) {
-        startedFor.current = null
-        void reportStopped(s, itemId, snap)
-      }
-    }
-    window.addEventListener('pagehide', flush)
-    return () => window.removeEventListener('pagehide', flush)
-  }, [itemId])
+  const onProgress = usePlaybackReporting(session, itemId)
 
   const renegotiate = useCallback((patch: Partial<PlaybackSelection>, snap: PlaybackSnapshot) => {
     setSubtitleId(undefined)
@@ -185,7 +129,7 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
   )
   const onSubtitleChange = useCallback(
     (id: string | null, snap: PlaybackSnapshot) => {
-      const tracks = sessionRef.current?.source.subtitleTracks ?? []
+      const tracks = source?.subtitleTracks ?? []
       const kindOf = (trackId: string | null) => tracks.find((t) => t.id === trackId)?.kind
       // Burned-in tracks (and leaving one) need the server to start a new stream.
       if (kindOf(id) === 'source' || kindOf(snap.subtitleTrackId) === 'source') {
@@ -194,7 +138,7 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
         setSubtitleId(id)
       }
     },
-    [renegotiate],
+    [renegotiate, source],
   )
 
   const next = useMemo(() => toNextItem(nextEpisode.data), [nextEpisode.data])
@@ -241,6 +185,51 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
         style={styles.player}
       />
     </div>
+  )
+}
+
+/**
+ * Reports start / progress / stop for whichever session is current, including a final stop when
+ * the tab closes (which skips React cleanup). Refs, so the player's callback identity is stable.
+ */
+function usePlaybackReporting(session: PlaybackSession | null, itemId: string) {
+  const queryClient = useQueryClient()
+  const sessionRef = useRef(session)
+  const startedFor = useRef<string | null>(null)
+  const lastSnapshot = useRef<PlaybackSnapshot | null>(null)
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+
+  const stop = useCallback(
+    (s: PlaybackSession, snap: PlaybackSnapshot) => {
+      if (startedFor.current !== s.playSessionId) return
+      startedFor.current = null
+      void reportStopped(s, itemId, snap).then(() => invalidateUserData(queryClient))
+    },
+    [itemId, queryClient],
+  )
+
+  useEffect(() => {
+    const flush = () => {
+      if (sessionRef.current && lastSnapshot.current) stop(sessionRef.current, lastSnapshot.current)
+    }
+    window.addEventListener('pagehide', flush)
+    return () => window.removeEventListener('pagehide', flush)
+  }, [stop])
+
+  return useCallback(
+    (snap: PlaybackSnapshot, reason: ProgressReason) => {
+      const s = sessionRef.current
+      if (!s) return
+      lastSnapshot.current = snap
+      if (reason === 'unload') stop(s, snap)
+      else if (startedFor.current !== s.playSessionId) {
+        startedFor.current = s.playSessionId
+        void reportStart(s, itemId, snap)
+      } else void reportProgress(s, itemId, snap)
+    },
+    [itemId, stop],
   )
 }
 

@@ -114,7 +114,7 @@ export function takeMorphSource(itemId: string, shape: MorphShape): MorphSource 
   return source
 }
 
-export function rectOf(el: Element): Rect {
+function rectOf(el: Element): Rect {
   const { x, y, width, height } = el.getBoundingClientRect()
   return { x, y, width, height }
 }

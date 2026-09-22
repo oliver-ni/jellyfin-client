@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Check, Heart } from '@phosphor-icons/react'
 import {
   markFavoriteItem,
   markPlayedItem,
@@ -6,17 +7,11 @@ import {
   markUnplayedItem,
 } from '@/api/gen/sdk.gen'
 import type { BaseItemDto, BaseItemDtoQueryResult, UserItemDataDto } from '@/api/gen/types.gen'
-import { queries } from '@/lib/queries'
+import { invalidateUserData, isQuery, queries } from '@/lib/queries'
+import { IconToggle } from './IconButton'
 
-function isQuery(key: unknown, id: string | RegExp): boolean {
-  if (typeof key !== 'object' || key === null || !('_id' in key) || typeof key._id !== 'string') {
-    return false
-  }
-  return typeof id === 'string' ? key._id === id : id.test(key._id)
-}
-
-/** Optimistic favorite / played toggles for an item, kept in sync with the item and episode queries. */
-export function useUserDataToggles(userId: string, item: BaseItemDto) {
+/** Optimistic favorite / played mutations for an item, kept in sync with the item and episode queries. */
+function useUserDataToggles(userId: string, item: BaseItemDto) {
   const queryClient = useQueryClient()
   const itemId = item.Id ?? ''
   const { queryKey } = queries.item(userId, itemId)
@@ -27,7 +22,7 @@ export function useUserDataToggles(userId: string, item: BaseItemDto) {
   const apply = (patch: Partial<UserItemDataDto>) => {
     queryClient.setQueryData<BaseItemDto>(queryKey, (prev) => prev && patched(prev, patch))
     queryClient.setQueriesData<BaseItemDtoQueryResult>(
-      { predicate: (q) => isQuery(q.queryKey[0], 'getEpisodes') },
+      { predicate: (q) => isQuery(q.queryKey, 'getEpisodes') },
       (prev) =>
         prev?.Items?.some((it) => it.Id === itemId)
           ? { ...prev, Items: prev.Items.map((it) => (it.Id === itemId ? patched(it, patch) : it)) }
@@ -35,14 +30,7 @@ export function useUserDataToggles(userId: string, item: BaseItemDto) {
     )
   }
 
-  const settle = () => {
-    void queryClient.invalidateQueries({ queryKey })
-    void queryClient.invalidateQueries({
-      predicate: (q) =>
-        q.queryKey[0] === 'libraryItems' ||
-        isQuery(q.queryKey[0], /^get(ResumeItems|NextUp|LatestMedia|Episodes|Seasons|Items)$/),
-    })
-  }
+  const settle = () => void invalidateUserData(queryClient)
 
   const favorite = useMutation({
     mutationFn: async (next: boolean) => {
@@ -72,4 +60,38 @@ export function useUserDataToggles(userId: string, item: BaseItemDto) {
     toggleFavorite: () => favorite.mutate(!(item.UserData?.IsFavorite ?? false)),
     togglePlayed: () => played.mutate(!(item.UserData?.Played ?? false)),
   }
+}
+
+export interface UserDataTogglesProps {
+  userId: string
+  item: BaseItemDto
+  /** Icon size in px. */
+  size: number
+  /** Passed through to `IconToggle` for buttons sitting on artwork. */
+  onMedia?: boolean
+}
+
+/** Favorite and watched toggles for an item. */
+export function UserDataToggles({ userId, item, size, onMedia }: UserDataTogglesProps) {
+  const toggles = useUserDataToggles(userId, item)
+  return (
+    <>
+      <IconToggle
+        onMedia={onMedia}
+        aria-label={toggles.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        isSelected={toggles.isFavorite}
+        onChange={toggles.toggleFavorite}
+      >
+        <Heart size={size} weight={toggles.isFavorite ? 'fill' : 'regular'} />
+      </IconToggle>
+      <IconToggle
+        onMedia={onMedia}
+        aria-label={toggles.isPlayed ? 'Mark as unwatched' : 'Mark as watched'}
+        isSelected={toggles.isPlayed}
+        onChange={toggles.togglePlayed}
+      >
+        <Check size={size} weight="bold" />
+      </IconToggle>
+    </>
+  )
 }

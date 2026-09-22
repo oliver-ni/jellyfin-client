@@ -1,11 +1,10 @@
 import * as stylex from '@stylexjs/stylex'
 import { createLink, Link } from '@tanstack/react-router'
-import { Check, Heart, Play } from '@phosphor-icons/react'
+import { Check, Play } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
 import { useLayoutEffect, useRef, type Ref } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
-import { useUserDataToggles } from '@/hooks/useUserDataToggles'
 import {
   audioStreamLabel,
   formatDate,
@@ -25,7 +24,7 @@ import { text } from '@/theme/text'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 import { BlurImage } from './BlurImage'
 import { Facts } from './Facts'
-import { IconToggle } from './IconButton'
+import { UserDataToggles } from './UserDataToggles'
 
 export interface EpisodeListProps {
   episodes: readonly BaseItemDto[]
@@ -173,7 +172,6 @@ function EpisodeRow({ episode, userId, expanded }: EpisodeRowProps) {
 }
 
 function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: string }) {
-  const toggles = useUserDataToggles(userId, episode)
   const remaining = remainingMinutes(episode)
   const streams = episode.MediaStreams ?? []
   const video = streams.find((s) => s.Type === 'Video')
@@ -194,20 +192,7 @@ function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: str
           <Play size={16} weight="fill" />
           {remaining ? `Resume · ${remaining} min left` : 'Play'}
         </Link>
-        <IconToggle
-          aria-label={toggles.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          isSelected={toggles.isFavorite}
-          onChange={toggles.toggleFavorite}
-        >
-          <Heart size={16} weight={toggles.isFavorite ? 'fill' : 'regular'} />
-        </IconToggle>
-        <IconToggle
-          aria-label={toggles.isPlayed ? 'Mark as unwatched' : 'Mark as watched'}
-          isSelected={toggles.isPlayed}
-          onChange={toggles.togglePlayed}
-        >
-          <Check size={16} weight="bold" />
-        </IconToggle>
+        <UserDataToggles userId={userId} item={episode} size={16} />
       </div>
       <Facts items={facts} style={styles.facts} />
     </div>

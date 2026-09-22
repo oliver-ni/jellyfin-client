@@ -85,7 +85,7 @@ function withAuth(path: string, params: Record<string, string | undefined> = {})
   return url.toString()
 }
 
-export async function negotiatePlayback(
+async function negotiatePlayback(
   itemId: string,
   mediaSourceId: string | undefined,
   userId: string,
@@ -264,6 +264,21 @@ function toSubtitleTrack(s: MediaStream, itemId: string, ms: MediaSourceInfo): S
 const SEGMENT_TYPES = ['Intro', 'Outro', 'Recap', 'Preview', 'Commercial'] as const
 
 export const playbackQueries = {
+  /** Opens a server play session for `selection`; one per selection, never cached or persisted. */
+  session: (
+    itemId: string,
+    mediaSourceId: string | undefined,
+    userId: string,
+    selection: PlaybackSelection,
+  ) =>
+    queryOptions({
+      queryKey: ['playback-session', itemId, mediaSourceId, selection],
+      queryFn: ({ signal }) => negotiatePlayback(itemId, mediaSourceId, userId, selection, signal),
+      staleTime: Infinity,
+      gcTime: 0,
+      retry: false,
+      persister: undefined,
+    }),
   segments: (itemId: string) =>
     queryOptions({
       queryKey: ['segments', itemId],
