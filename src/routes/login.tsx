@@ -150,7 +150,7 @@ function CredentialsStep({ server, busy, error, onSubmit, onChangeServer }: Cred
   return (
     <Step
       title="Sign in"
-      subtitle={host(server.serverUrl)}
+      subtitle={onChangeServer && host(server.serverUrl)}
       error={error}
       footer={
         onChangeServer && (
@@ -194,7 +194,7 @@ function Submit({ label, isDisabled }: { label: string; isDisabled: boolean }) {
 
 interface StepLayoutProps {
   title: string
-  subtitle: string
+  subtitle?: ReactNode
   error: string | null
   footer?: ReactNode
   children: ReactNode
@@ -214,9 +214,11 @@ function Step({ title, subtitle, error, footer, children }: StepLayoutProps) {
       <m.h1 variants={fadeUp} {...stylex.props(styles.title)}>
         {title}
       </m.h1>
-      <m.p variants={fadeUp} {...stylex.props(styles.subtitle)}>
-        {subtitle}
-      </m.p>
+      {subtitle && (
+        <m.p variants={fadeUp} {...stylex.props(styles.subtitle)}>
+          {subtitle}
+        </m.p>
+      )}
       {children}
       <p role="alert" {...stylex.props(styles.error)}>
         {error}
