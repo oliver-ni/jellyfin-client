@@ -4,10 +4,10 @@ import { Play } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useRef } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
-import { opensItem, useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
+import { useMorphHandoff, useMorphTarget } from '@/hooks/useMorphTarget'
 import { episodeLabel } from '@/lib/format'
 import { itemImage, landscapeImage } from '@/lib/images'
-import { itemLink, landingId } from '@/lib/item-link'
+import { itemLink, landingId, opensLink } from '@/lib/item-link'
 import { fadeUp, springs, type MorphShape } from '@/lib/motion'
 import { media } from '@/theme/media'
 import { text } from '@/theme/text'
@@ -37,10 +37,10 @@ export function ItemCard({ item, shape = 'poster', width, showProgress }: ItemCa
   const progress = showProgress ? (item.UserData?.PlayedPercentage ?? 0) : 0
   const unplayed = item.UserData?.UnplayedItemCount
   const link = itemLink(item)
-  const morphId = landingId(link)
+  const morphId = landingId(item)
   const tile = useRef<HTMLDivElement>(null)
   const source = useMorphTarget(morphId, shape, tile)
-  useMorphHandoff(tile, morphId, shape, image?.url, (to) => opensItem(to, morphId))
+  useMorphHandoff(tile, morphId, shape, image?.url, (to) => opensLink(to, link))
 
   return (
     <m.div

@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeCode, formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
 import { backdropImage, logoImage } from '@/lib/images'
-import { itemLink } from '@/lib/item-link'
+import { itemLink, playLink } from '@/lib/item-link'
 import { fadeUp, stagger, vanish } from '@/lib/motion'
 import { focus } from '@/theme/focus'
 import { media, playPill } from '@/theme/media'
@@ -110,8 +110,7 @@ export function Hero({ item, eyebrow, children }: HeroProps) {
           )}
           <m.div variants={fadeUp} {...stylex.props(styles.actions)}>
             <Link
-              to={playable ? '/play/$itemId' : '/items/$itemId'}
-              params={{ itemId }}
+              {...(playable ? playLink(item) : itemLink(item))}
               {...stylex.props(focus.ring, playPill.base)}
             >
               <Play size={18} weight="fill" />

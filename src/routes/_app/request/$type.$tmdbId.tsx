@@ -8,6 +8,7 @@ import { Button } from '@/components/Button'
 import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
 import { SeasonTabs } from '@/components/SeasonTabs'
+import { titleLink } from '@/lib/item-link'
 import { fadeUp, stagger } from '@/lib/motion'
 import { defaultSeason, seasonEntries } from '@/lib/seasons'
 import * as seerr from '@/seerr/api'
@@ -65,8 +66,7 @@ function RequestPage() {
   }
   if (!title.data) return <div {...stylex.props(detail.heroSkeleton)} />
   const t = title.data
-  if (t.jellyfinId)
-    return <Navigate to="/items/$itemId" params={{ itemId: t.jellyfinId }} replace />
+  if (t.jellyfinId) return <Navigate {...titleLink(t.jellyfinId, t.name)} replace />
 
   return (
     <article {...stylex.props(detail.page)}>
@@ -150,7 +150,7 @@ function HeroAction({ title }: { title: seerr.MovieDetails | seerr.TvDetails }) 
 /** Every season as a tab, each with its state and a request where Seerr still allows one. */
 function Seasons({ title }: { title: seerr.TvDetails }) {
   const entries = seasonEntries([], title)
-  const [selected, setSelected] = useState<string>()
+  const [selected, setSelected] = useState<number>()
   const active = defaultSeason(entries, selected)
   if (!active) return null
   return (

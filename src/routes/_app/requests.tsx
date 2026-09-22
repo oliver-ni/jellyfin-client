@@ -6,6 +6,7 @@ import { BlurImage } from '@/components/BlurImage'
 import { Button } from '@/components/Button'
 import { Notice } from '@/components/Notice'
 import { Segmented } from '@/components/Segmented'
+import { titleLink } from '@/lib/item-link'
 import { fadeUp } from '@/lib/motion'
 import {
   DONE_RANK,
@@ -145,7 +146,7 @@ function RequestRow({
   requester: string | null
 }) {
   const link = r.jellyfinId
-    ? ({ to: '/items/$itemId', params: { itemId: r.jellyfinId } } as const)
+    ? titleLink(r.jellyfinId, title?.name)
     : ({ to: '/request/$type/$tmdbId', params: { type: r.type, tmdbId: r.tmdbId } } as const)
   return (
     <li>

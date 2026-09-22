@@ -17,6 +17,7 @@ import {
 import { SearchPalette } from '@/components/SearchPalette'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
 import { logout } from '@/lib/auth'
+import { libraryLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { getSession, useSession, type Session } from '@/lib/session'
@@ -102,7 +103,7 @@ function TopNav({ session }: { session: Session }) {
       <nav aria-label="Libraries" {...stylex.props(glass.surface, styles.links)}>
         <NavLink to="/">Home</NavLink>
         {libraries.map((lib) => (
-          <NavLink key={lib.Id} to="/library/$libraryId" libraryId={lib.Id ?? ''}>
+          <NavLink key={lib.Id} {...libraryLink(lib)}>
             {lib.Name}
           </NavLink>
         ))}
@@ -199,15 +200,14 @@ function TopNav({ session }: { session: Session }) {
 }
 
 type NavLinkProps = { children: ReactNode } & (
-  | { to: '/' | '/requests'; libraryId?: undefined }
-  | { to: '/library/$libraryId'; libraryId: string }
+  | { to: '/' | '/requests'; params?: undefined }
+  | ReturnType<typeof libraryLink>
 )
 
 function NavLink({ children, ...target }: NavLinkProps) {
-  const link =
-    target.to === '/library/$libraryId'
-      ? ({ to: target.to, params: { libraryId: target.libraryId } } as const)
-      : ({ to: target.to, activeOptions: { exact: true, includeSearch: false } } as const)
+  const link = target.params
+    ? target
+    : ({ to: target.to, activeOptions: { exact: true, includeSearch: false } } as const)
   return (
     <Link {...link} {...stylex.props(focus.ring, styles.link)}>
       {({ isActive }) => (

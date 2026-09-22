@@ -10,12 +10,11 @@ import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export interface RailProps {
   title: string
-  linkTo?: LinkProps['to']
-  linkParams?: LinkProps['params']
+  link?: Pick<LinkProps, 'to' | 'params'>
   children: ReactNode
 }
 
-export function Rail({ title, linkTo, linkParams, children }: RailProps) {
+export function Rail({ title, link, children }: RailProps) {
   const scroller = useRef<HTMLDivElement>(null)
 
   function scrollBy(dir: -1 | 1) {
@@ -32,8 +31,8 @@ export function Rail({ title, linkTo, linkParams, children }: RailProps) {
       {...stylex.props(styles.section, railMarker)}
     >
       <m.header variants={fadeUp} {...stylex.props(styles.header)}>
-        {linkTo ? (
-          <Link to={linkTo} params={linkParams} {...stylex.props(focus.ring, styles.titleLink)}>
+        {link ? (
+          <Link {...link} {...stylex.props(focus.ring, styles.titleLink)}>
             <h2 {...stylex.props(styles.title)}>{title}</h2>
             <CaretRight size={16} {...stylex.props(styles.titleChevron)} />
           </Link>

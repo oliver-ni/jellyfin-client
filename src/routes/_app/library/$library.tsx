@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { hashKey, useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, notFound } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp } from '@phosphor-icons/react'
 import { AnimatePresence } from 'motion/react'
 import { useCallback } from 'react'
@@ -11,6 +11,7 @@ import { ItemGrid } from '@/components/ItemGrid'
 import { Notice } from '@/components/Notice'
 import { Select } from '@/components/Select'
 import { useSettled } from '@/hooks/useSettled'
+import { idFromHandle } from '@/lib/handle'
 import {
   SORT_OPTIONS,
   activeFilterCount,
@@ -30,15 +31,20 @@ import { glass } from '@/theme/glass'
 import { toolbarControl } from '@/theme/toolbar'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
-export const Route = createFileRoute('/_app/library/$libraryId')({
+export const Route = createFileRoute('/_app/library/$library')({
   validateSearch: validateLibrarySearch,
+  loader: ({ params }) => {
+    const id = idFromHandle(params.library)
+    if (!id) throw notFound()
+    return { id }
+  },
   component: LibraryPage,
 })
 
 const SORT_CHOICES = SORT_OPTIONS.map((o) => ({ key: o.key, label: o.label }))
 
 function LibraryPage() {
-  const { libraryId } = Route.useParams()
+  const { id: libraryId } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const { userId } = useRequiredSession()

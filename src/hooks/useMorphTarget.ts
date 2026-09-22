@@ -11,10 +11,6 @@ import {
   type MorphSource,
 } from '@/lib/motion'
 
-/** Whether `to` opens the page, or the expanded episode row, for `itemId`. */
-export const opensItem = (to: ParsedLocation, itemId: string) =>
-  to.pathname === `/items/${itemId}` || ('episode' in to.search && to.search.episode === itemId)
-
 /**
  * Offers `ref` as the morph origin for `itemId` whenever a navigation passes `when`, measured
  * before the navigation commits so the element is still where the user sees it. Works for

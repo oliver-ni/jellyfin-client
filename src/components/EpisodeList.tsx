@@ -17,6 +17,7 @@ import {
   videoStreamLabel,
 } from '@/lib/format'
 import { landscapeImage } from '@/lib/images'
+import { itemLink, onPage, playLink } from '@/lib/item-link'
 import { fadeUp, springs, stagger, vanish } from '@/lib/motion'
 import { focus } from '@/theme/focus'
 import { media, playPill } from '@/theme/media'
@@ -29,10 +30,8 @@ import { IconToggle } from './IconButton'
 export interface EpisodeListProps {
   episodes: readonly BaseItemDto[]
   userId: string
-  seriesId: string
-  seasonId: string
-  /** Episode whose details are open in place. */
-  expandedId?: string
+  /** Number of the episode whose details are open in place. */
+  expanded?: number
   /** Root element; needed by `AnimatePresence mode="popLayout"` to take an exiting list out of flow. */
   ref?: Ref<HTMLOListElement>
 }
@@ -41,14 +40,7 @@ const STILL_WIDTH = 224
 
 const MotionLink = createLink(m.a)
 
-export function EpisodeList({
-  episodes,
-  userId,
-  seriesId,
-  seasonId,
-  expandedId,
-  ref,
-}: EpisodeListProps) {
+export function EpisodeList({ episodes, userId, expanded, ref }: EpisodeListProps) {
   return (
     <m.ol
       ref={ref}
@@ -63,9 +55,7 @@ export function EpisodeList({
           key={ep.Id}
           episode={ep}
           userId={userId}
-          seriesId={seriesId}
-          seasonId={seasonId}
-          expanded={ep.Id === expandedId}
+          expanded={expanded !== undefined && ep.IndexNumber === expanded}
         />
       ))}
     </m.ol>
@@ -75,14 +65,12 @@ export function EpisodeList({
 interface EpisodeRowProps {
   episode: BaseItemDto
   userId: string
-  seriesId: string
-  seasonId: string
   expanded: boolean
 }
 
-function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRowProps) {
+function EpisodeRow({ episode, userId, expanded }: EpisodeRowProps) {
   const id = episode.Id ?? ''
-  const seriesPath = `/items/${seriesId}`
+  const link = itemLink(episode)
   const still = landscapeImage(episode, STILL_WIDTH * 2)
   const progress = episode.UserData?.PlayedPercentage ?? 0
   const played = episode.UserData?.Played ?? false
@@ -92,7 +80,7 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
     .join('  ·  ')
   const stillRef = useRef<HTMLAnchorElement>(null)
   const source = useMorphTarget(id, 'landscape', stillRef)
-  useMorphHandoff(stillRef, id, 'landscape', still?.url, (to) => to.pathname !== seriesPath)
+  useMorphHandoff(stillRef, id, 'landscape', still?.url, (to) => !onPage(to, link))
   const rowRef = useRef<HTMLLIElement>(null)
 
   useEffect(() => {
@@ -119,8 +107,7 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
       <MotionLink
         ref={stillRef}
         data-morph={id}
-        to="/play/$itemId"
-        params={{ itemId: id }}
+        {...playLink(episode)}
         aria-label={`Play ${episode.Name ?? 'episode'}`}
         {...stylex.props(focus.ring, styles.still)}
       >
@@ -143,9 +130,8 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
       </MotionLink>
       <div {...stylex.props(styles.body)}>
         <Link
-          to="/items/$itemId"
-          params={{ itemId: seriesId }}
-          search={{ season: seasonId, episode: expanded ? undefined : id }}
+          {...link}
+          search={expanded ? { season: link.search.season } : link.search}
           replace
           resetScroll={false}
           aria-expanded={expanded}
@@ -180,7 +166,6 @@ function EpisodeRow({ episode, userId, seriesId, seasonId, expanded }: EpisodeRo
 }
 
 function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: string }) {
-  const id = episode.Id ?? ''
   const toggles = useUserDataToggles(userId, episode)
   const remaining = remainingMinutes(episode)
   const streams = episode.MediaStreams ?? []
@@ -198,11 +183,7 @@ function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: str
   return (
     <div {...stylex.props(styles.detailsInner)}>
       <div {...stylex.props(styles.actions)}>
-        <Link
-          to="/play/$itemId"
-          params={{ itemId: id }}
-          {...stylex.props(focus.ring, playPill.base, playPill.small)}
-        >
+        <Link {...playLink(episode)} {...stylex.props(focus.ring, playPill.base, playPill.small)}>
           <Play size={16} weight="fill" />
           {remaining ? `Resume · ${remaining} min left` : 'Play'}
         </Link>

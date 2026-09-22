@@ -5,6 +5,7 @@ import type { BaseItemDto } from '@/api/gen/types.gen'
 import { useUserDataToggles } from '@/hooks/useUserDataToggles'
 import { formatRuntime, itemKindLabel, remainingMinutes } from '@/lib/format'
 import { backdropImage, itemImage, logoImage } from '@/lib/images'
+import { playLink } from '@/lib/item-link'
 import { focus } from '@/theme/focus'
 import { playPill } from '@/theme/media'
 import { DetailHero } from './DetailHero'
@@ -47,7 +48,7 @@ export function ItemHero({ item, userId }: { item: BaseItemDto; userId: string }
       genres={item.Genres ?? []}
     >
       {(item.Type === 'Movie' || isSeries) && (
-        <Link to="/play/$itemId" params={{ itemId }} {...stylex.props(focus.ring, playPill.base)}>
+        <Link {...playLink(item)} {...stylex.props(focus.ring, playPill.base)}>
           <Play size={18} weight="fill" />
           {remaining ? `Resume · ${remaining} min left` : 'Play'}
         </Link>

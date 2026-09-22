@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router'
 import { AnimatePresence, motion as m } from 'motion/react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { Button } from '@/components/Button'
@@ -14,6 +14,8 @@ import { Rail } from '@/components/Rail'
 import { SeasonTabs } from '@/components/SeasonTabs'
 import { useSettled } from '@/hooks/useSettled'
 import { plainText } from '@/lib/format'
+import { idFromHandle } from '@/lib/handle'
+import { itemLink } from '@/lib/item-link'
 import { fadeUp, stagger } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { defaultSeason, newsFor, seasonEntries } from '@/lib/seasons'
@@ -24,18 +26,18 @@ import { SeasonStatus } from '@/seerr/SeasonStatus'
 import { detail } from '@/theme/detail'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
+/** Season and episode numbers, as on the tabs and rows. */
 export interface ItemSearch {
-  season?: string
-  episode?: string
+  season?: number
+  episode?: number
 }
 
-const str = (v: unknown) =>
-  typeof v === 'number' ? String(v) : typeof v === 'string' && v ? v : undefined
+const num = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) ? v : undefined)
 
-export const Route = createFileRoute('/_app/items/$itemId')({
+export const Route = createFileRoute('/_app/$title')({
   validateSearch: (raw: Record<string, unknown>): ItemSearch => ({
-    season: str(raw.season),
-    episode: str(raw.episode),
+    season: num(raw.season),
+    episode: num(raw.episode),
   }),
   loaderDeps: ({ search }) => search,
   // Resolve the item (and, for a deep-linked episode, its season's rows) before the route
@@ -43,42 +45,33 @@ export const Route = createFileRoute('/_app/items/$itemId')({
   // Seasons and episodes have no page of their own: they land on the series with that
   // tab/row open.
   loader: async ({ context: { queryClient }, params, deps }) => {
+    const id = idFromHandle(params.title)
+    if (!id) throw notFound()
     const session = getSession()
-    if (!session) return
+    if (!session) return { id }
     const { userId } = session
-    const item = await queryClient
-      .ensureQueryData(queries.item(userId, params.itemId))
-      .catch(() => null)
-    if (item?.Type === 'Season' && item.SeriesId) {
-      throw redirect({
-        to: '/items/$itemId',
-        params: { itemId: item.SeriesId },
-        search: { season: item.Id ?? undefined },
-        replace: true,
-      })
+    const item = await queryClient.ensureQueryData(queries.item(userId, id)).catch(() => null)
+    if (item?.SeriesId && (item.Type === 'Season' || item.Type === 'Episode')) {
+      throw redirect({ ...itemLink(item), replace: true })
     }
-    if (item?.Type === 'Episode' && item.SeriesId) {
-      throw redirect({
-        to: '/items/$itemId',
-        params: { itemId: item.SeriesId },
-        search: { season: item.SeasonId ?? undefined, episode: item.Id ?? undefined },
-        replace: true,
-      })
+    if (item?.Type === 'Series' && deps.season !== undefined && deps.episode !== undefined) {
+      const seasons = await queryClient
+        .ensureQueryData(queries.seasons(userId, id))
+        .catch(() => null)
+      const season = seasons?.Items?.find((s) => s.IndexNumber === deps.season)
+      if (season?.Id) {
+        await queryClient.ensureQueryData(queries.episodes(userId, id, season.Id)).catch(() => null)
+      }
     }
-    if (item?.Type === 'Series' && deps.season && deps.episode) {
-      await Promise.all([
-        queryClient.ensureQueryData(queries.seasons(userId, params.itemId)),
-        queryClient.ensureQueryData(queries.episodes(userId, params.itemId, deps.season)),
-      ]).catch(() => null)
-    }
+    return { id }
   },
   component: ItemPage,
 })
 
 function ItemPage() {
-  const { itemId } = Route.useParams()
+  const { id } = Route.useLoaderData()
   const { userId } = useRequiredSession()
-  const item = useQuery(queries.item(userId, itemId))
+  const item = useQuery(queries.item(userId, id))
 
   if (item.isError) {
     return (
@@ -94,7 +87,7 @@ function ItemPage() {
   }
   if (!item.data) return <div {...stylex.props(detail.heroSkeleton)} />
 
-  return <ItemDetail key={itemId} item={item.data} userId={userId} />
+  return <ItemDetail key={id} item={item.data} userId={userId} />
 }
 
 function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
@@ -146,8 +139,7 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
 function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string }) {
   const { season: selected, episode } = Route.useSearch()
   const navigate = useNavigate()
-  const seriesId = series.Id ?? ''
-  const seasons = useQuery(queries.seasons(userId, seriesId))
+  const seasons = useQuery(queries.seasons(userId, series.Id ?? ''))
   const title = useSeerrSeries(Number(series.ProviderIds?.Tmdb) || null)
   const entries = seasonEntries(seasons.data?.Items ?? [], title)
   const active = defaultSeason(entries, selected)
@@ -161,8 +153,7 @@ function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string
       selected={active}
       onSelect={(season) =>
         void navigate({
-          to: '/items/$itemId',
-          params: { itemId: seriesId },
+          ...itemLink(series),
           search: { season },
           replace: true,
           resetScroll: false,
@@ -176,12 +167,7 @@ function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string
         return (
           <div {...stylex.props(styles.season)}>
             {news && <SeasonStatus season={news} owned={entry.item.ChildCount ?? 0} />}
-            <Episodes
-              userId={userId}
-              seriesId={seriesId}
-              seasonId={entry.key}
-              expandedId={episode}
-            />
+            <Episodes userId={userId} season={entry.item} expanded={episode} />
           </div>
         )
       }}
@@ -191,21 +177,19 @@ function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string
 
 function Episodes({
   userId,
-  seriesId,
-  seasonId,
-  expandedId,
+  season,
+  expanded,
 }: {
   userId: string
-  seriesId: string
-  seasonId: string
-  expandedId?: string
+  season: BaseItemDto
+  expanded?: number
 }) {
   // Switching seasons keeps the current rows on screen until the new season arrives.
   const episodes = useQuery({
-    ...queries.episodes(userId, seriesId, seasonId),
+    ...queries.episodes(userId, season.SeriesId ?? '', season.Id ?? ''),
     placeholderData: keepPreviousData,
   })
-  const shownSeasonId = useSettled(seasonId, !episodes.isPlaceholderData)
+  const shown = useSettled(season.Id, !episodes.isPlaceholderData)
   const list = episodes.data?.Items ?? []
 
   if (episodes.isPending) return <div {...stylex.props(styles.listSkeleton)} />
@@ -213,14 +197,7 @@ function Episodes({
   if (list.length === 0) return <Notice title="No episodes" />
   return (
     <AnimatePresence mode="popLayout">
-      <EpisodeList
-        key={shownSeasonId}
-        episodes={list}
-        userId={userId}
-        seriesId={seriesId}
-        seasonId={shownSeasonId}
-        expandedId={expandedId}
-      />
+      <EpisodeList key={shown} episodes={list} userId={userId} expanded={expanded} />
     </AnimatePresence>
   )
 }

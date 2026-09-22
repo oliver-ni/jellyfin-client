@@ -4,7 +4,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { HeroCarousel, type HeroSlide } from '@/components/HeroCarousel'
 import { ItemCard } from '@/components/ItemCard'
-import { Rail } from '@/components/Rail'
+import { Rail, type RailProps } from '@/components/Rail'
+import { libraryLink } from '@/lib/item-link'
 import type { MorphShape } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { getSession, useRequiredSession } from '@/lib/session'
@@ -78,8 +79,7 @@ function HomePage() {
             items={latest[i]?.data}
             loading={latest[i]?.isPending ?? true}
             shape="poster"
-            linkTo="/library/$libraryId"
-            linkParams={{ libraryId: lib.Id ?? '' }}
+            link={libraryLink(lib)}
           />
         ))}
       </div>
@@ -118,23 +118,14 @@ interface MediaRailProps {
   loading: boolean
   shape: MorphShape
   showProgress?: boolean
-  linkTo?: '/library/$libraryId'
-  linkParams?: { libraryId: string }
+  link?: RailProps['link']
 }
 
-function MediaRail({
-  title,
-  items,
-  loading,
-  shape,
-  showProgress,
-  linkTo,
-  linkParams,
-}: MediaRailProps) {
+function MediaRail({ title, items, loading, shape, showProgress, link }: MediaRailProps) {
   const width = shape === 'poster' ? POSTER_W : LANDSCAPE_W
   if (!loading && !items?.length) return null
   return (
-    <Rail title={title} linkTo={linkTo} linkParams={linkParams}>
+    <Rail title={title} link={link}>
       {loading && !items
         ? Array.from({ length: 8 }, (_, i) => (
             <div

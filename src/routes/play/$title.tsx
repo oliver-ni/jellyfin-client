@@ -1,9 +1,11 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
+import { createFileRoute, notFound, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { episodeCode } from '@/lib/format'
+import { idFromHandle } from '@/lib/handle'
+import { itemLink, playLink } from '@/lib/item-link'
 import { queries } from '@/lib/queries'
 import {
   AUTO_QUALITY,
@@ -24,7 +26,7 @@ import { getSession, useRequiredSession } from '@/lib/session'
 import { Player, type PlaybackSnapshot, type PlayerSource, type ProgressReason } from '@/player'
 import { fonts } from '@/theme/tokens.stylex'
 
-export const Route = createFileRoute('/play/$itemId')({
+export const Route = createFileRoute('/play/$title')({
   beforeLoad: ({ location }) => {
     if (!getSession()) {
       throw redirect({ to: '/login', search: { redirect: location.href } })
@@ -32,41 +34,43 @@ export const Route = createFileRoute('/play/$itemId')({
   },
   // A series has no stream of its own; play its next-up episode instead.
   loader: async ({ context: { queryClient }, params }) => {
+    const id = idFromHandle(params.title)
+    if (!id) throw notFound()
     const session = getSession()
-    if (!session) return
+    if (!session) return { id }
     const item = await queryClient
-      .ensureQueryData(queries.item(session.userId, params.itemId))
+      .ensureQueryData(queries.item(session.userId, id))
       .catch(() => null)
-    if (item?.Type !== 'Series') return
-    const episode = await seriesStartEpisode(session.userId, params.itemId).catch(() => null)
-    if (episode?.Id) {
-      throw redirect({ to: '/play/$itemId', params: { itemId: episode.Id }, replace: true })
-    }
+    if (item?.Type !== 'Series') return { id }
+    const episode = await seriesStartEpisode(session.userId, id).catch(() => null)
+    if (episode) throw redirect({ ...playLink(episode), replace: true })
+    return { id }
   },
   component: PlayPage,
 })
 
 function PlayPage() {
-  const { itemId } = Route.useParams()
+  const { id } = Route.useLoaderData()
   const { userId } = useRequiredSession()
   // The resume position must come from the server now, not from a cached card.
-  const item = useQuery({ ...queries.item(userId, itemId), staleTime: 0 })
-  const back = useBack(itemId)
+  const item = useQuery({ ...queries.item(userId, id), staleTime: 0 })
+  const back = useBack(item.data)
 
   if (item.isError) {
     return <Fallback message="This title could not be loaded." onBack={back} />
   }
   if (!item.data || !item.isFetchedAfterMount) return <Fallback />
-  return <ItemPlayer key={itemId} item={item.data} userId={userId} onBack={back} />
+  return <ItemPlayer key={id} item={item.data} userId={userId} onBack={back} />
 }
 
-function useBack(itemId: string) {
+/** Leaves the player: back in history, or to the title's page when this tab opened on it. */
+function useBack(item: BaseItemDto | undefined) {
   const router = useRouter()
   const navigate = useNavigate()
   return useCallback(() => {
     if (router.history.canGoBack()) router.history.back()
-    else void navigate({ to: '/items/$itemId', params: { itemId }, replace: true })
-  }, [router, navigate, itemId])
+    else void navigate({ ...(item ? itemLink(item) : { to: '/' }), replace: true })
+  }, [router, navigate, item])
 }
 
 interface ItemPlayerProps {
@@ -199,9 +203,9 @@ function ItemPlayer({ item, userId, onBack }: ItemPlayerProps) {
 
   const next = useMemo(() => toNextItem(nextEpisode.data), [nextEpisode.data])
   const onNext = useCallback(() => {
-    const id = nextEpisode.data?.Id
-    if (id) void navigate({ to: '/play/$itemId', params: { itemId: id }, replace: true })
-  }, [navigate, nextEpisode.data?.Id])
+    const episode = nextEpisode.data
+    if (episode) void navigate({ ...playLink(episode), replace: true })
+  }, [navigate, nextEpisode.data])
 
   const playerSegments = useMemo(
     () => toSegments(segments.data ?? [], source?.duration, Boolean(next)),

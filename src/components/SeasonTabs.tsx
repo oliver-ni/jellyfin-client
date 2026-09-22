@@ -35,23 +35,23 @@ export function SeasonTabs({
 }: {
   entries: SeasonEntry[]
   selected: SeasonEntry
-  onSelect: (key: string) => void
+  onSelect: (number: number) => void
   children: (entry: SeasonEntry) => ReactNode
 }) {
   return (
     <Tabs
-      selectedKey={selected.key}
-      onSelectionChange={(key) => onSelect(String(key))}
+      selectedKey={selected.number}
+      onSelectionChange={(key) => onSelect(Number(key))}
       {...stylex.props(styles.section)}
     >
       <TabList aria-label="Seasons" {...stylex.props(styles.tabs)}>
         {entries.map((e) => {
-          const active = e.key === selected.key
+          const active = e.number === selected.number
           const Hint = hint(e)
           return (
             <Tab
-              key={e.key}
-              id={e.key}
+              key={e.number}
+              id={e.number}
               {...stylex.props(
                 focus.ring,
                 styles.tab,
@@ -82,7 +82,7 @@ export function SeasonTabs({
           )
         })}
       </TabList>
-      <TabPanel id={selected.key}>{children(selected)}</TabPanel>
+      <TabPanel id={selected.number}>{children(selected)}</TabPanel>
     </Tabs>
   )
 }
