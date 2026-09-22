@@ -207,7 +207,7 @@ function NavLink({ children, ...target }: NavLinkProps) {
   const link =
     target.to === '/library/$libraryId'
       ? ({ to: target.to, params: { libraryId: target.libraryId } } as const)
-      : ({ to: target.to, activeOptions: { exact: true } } as const)
+      : ({ to: target.to, activeOptions: { exact: true, includeSearch: false } } as const)
   return (
     <Link {...link} {...stylex.props(focus.ring, styles.link)}>
       {({ isActive }) => (

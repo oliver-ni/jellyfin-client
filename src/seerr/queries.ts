@@ -2,9 +2,6 @@ import { queryOptions, useQuery } from '@tanstack/react-query'
 import { queryClient } from '@/lib/query'
 import * as seerr from './api'
 
-/** Connection state mirrors a cookie session, so it is probed per page load, never persisted. */
-const live = { retry: false, persister: undefined }
-
 /**
  * Everything Seerr serves behind its session goes through here: a rejected session flips
  * `me` to `null`, so every screen falls back to the gate from that one query.
@@ -31,15 +28,16 @@ export const seerrQueries = {
     queryOptions({
       queryKey: ['seerr', 'configured'],
       queryFn: seerr.isConfigured,
-      staleTime: Infinity,
-      ...live,
+      staleTime: 5 * 60_000,
+      retry: false,
     }),
+  /** Cached like the rest so the shell renders signed-in at once; a 401 anywhere corrects it. */
   me: () =>
     queryOptions({
       queryKey: ['seerr', 'me'],
       queryFn: seerr.me,
       staleTime: 5 * 60_000,
-      ...live,
+      retry: false,
     }),
   search: (query: string) =>
     queryOptions({
@@ -61,7 +59,7 @@ export const seerrQueries = {
       queryKey: ['seerr', 'requests', userId ?? 'all'],
       queryFn: () => withSession(() => seerr.requests(userId)),
       refetchInterval: 15_000,
-      ...live,
+      retry: false,
     }),
 }
 

@@ -116,6 +116,12 @@ export interface Request {
   downloads: Download[]
 }
 
+/** Whether a request has reached a state Seerr will no longer move it out of. */
+export const settled = (r: Request) =>
+  r.status === 'completed' ||
+  r.status === 'declined' ||
+  (r.status === 'approved' && r.availability === 'available')
+
 export class SeerrError extends Error {
   status: number
   constructor(status: number, message: string) {

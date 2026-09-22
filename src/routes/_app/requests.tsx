@@ -6,9 +6,10 @@ import { BlurImage } from '@/components/BlurImage'
 import { Button } from '@/components/Button'
 import { Notice } from '@/components/Notice'
 import { Segmented } from '@/components/Segmented'
-import { fadeUp, stagger } from '@/lib/motion'
+import { fadeUp } from '@/lib/motion'
 import {
   canViewAllRequests,
+  settled,
   type Download,
   type MediaType,
   type Request,
@@ -51,6 +52,20 @@ function RequestList({ user }: { user: SeerrUser }) {
       byKey: new Map(results.flatMap((t) => (t.data ? [[titleKey(t.data), t.data] as const] : []))),
     }),
   })
+  const active = requests.data?.filter((r) => !settled(r)) ?? []
+  const done = requests.data?.filter(settled) ?? []
+  const rows = (list: Request[]) => (
+    <ul {...stylex.props(styles.list)}>
+      {list.map((r) => (
+        <RequestRow
+          key={r.id}
+          request={r}
+          title={titles.byKey.get(titleKey(r))}
+          requester={everyone ? r.requestedBy : null}
+        />
+      ))}
+    </ul>
+  )
 
   return (
     <div {...stylex.props(styles.page)}>
@@ -83,22 +98,21 @@ function RequestList({ user }: { user: SeerrUser }) {
           text="Search with / for something the library is missing and request it."
         />
       ) : requests.data && !titles.pending ? (
-        <m.ul
+        <m.div
           key={String(everyone)}
           initial="hidden"
           animate="show"
-          variants={stagger()}
-          {...stylex.props(styles.list)}
+          variants={fadeUp}
+          {...stylex.props(styles.groups)}
         >
-          {requests.data.map((r) => (
-            <RequestRow
-              key={r.id}
-              request={r}
-              title={titles.byKey.get(titleKey(r))}
-              requester={everyone ? r.requestedBy : null}
-            />
-          ))}
-        </m.ul>
+          {active.length > 0 && rows(active)}
+          {done.length > 0 && (
+            <section {...stylex.props(styles.group)}>
+              <h2 {...stylex.props(styles.groupTitle)}>Done</h2>
+              {rows(done)}
+            </section>
+          )}
+        </m.div>
       ) : null}
     </div>
   )
@@ -161,7 +175,7 @@ function RequestRow({
     : ({ to: '/request/$type/$tmdbId', params: { type: r.type, tmdbId: r.tmdbId } } as const)
   const download = progress(r.downloads)
   return (
-    <m.li variants={fadeUp}>
+    <li>
       <Link {...link} {...stylex.props(focus.ring, styles.row)}>
         <BlurImage src={title?.poster} alt="" style={styles.poster} />
         <span {...stylex.props(styles.copy)}>
@@ -191,7 +205,7 @@ function RequestRow({
           )}
         </span>
       </Link>
-    </m.li>
+    </li>
   )
 }
 
@@ -227,6 +241,22 @@ const styles = stylex.create({
   filters: {
     marginLeft: 'auto',
     alignSelf: 'center',
+  },
+  groups: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: space.xl,
+  },
+  group: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: space.sm,
+  },
+  groupTitle: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: colors.textFaint,
+    letterSpacing: '0.02em',
   },
   list: {
     display: 'flex',
