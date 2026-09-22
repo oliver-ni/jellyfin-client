@@ -1,9 +1,9 @@
 import * as stylex from '@stylexjs/stylex'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Navigate, createFileRoute, notFound } from '@tanstack/react-router'
-import { Check, Plus, Prohibit } from '@phosphor-icons/react'
+import { Check, Prohibit } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/Button'
 import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
@@ -15,10 +15,11 @@ import { Gate } from '@/seerr/Gate'
 import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL } from '@/seerr/labels'
 import { MissingSeason } from '@/seerr/MissingSeason'
 import { Progress } from '@/seerr/Progress'
-import { requestTitle, seerrQueries, useSeerr } from '@/seerr/queries'
+import { seerrQueries, useSeerr } from '@/seerr/queries'
+import { RequestButton } from '@/seerr/RequestButton'
 import { detail } from '@/theme/detail'
 import { playPill } from '@/theme/media'
-import { colors, radii, space } from '@/theme/tokens.stylex'
+import { space } from '@/theme/tokens.stylex'
 
 /**
  * A film or series the library lacks, as Seerr knows it. Titles Seerr has matched to a
@@ -120,16 +121,16 @@ function HeroAction({ title }: { title: seerr.MovieDetails | seerr.TvDetails }) 
   if (title.type === 'tv') {
     const open = seerr.openSeasons(title)
     return open.length > 1 ? (
-      <RequestAction title={title} seasons={open.map((s) => s.number)}>
+      <RequestButton title={title} seasons={open.map((s) => s.number)} size="lg">
         Request all {open.length} seasons
-      </RequestAction>
+      </RequestButton>
     ) : null
   }
   if (seerr.requestable(title.availability)) {
     return (
-      <RequestAction title={title} seasons={[]}>
+      <RequestButton title={title} seasons={[]} size="lg">
         Request
-      </RequestAction>
+      </RequestButton>
     )
   }
   const label = AVAILABILITY_LABEL[title.availability]
@@ -143,33 +144,6 @@ function HeroAction({ title }: { title: seerr.MovieDetails | seerr.TvDetails }) 
       )}
       {label}
     </span>
-  )
-}
-
-function RequestAction({
-  title,
-  seasons,
-  children,
-}: {
-  title: seerr.Title
-  seasons: number[]
-  children: ReactNode
-}) {
-  const request = useMutation({ mutationFn: () => requestTitle(title, seasons) })
-  return (
-    <div {...stylex.props(styles.actionGroup)}>
-      <Button
-        variant="primary"
-        size="lg"
-        style={styles.requestButton}
-        isPending={request.isPending}
-        onPress={() => request.mutate()}
-      >
-        <Plus size={18} weight="bold" />
-        {request.isPending ? 'Requesting…' : children}
-      </Button>
-      {request.isError && <span {...stylex.props(styles.error)}>{request.error.message}</span>}
-    </div>
   )
 }
 
@@ -193,19 +167,6 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.xxl,
-  },
-  requestButton: {
-    height: 46,
-    borderRadius: radii.full,
-  },
-  actionGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: space.md,
-  },
-  error: {
-    fontSize: 13,
-    color: colors.danger,
   },
   progress: {
     maxWidth: 480,

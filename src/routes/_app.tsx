@@ -233,6 +233,7 @@ const styles = stylex.create({
     minHeight: '100dvh',
     display: 'flex',
     flexDirection: 'column',
+    backgroundColor: colors.bg,
   },
   nav: {
     position: 'fixed',

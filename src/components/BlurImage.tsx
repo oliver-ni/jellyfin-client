@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { colors, motion } from '@/theme/tokens.stylex'
 
 const blurCache = new Map<string, string>()
+/** Sources that have decoded once anywhere; they paint at once instead of fading in again. */
+const loadedSrcs = new Set<string>()
 
 function blurhashToDataUrl(hash: string): string {
   const cached = blurCache.get(hash)
@@ -44,7 +46,11 @@ export function BlurImage({
   fetchPriority,
 }: BlurImageProps) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
-  const loaded = loadedSrc === src
+  const loaded = !!src && (loadedSrc === src || loadedSrcs.has(src))
+  const onLoad = (url: string) => {
+    loadedSrcs.add(url)
+    setLoadedSrc(url)
+  }
 
   const placeholder = blurhash ? blurhashToDataUrl(blurhash) : undefined
 
@@ -66,7 +72,7 @@ export function BlurImage({
         <img
           key={src}
           ref={(img) => {
-            if (img?.complete && img.naturalWidth > 0) setLoadedSrc(src)
+            if (img?.complete && img.naturalWidth > 0) onLoad(src)
           }}
           src={src}
           alt={alt}
@@ -74,7 +80,7 @@ export function BlurImage({
           decoding="async"
           fetchPriority={fetchPriority}
           draggable={false}
-          onLoad={() => setLoadedSrc(src)}
+          onLoad={() => onLoad(src)}
           {...stylex.props(styles.img, loaded && styles.visible)}
         />
       )}

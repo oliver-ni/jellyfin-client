@@ -7,7 +7,9 @@ const EXIT = { duration: 0.2, ease: [0.2, 0, 0, 1] } as const
 
 /**
  * Fades out a DOM clone of the outgoing page over the incoming one, so route exits animate
- * without keeping the old React tree mounted. The clone is taken on `onLoad`, while the old
+ * without keeping the old React tree mounted. The shell paints its own background, so the
+ * clone is opaque and the new page is revealed by the fade rather than showing through from
+ * its first frame. The clone is taken on `onLoad`, while the old
  * tree is still in the DOM, and starts fading on `onResolved`, once the new one has
  * committed, so a slow first render doesn't eat into the fade. The header is left out while
  * staying inside `layoutRouteId`, since the real one persists.

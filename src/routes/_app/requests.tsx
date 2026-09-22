@@ -74,7 +74,7 @@ function RequestList({ user }: { user: SeerrUser }) {
     <div {...stylex.props(styles.page)}>
       <header {...stylex.props(styles.head)}>
         <h1 {...stylex.props(styles.title)}>Requests</h1>
-        {requests.data && <span {...stylex.props(styles.count)}>{requests.data.length}</span>}
+        {requests.data && <span {...stylex.props(styles.faint)}>{requests.data.length}</span>}
         {canViewAll && (
           <span {...stylex.props(styles.filters)}>
             <Segmented
@@ -111,7 +111,7 @@ function RequestList({ user }: { user: SeerrUser }) {
           {active.length > 0 && rows(active)}
           {done.length > 0 && (
             <section {...stylex.props(styles.group)}>
-              <h2 {...stylex.props(styles.groupTitle)}>Done</h2>
+              <h2 {...stylex.props(styles.faint)}>Done</h2>
               {rows(done)}
             </section>
           )}
@@ -195,7 +195,7 @@ const styles = stylex.create({
     letterSpacing: '-0.03em',
     lineHeight: 1.05,
   },
-  count: {
+  faint: {
     fontSize: 13,
     fontWeight: 500,
     color: colors.textFaint,
@@ -214,12 +214,6 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.sm,
-  },
-  groupTitle: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: colors.textFaint,
-    letterSpacing: '0.02em',
   },
   list: {
     display: 'flex',
