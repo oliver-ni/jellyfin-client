@@ -6,7 +6,7 @@ import { BlurImage } from '@/components/BlurImage'
 import { Button } from '@/components/Button'
 import { Notice } from '@/components/Notice'
 import { fadeUp, stagger } from '@/lib/motion'
-import type { Download, Request } from '@/seerr/api'
+import type { Download, MediaType, Request } from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
 import { MEDIA_TYPE_LABEL, requestLabel } from '@/seerr/labels'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
@@ -22,12 +22,13 @@ function RequestsPage() {
   const state = useSeerr()
   const me = useQuery({ ...seerrQueries.me(), enabled: state === 'signedIn' })
   const requests = useQuery({ ...seerrQueries.requests(me.data?.id ?? 0), enabled: !!me.data })
-  // Requests only carry ids; the titles behind them come from Seerr one by one.
+  // Requests only carry ids; the titles behind them come from Seerr, once per distinct title.
+  const distinct = [...new Map((requests.data ?? []).map((r) => [titleKey(r), r])).values()]
   const titles = useQueries({
-    queries: (requests.data ?? []).map((r) => seerrQueries.title(r.type, r.tmdbId)),
+    queries: distinct.map((r) => seerrQueries.title(r.type, r.tmdbId)),
     combine: (results) => ({
       pending: results.some((t) => t.isPending),
-      data: results.map((t) => t.data),
+      byKey: new Map(results.flatMap((t) => (t.data ? [[titleKey(t.data), t.data] as const] : []))),
     }),
   })
 
@@ -51,14 +52,16 @@ function RequestsPage() {
         />
       ) : requests.data && !titles.pending ? (
         <m.ul initial="hidden" animate="show" variants={stagger()} {...stylex.props(styles.list)}>
-          {requests.data.map((r, i) => (
-            <RequestRow key={r.id} request={r} title={titles.data[i]} />
+          {requests.data.map((r) => (
+            <RequestRow key={r.id} request={r} title={titles.byKey.get(titleKey(r))} />
           ))}
         </m.ul>
       ) : null}
     </div>
   )
 }
+
+const titleKey = (t: { type: MediaType; tmdbId: number }) => `${t.type}/${t.tmdbId}`
 
 const seasonList = (seasons: number[]) =>
   seasons.length === 0
