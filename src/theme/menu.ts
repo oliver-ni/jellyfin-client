@@ -39,14 +39,6 @@ export const menu = stylex.create({
     width: 16,
     color: colors.textMuted,
   },
-  header: {
-    paddingInline: space.md,
-    paddingTop: space.sm,
-    paddingBottom: space.xs,
-    fontSize: 12,
-    fontWeight: 500,
-    color: colors.textFaint,
-  },
   separator: {
     height: 1,
     marginBlock: space.xs,

@@ -1,19 +1,10 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Check, MagnifyingGlass, PlugsConnected, SignOut } from '@phosphor-icons/react'
+import { MagnifyingGlass, PlugsConnected, SignOut } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import {
-  Header,
-  Menu,
-  MenuItem,
-  MenuSection,
-  MenuTrigger,
-  Popover,
-  Separator,
-  Button as AriaButton,
-} from 'react-aria-components'
+import { Menu, MenuItem, MenuTrigger, Popover, Button as AriaButton } from 'react-aria-components'
 import { BrandMark } from '@/components/BrandMark'
 import { SearchPalette } from '@/components/SearchPalette'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
@@ -22,7 +13,6 @@ import { libraryLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { requireSession, useSession, type Session } from '@/lib/session'
-import { THEMES, setThemeId, useTheme } from '@/lib/theme'
 import { ConnectDialog } from '@/seerr/ConnectDialog'
 import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
 import { glass, overlay } from '@/theme/glass'
@@ -62,7 +52,6 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 function TopNav({ session }: { session: Session }) {
   const navigate = useNavigate()
-  const theme = useTheme()
   const views = useQuery(queries.views(session.userId))
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
   const [searchOpen, setSearchOpen] = useState(false)
@@ -145,48 +134,20 @@ function TopNav({ session }: { session: Session }) {
                 }
               }}
             >
-              <MenuSection
-                selectionMode="single"
-                selectedKeys={[theme.id]}
-                shouldCloseOnSelect={false}
-                onSelectionChange={(keys) => {
-                  if (keys === 'all') return
-                  const [next] = keys
-                  setThemeId(next)
-                }}
-                {...stylex.props(menu.list)}
-              >
-                <Header {...stylex.props(menu.header)}>Theme</Header>
-                {THEMES.map((t) => (
-                  <MenuItem key={t.id} id={t.id} {...stylex.props(menu.item)}>
-                    {({ isSelected }) => (
-                      <>
-                        <span {...stylex.props(menu.check)}>
-                          {isSelected && <Check size={14} weight="bold" />}
-                        </span>
-                        {t.label}
-                      </>
-                    )}
-                  </MenuItem>
-                ))}
-              </MenuSection>
-              <Separator {...stylex.props(menu.separator)} />
-              <MenuSection {...stylex.props(menu.list)}>
-                {seerr?.state === 'signedOut' && (
-                  <MenuItem id="seerr-connect" {...stylex.props(menu.item)}>
-                    <span {...stylex.props(menu.check)}>
-                      <PlugsConnected size={14} />
-                    </span>
-                    Connect Seerr
-                  </MenuItem>
-                )}
-                <MenuItem id="logout" {...stylex.props(menu.item)}>
+              {seerr?.state === 'signedOut' && (
+                <MenuItem id="seerr-connect" {...stylex.props(menu.item)}>
                   <span {...stylex.props(menu.check)}>
-                    <SignOut size={14} />
+                    <PlugsConnected size={14} />
                   </span>
-                  Sign out
+                  Connect Seerr
                 </MenuItem>
-              </MenuSection>
+              )}
+              <MenuItem id="logout" {...stylex.props(menu.item)}>
+                <span {...stylex.props(menu.check)}>
+                  <SignOut size={14} />
+                </span>
+                Sign out
+              </MenuItem>
             </Menu>
           </Popover>
         </MenuTrigger>

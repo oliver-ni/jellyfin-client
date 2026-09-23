@@ -4,7 +4,6 @@ import { HeadContent, Link, Outlet, createRootRouteWithContext } from '@tanstack
 import { MotionConfig } from 'motion/react'
 import { useLayoutEffect } from 'react'
 import { Notice } from '@/components/Notice'
-import { useTheme } from '@/lib/theme'
 import { focus } from '@/theme/focus'
 import { colors, fonts } from '@/theme/tokens.stylex'
 
@@ -30,12 +29,10 @@ function NotFound() {
 }
 
 function Root() {
-  const { theme } = useTheme()
-
-  // Theme vars go on <body> so portalled content (popovers, dialogs) inherits them too.
+  // Styled on <body> so portalled content (popovers, dialogs) inherits it too.
   useLayoutEffect(() => {
-    document.body.className = stylex.props(theme, styles.body).className ?? ''
-  }, [theme])
+    document.body.className = stylex.props(styles.body).className ?? ''
+  }, [])
 
   return (
     <MotionConfig reducedMotion="user">
@@ -49,7 +46,6 @@ function Root() {
 
 const styles = stylex.create({
   body: {
-    colorScheme: colors.scheme,
     backgroundColor: colors.bg,
     color: colors.text,
     fontFamily: fonts.sans,

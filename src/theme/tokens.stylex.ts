@@ -1,13 +1,10 @@
 import * as stylex from '@stylexjs/stylex'
 
 /**
- * Design tokens. The defaults below are the "Cinema" theme (dark, near-monochrome,
- * artwork supplies the color). Other themes override these via `createTheme` in
- * `themes.stylex.ts`; components must only ever reference tokens, never raw colors.
+ * Design tokens: dark, near-monochrome, artwork supplies the color. Components must
+ * only ever reference tokens, never raw colors.
  */
 export const colors = stylex.defineVars({
-  scheme: 'dark',
-
   bg: '#0a0a0c',
   bgElevated: '#141417',
   bgHover: '#1c1c21',
