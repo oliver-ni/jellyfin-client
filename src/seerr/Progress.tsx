@@ -39,6 +39,7 @@ const styles = stylex.create({
     flexDirection: 'column',
     alignItems: 'flex-end',
     gap: space.xxs,
+    paddingBottom: space.xs,
     minWidth: 220,
     fontSize: 13,
     fontWeight: 500,
