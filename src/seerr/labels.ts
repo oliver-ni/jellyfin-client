@@ -79,7 +79,7 @@ function range(noun: string, numbers: number[]): string {
  * Which part of a show the downloads cover: episodes of one season when `episodeCount` says how
  * long that season is, seasons of the title otherwise. `null` for a film, which has no parts.
  */
-function part(downloads: Download[], episodeCount?: number): string | null {
+export function part(downloads: Download[], episodeCount?: number): string | null {
   const episodes = downloads.flatMap((d) => d.episodes)
   if (episodes.length === 0) return null
   const distinct = (ns: number[]) => [...new Set(ns)].sort((a, b) => a - b)
@@ -103,10 +103,14 @@ export interface Progress {
 
 /**
  * How far along a set of downloads is, or `null` when nothing is downloading. The liveliest
- * download's state stands for the set, the percentage is of the releases' combined size, and a
- * queue with no size yet is 0%.
+ * download's state stands for the set (`Downloading` + `scope`, the `part` of the show it covers
+ * unless said otherwise), the percentage is of the releases' combined size, and a queue with no
+ * size yet is 0%.
  */
-export function progress(downloads: Download[], episodeCount?: number): Progress | null {
+export function progress(
+  downloads: Download[],
+  scope: string | null = part(downloads),
+): Progress | null {
   const state = DOWNLOAD_STATES.find((s) => downloads.some((d) => d.state === s))
   if (!state) return null
   const size = downloads.reduce((sum, d) => sum + d.size, 0)
@@ -115,7 +119,7 @@ export function progress(downloads: Download[], episodeCount?: number): Progress
   const estimates = downloads.flatMap((d) => (d.timeLeft ? [minutesLeft(d.timeLeft)] : []))
   return {
     fraction,
-    label: [DOWNLOAD_STATE_LABEL[state], part(downloads, episodeCount)].filter(Boolean).join(' '),
+    label: [DOWNLOAD_STATE_LABEL[state], scope].filter(Boolean).join(' '),
     detail: [
       `${Math.round(fraction * 100)}%`,
       estimates.length > 0 && formatLeft(Math.max(...estimates)),
@@ -141,19 +145,25 @@ export function requestStatus(r: Request, c: Coverage | null): Progress | string
     case 'failed':
       return 'Failed'
   }
-  const download = progress(r.downloads)
-  if (c && covered(c)) return `${episodes(c.owned)} downloaded`
-  if (!c?.owned) {
-    if (download) return download
-    return r.availability === 'available' ? 'In your library' : 'Not downloading yet'
+  if (!c?.total) {
+    return (
+      progress(r.downloads) ??
+      (r.availability === 'available' ? 'In your library' : 'Not downloading yet')
+    )
   }
+  if (covered(c)) return `${episodes(c.owned)} downloaded`
   // A release without episode numbers is a season pack: everything still missing is on its way.
-  const coming = r.downloads.some((d) => d.episodes.length === 0)
-    ? c.total - c.owned
-    : new Set(r.downloads.flatMap((d) => d.episodes.map((e) => `${e.season}/${e.number}`))).size
+  const coming = Math.min(
+    c.total - c.owned,
+    r.downloads.some((d) => d.episodes.length === 0)
+      ? Infinity
+      : new Set(r.downloads.flatMap((d) => d.episodes.map((e) => `${e.season}/${e.number}`))).size,
+  )
+  const download = progress(r.downloads, episodes(coming))
+  if (!c.owned) return download ?? 'Not downloading yet'
   return {
     fraction: c.owned / c.total,
-    coming: download ? Math.min(coming, c.total - c.owned) / c.total : 0,
+    coming: download ? coming / c.total : 0,
     label: `${c.owned} of ${episodes(c.total)} downloaded`,
     detail: download ? `${download.label} · ${download.detail}` : 'Not downloading yet',
   }
