@@ -150,8 +150,9 @@ export const titleKey = (t: { type: MediaType; tmdbId: number }) => `${t.type}/$
 export function byTitle(requests: Request[]): Request[] {
   const groups = new Map<string, Request[]>()
   for (const r of requests) groups.set(titleKey(r), [...(groups.get(titleKey(r)) ?? []), r])
+  const rank = (r: Request) => REQUEST_GROUPS.indexOf(requestGroup(r))
   return [...groups.values()].map((rs) => ({
-    ...rs.reduce((a, b) => (requestRank(b) < requestRank(a) ? b : a)),
+    ...rs.reduce((a, b) => (rank(b) < rank(a) ? b : a)),
     seasons: [...new Set(rs.flatMap((r) => r.seasons))].sort((a, b) => a - b),
     requestedBy: [...new Set(rs.map((r) => r.requestedBy))].join(', '),
     downloads: [...new Map(rs.flatMap((r) => r.downloads).map((d) => [d.title, d])).values()],
@@ -170,7 +171,7 @@ export interface Coverage {
 export function coverage(
   seasons: number[],
   title: TvDetails,
-  owned: ReadonlyMap<number, number>,
+  owned: ReadonlyMap<number, number> = new Map(),
 ): Coverage {
   const wanted = title.seasons.filter((s) => seasons.includes(s.number))
   return {
@@ -181,25 +182,34 @@ export function coverage(
 
 export const covered = (c: Coverage) => c.total > 0 && c.owned >= c.total
 
-/** Ranks from here on are states Seerr will no longer move a request out of. */
-export const DONE_RANK = 3
+/** What is happening to a request, in the order a list shows them: closest to landing first. */
+export const REQUEST_GROUPS = [
+  'downloading',
+  'partial',
+  'waiting',
+  'pending',
+  'done',
+  'closed',
+] as const
+export type RequestGroup = (typeof REQUEST_GROUPS)[number]
 
 /**
- * Order for a list of requests: the closer one is to landing, the earlier it sorts. A show whose
- * requested episodes are all in Jellyfin is done whatever Seerr's scan last said.
+ * Which group a request falls in. Approved with nothing in the downloader's queue is `partial`
+ * when Jellyfin has some of the requested episodes (`c` from `coverage`) and `waiting` when it
+ * has none; a show whose requested episodes are all there is `done` whatever Seerr's scan last
+ * said.
  */
-export function requestRank(r: Request, c?: Coverage): number {
-  if (r.downloads.length > 0) return 0
+export function requestGroup(r: Request, c: Coverage | null = null): RequestGroup {
   switch (r.status) {
-    case 'approved':
-    case 'completed':
-      return r.availability === 'available' || (c && covered(c)) ? DONE_RANK : 1
     case 'pending':
-      return 2
+      return 'pending'
     case 'declined':
     case 'failed':
-      return DONE_RANK + 1
+      return 'closed'
   }
+  if (r.availability === 'available' || (c && covered(c))) return 'done'
+  if (r.downloads.length > 0) return 'downloading'
+  return c?.owned ? 'partial' : 'waiting'
 }
 
 export class SeerrError extends Error {

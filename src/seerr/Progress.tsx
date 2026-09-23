@@ -4,7 +4,8 @@ import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 /**
  * A state over a thin bar: `Downloading episodes 3–5` over `42% · 12m left`, or `16 of 24
- * episodes` over what's coming for the rest. `title` is the tooltip, for release names.
+ * episodes` over what's coming for the rest. The bar is solid while something is moving and
+ * faint when nothing is. `title` is the tooltip, for release names.
  */
 export function Progress({ value, title, size }: { value: Value; title?: string; size?: 'lg' }) {
   return (
@@ -12,10 +13,13 @@ export function Progress({ value, title, size }: { value: Value; title?: string;
       {value.label}
       <span {...stylex.props(styles.detail)}>{value.detail}</span>
       <span {...stylex.props(styles.track)}>
-        <span {...stylex.props(styles.bar)} style={{ width: `${value.fraction * 100}%` }} />
+        <span
+          {...stylex.props(styles.bar, !value.state && styles.faint)}
+          style={{ width: `${value.fraction * 100}%` }}
+        />
         {value.coming ? (
           <span
-            {...stylex.props(styles.bar, styles.coming)}
+            {...stylex.props(styles.bar, styles.faint)}
             style={{ width: `${value.coming * 100}%` }}
           />
         ) : null}
@@ -60,7 +64,7 @@ const styles = stylex.create({
     transitionDuration: motion.slow,
     transitionTimingFunction: motion.ease,
   },
-  coming: {
+  faint: {
     opacity: 0.35,
   },
 })

@@ -11,11 +11,11 @@ import { fadeUp } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { useRequiredSession } from '@/lib/session'
 import {
-  DONE_RANK,
+  REQUEST_GROUPS,
   byTitle,
   canViewAllRequests,
   coverage,
-  requestRank,
+  requestGroup,
   titleKey,
   type Coverage,
   type Request,
@@ -23,13 +23,19 @@ import {
   type Title,
 } from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
-import { MEDIA_TYPE_LABEL, releaseNames, requestStatus } from '@/seerr/labels'
+import {
+  MEDIA_TYPE_LABEL,
+  REQUEST_GROUP_LABEL,
+  episodes,
+  releaseNames,
+  requestStatus,
+} from '@/seerr/labels'
 import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
 import { focus } from '@/theme/focus'
 import { list } from '@/theme/list'
 import { text } from '@/theme/text'
-import { colors, motion, radii, space } from '@/theme/tokens.stylex'
+import { colors, motion, radii, shadows, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/requests')({
   validateSearch: (raw: Record<string, unknown>) => ({
@@ -80,31 +86,15 @@ function RequestList({ user }: { user: SeerrUser }) {
       ),
     }),
   })
+  // Seerr hands requests back newest first, which holds within each group.
   const rows = (requests.data ?? []).map((r) => {
     const title = titles.byKey.get(titleKey(r))
     const c =
       title?.type === 'tv'
-        ? coverage(r.seasons, title, owned.bySeries.get(r.jellyfinId ?? '') ?? new Map())
+        ? coverage(r.seasons, title, owned.bySeries.get(r.jellyfinId ?? ''))
         : null
-    return { r, title, c, rank: requestRank(r, c ?? undefined) }
+    return { r, title, c, group: requestGroup(r, c) }
   })
-  // Seerr hands them back newest first; a stable sort keeps that within each rank.
-  const ranked = rows.toSorted((a, b) => a.rank - b.rank)
-  const active = ranked.filter((x) => x.rank < DONE_RANK)
-  const done = ranked.filter((x) => x.rank >= DONE_RANK)
-  const group = (list: typeof rows) => (
-    <ul {...stylex.props(styles.list)}>
-      {list.map(({ r, title, c }) => (
-        <RequestRow
-          key={titleKey(r)}
-          request={r}
-          title={title}
-          coverage={c}
-          requester={everyone ? r.requestedBy : null}
-        />
-      ))}
-    </ul>
-  )
 
   return (
     <div {...stylex.props(list.page, styles.page)}>
@@ -146,13 +136,33 @@ function RequestList({ user }: { user: SeerrUser }) {
           variants={fadeUp}
           {...stylex.props(styles.groups)}
         >
-          {active.length > 0 && group(active)}
-          {done.length > 0 && (
-            <section {...stylex.props(styles.group)}>
-              <h2 {...stylex.props(list.faint)}>Done</h2>
-              {group(done)}
-            </section>
-          )}
+          {REQUEST_GROUPS.map((g) => {
+            const members = rows.filter((x) => x.group === g)
+            if (members.length === 0) return null
+            return (
+              <section key={g} {...stylex.props(styles.group)}>
+                <h2 {...stylex.props(list.faint)}>
+                  {REQUEST_GROUP_LABEL[g]}
+                  <span {...stylex.props(styles.count)}>{members.length}</span>
+                </h2>
+                <ul {...stylex.props(styles.list, g === 'done' && styles.grid)}>
+                  {members.map(({ r, title, c }) =>
+                    g === 'done' ? (
+                      <DoneCard key={titleKey(r)} request={r} title={title} coverage={c} />
+                    ) : (
+                      <RequestRow
+                        key={titleKey(r)}
+                        request={r}
+                        title={title}
+                        coverage={c}
+                        requester={everyone ? r.requestedBy : null}
+                      />
+                    ),
+                  )}
+                </ul>
+              </section>
+            )
+          })}
         </m.div>
       ) : null}
     </div>
@@ -171,24 +181,27 @@ const seasonList = (seasons: number[]) =>
       ? `Season ${seasons[0]}`
       : `Seasons ${seasons.join(', ')}`
 
+interface RowProps {
+  request: Request
+  title: Pick<Title, 'name' | 'year' | 'poster'> | undefined
+  coverage: Coverage | null
+}
+
+const requestLink = (r: Request, title: RowProps['title']) =>
+  r.jellyfinId
+    ? titleLink(r.jellyfinId, title?.name)
+    : ({ to: '/request/$type/$tmdbId', params: { type: r.type, tmdbId: r.tmdbId } } as const)
+
 function RequestRow({
   request: r,
   title,
   coverage: c,
   requester,
-}: {
-  request: Request
-  title: Pick<Title, 'name' | 'year' | 'poster'> | undefined
-  coverage: Coverage | null
-  requester: string | null
-}) {
-  const link = r.jellyfinId
-    ? titleLink(r.jellyfinId, title?.name)
-    : ({ to: '/request/$type/$tmdbId', params: { type: r.type, tmdbId: r.tmdbId } } as const)
+}: RowProps & { requester: string | null }) {
   const status = requestStatus(r, c)
   return (
     <li>
-      <Link {...link} {...stylex.props(focus.ring, styles.row)}>
+      <Link {...requestLink(r, title)} {...stylex.props(focus.ring, styles.row)}>
         <BlurImage src={title?.poster} alt="" style={styles.poster} />
         <span {...stylex.props(styles.copy)}>
           <span {...stylex.props(text.ellipsis, styles.name)}>
@@ -212,6 +225,23 @@ function RequestRow({
   )
 }
 
+/** A request that is all here: poster, name, and for a show how many episodes were requested. */
+function DoneCard({ request: r, title, coverage: c }: RowProps) {
+  return (
+    <li>
+      <Link {...requestLink(r, title)} {...stylex.props(focus.ring, styles.card)}>
+        <BlurImage src={title?.poster} alt="" style={styles.cardPoster} />
+        <span {...stylex.props(text.ellipsis, styles.cardName)}>
+          {title?.name ?? 'Unknown title'}
+        </span>
+        <span {...stylex.props(text.ellipsis, styles.meta)}>
+          {c?.total ? episodes(c.total) : title?.year}
+        </span>
+      </Link>
+    </li>
+  )
+}
+
 const styles = stylex.create({
   page: {
     maxWidth: 960,
@@ -230,12 +260,53 @@ const styles = stylex.create({
     flexDirection: 'column',
     gap: space.sm,
   },
+  count: {
+    marginLeft: space.sm,
+    opacity: 0.6,
+  },
   list: {
     display: 'flex',
     flexDirection: 'column',
     listStyle: 'none',
     padding: 0,
     margin: 0,
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+    gap: space.md,
+    paddingTop: space.xs,
+  },
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: space.xxs,
+    borderRadius: radii.xs,
+  },
+  cardPoster: {
+    width: '100%',
+    aspectRatio: '2 / 3',
+    marginBottom: space.xs,
+    borderRadius: radii.xs,
+    backgroundColor: colors.skeleton,
+    boxShadow: shadows.card,
+    transform: {
+      default: 'none',
+      [stylex.when.ancestor(':hover')]: 'scale(1.035)',
+    },
+    transitionProperty: 'transform',
+    transitionDuration: motion.base,
+    transitionTimingFunction: motion.ease,
+  },
+  cardName: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: {
+      default: colors.textMuted,
+      [stylex.when.ancestor(':hover')]: colors.text,
+    },
+    transitionProperty: 'color',
+    transitionDuration: motion.fast,
   },
   row: {
     display: 'grid',

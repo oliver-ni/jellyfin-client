@@ -4,7 +4,6 @@ import { requestable, type Season } from './api'
 import {
   AVAILABILITY_ICON,
   AVAILABILITY_LABEL,
-  part,
   progress,
   releaseNames,
   seasonLabel,
@@ -26,7 +25,7 @@ export function SeasonHeader({
   owned?: number
   request?: ReactNode
 }) {
-  const download = progress(season.downloads, part(season.downloads, season.episodeCount))
+  const download = progress(season.downloads, season.episodeCount)
   return (
     <div {...stylex.props(styles.root)}>
       <p {...stylex.props(styles.meta)}>{seasonLabel(season, owned)}</p>
