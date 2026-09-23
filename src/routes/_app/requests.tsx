@@ -167,12 +167,13 @@ function RequestRow({
               .join(' · ')}
           </span>
         </span>
-        <span {...stylex.props(styles.status)}>
-          <span {...stylex.props(styles.statusLabel, r.status === 'failed' && styles.failed)}>
+        {r.downloads.length > 0 ? (
+          <Progress downloads={r.downloads} />
+        ) : (
+          <span {...stylex.props(styles.status, r.status === 'failed' && styles.failed)}>
             {requestLabel(r)}
           </span>
-          <Progress downloads={r.downloads} />
-        </span>
+        )}
       </Link>
     </li>
   )
@@ -241,14 +242,6 @@ const styles = stylex.create({
     color: colors.textMuted,
   },
   status: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: space.xxs,
-    minWidth: 120,
-    textAlign: 'right',
-  },
-  statusLabel: {
     fontSize: 13,
     fontWeight: 500,
     color: colors.textMuted,

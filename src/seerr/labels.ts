@@ -86,15 +86,20 @@ function coverage(downloads: Download[], episodeCount?: number): string | null {
   return numbers.length >= episodeCount ? 'whole season' : range('episode', numbers)
 }
 
+export interface Progress {
+  fraction: number
+  /** What's happening to what: `Downloading episodes 3–5`. */
+  label: string
+  /** How far along: `42% · 12m left`. */
+  detail: string
+}
+
 /**
- * How far along a set of downloads is — `Downloading episodes 3–5 · 42% · 12m left` — or `null`
- * when nothing is downloading. The liveliest download's state stands for the set, the percentage
- * is of the releases' combined size, and a queue with no size yet is 0%.
+ * How far along a set of downloads is, or `null` when nothing is downloading. The liveliest
+ * download's state stands for the set, the percentage is of the releases' combined size, and a
+ * queue with no size yet is 0%.
  */
-export function progress(
-  downloads: Download[],
-  episodeCount?: number,
-): { fraction: number; text: string } | null {
+export function progress(downloads: Download[], episodeCount?: number): Progress | null {
   const state = DOWNLOAD_STATES.find((s) => downloads.some((d) => d.state === s))
   if (!state) return null
   const size = downloads.reduce((sum, d) => sum + d.size, 0)
@@ -103,8 +108,10 @@ export function progress(
   const estimates = downloads.flatMap((d) => (d.timeLeft ? [minutesLeft(d.timeLeft)] : []))
   return {
     fraction,
-    text: [
-      [DOWNLOAD_STATE_LABEL[state], coverage(downloads, episodeCount)].filter(Boolean).join(' '),
+    label: [DOWNLOAD_STATE_LABEL[state], coverage(downloads, episodeCount)]
+      .filter(Boolean)
+      .join(' '),
+    detail: [
       `${Math.round(fraction * 100)}%`,
       estimates.length > 0 && formatLeft(Math.max(...estimates)),
     ]

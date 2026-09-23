@@ -14,7 +14,7 @@ function Hint({ entry }: { entry: SeasonEntry }) {
   const season = newsFor(entry)
   if (!season) return null
   const p = progress(season.downloads, season.episodeCount)
-  if (p) return <DownloadRing fraction={p.fraction} label={p.text} />
+  if (p) return <DownloadRing fraction={p.fraction} label={`${p.label} · ${p.detail}`} />
   return season.availability === 'pending' || season.availability === 'processing' ? (
     <Clock size={16} weight="bold" role="img" aria-label="Requested" />
   ) : null

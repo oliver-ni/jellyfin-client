@@ -4,8 +4,8 @@ import { progress } from './labels'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 /**
- * What Radarr/Sonarr is pulling — `Downloading episodes 3–5 · 42% · 12m left` — over a thin bar; nothing when
- * idle. Release names sit in the tooltip.
+ * What Radarr/Sonarr is pulling — `Downloading episodes 3–5` over `42% · 12m left` over a thin
+ * bar; nothing when idle. Release names sit in the tooltip.
  */
 export function Progress({
   downloads,
@@ -24,7 +24,8 @@ export function Progress({
       title={downloads.map((d) => d.title).join('\n')}
       {...stylex.props(styles.root, size === 'lg' && styles.lg)}
     >
-      {p.text}
+      {p.label}
+      <span {...stylex.props(styles.detail)}>{p.detail}</span>
       <span {...stylex.props(styles.track)}>
         <span {...stylex.props(styles.bar)} style={{ width: `${p.fraction * 100}%` }} />
       </span>
@@ -47,6 +48,9 @@ const styles = stylex.create({
   lg: {
     minWidth: 320,
     fontSize: 15,
+  },
+  detail: {
+    marginBottom: space.xxs,
   },
   track: {
     width: '100%',

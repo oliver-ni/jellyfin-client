@@ -146,7 +146,8 @@ export const titleKey = (t: { type: MediaType; tmdbId: number }) => `${t.type}/$
 
 /**
  * One request per title. Seerr keeps a failed request beside its retry, and later seasons come
- * as requests of their own; the liveliest one speaks for the title, with everyone's seasons.
+ * as requests of their own; the liveliest one speaks for the title, with everyone's seasons and
+ * downloads.
  */
 export function byTitle(requests: Request[]): Request[] {
   const groups = new Map<string, Request[]>()
@@ -156,6 +157,7 @@ export function byTitle(requests: Request[]): Request[] {
     seasons: [...new Set(rs.flatMap((r) => r.seasons))].sort((a, b) => a - b),
     seasonsHere: [...new Set(rs.flatMap((r) => r.seasonsHere))].sort((a, b) => a - b),
     requestedBy: [...new Set(rs.map((r) => r.requestedBy))].join(', '),
+    downloads: [...new Map(rs.flatMap((r) => r.downloads).map((d) => [d.title, d])).values()],
   }))
 }
 
