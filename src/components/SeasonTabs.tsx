@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { Clock } from '@phosphor-icons/react'
+import { ArrowDown, Circle, Clock } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import type { ReactNode } from 'react'
 import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components'
@@ -20,33 +20,29 @@ function Hint({ entry }: { entry: SeasonEntry }) {
   ) : null
 }
 
-const RING = 2 * Math.PI * 5.5
+// Phosphor's bold `Circle`: a 256 grid, radius 96, 24 wide.
+const RING = 2 * Math.PI * 96
 
-/** A down arrow inside a ring that fills as the download completes. */
+/** Phosphor's arrow inside its circle, with an arc over the circle that fills as the download lands. */
 function DownloadRing({ fraction, label }: { fraction: number; label: string }) {
   return (
-    <svg
-      width={14}
-      height={14}
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      role="img"
-      aria-label={label}
-    >
-      <circle cx={7} cy={7} r={5.5} opacity={0.3} />
-      <circle
-        cx={7}
-        cy={7}
-        r={5.5}
-        strokeDasharray={`${fraction * RING} ${RING}`}
-        transform="rotate(-90 7 7)"
-      />
-      <path d="M7 4.25v5M5 7.5l2 2 2-2" />
-    </svg>
+    <span role="img" aria-label={label} {...stylex.props(styles.ring)}>
+      <Circle size={14} weight="bold" {...stylex.props(styles.layer, styles.track)} />
+      <svg viewBox="0 0 256 256" width={14} height={14} {...stylex.props(styles.layer)}>
+        <circle
+          cx={128}
+          cy={128}
+          r={96}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={24}
+          strokeLinecap="round"
+          strokeDasharray={`${fraction * RING} ${RING}`}
+          transform="rotate(-90 128 128)"
+        />
+      </svg>
+      <ArrowDown size={7} weight="bold" {...stylex.props(styles.layer)} />
+    </span>
   )
 }
 
@@ -165,5 +161,15 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: space.sm,
     lineHeight: 1,
+  },
+  ring: {
+    display: 'inline-grid',
+    placeItems: 'center',
+  },
+  layer: {
+    gridArea: '1 / 1',
+  },
+  track: {
+    opacity: 0.3,
   },
 })
