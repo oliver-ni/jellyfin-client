@@ -39,7 +39,6 @@ const styles = stylex.create({
     flexDirection: 'column',
     alignItems: 'flex-end',
     gap: space.xxs,
-    paddingBottom: space.xs,
     minWidth: 220,
     fontSize: 13,
     fontWeight: 500,
@@ -51,7 +50,7 @@ const styles = stylex.create({
     fontSize: 15,
   },
   detail: {
-    marginBottom: space.xxs,
+    marginBottom: space.xs,
   },
   track: {
     width: '100%',
