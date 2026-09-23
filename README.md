@@ -72,3 +72,26 @@ docker run -p 8080:80 jellyfin-client
 ```
 
 Serves the static build with nginx; the Jellyfin server URL is entered at sign-in.
+
+## Nix
+
+`nix build` puts the `dist/` tree in `result`. Consumers get the same package from the flake and set
+the two build-time variables through its arguments:
+
+```nix
+inputs.jellyfin-client.url = "github:oliver-ni/jellyfin-client";
+
+jellyfin-client.packages.${system}.default.override {
+  jellyfinUrl = "https://jellyfin.example.com";
+  brandMark = "🍵";
+}
+```
+
+`package-lock.hash` pins the npm dependencies for the sandboxed build; regenerate it in the same
+commit as any `package-lock.json` change:
+
+```sh
+prefetch-npm-deps package-lock.json > package-lock.hash
+```
+
+`nix develop` gives a shell with Node and `prefetch-npm-deps`.
