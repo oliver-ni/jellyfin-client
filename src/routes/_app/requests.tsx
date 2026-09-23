@@ -32,6 +32,8 @@ import {
 } from '@/seerr/labels'
 import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
+import { holdup } from '@/sonarr/api'
+import { sonarrQueries } from '@/sonarr/queries'
 import { focus } from '@/theme/focus'
 import { list } from '@/theme/list'
 import { text } from '@/theme/text'
@@ -95,6 +97,20 @@ function RequestList({ user }: { user: SeerrUser }) {
         : null
     return { r, title, c, group: requestGroup(r, c) }
   })
+  // Why a show isn't downloading is Sonarr's to say, when there is one to ask.
+  const sonarr = useQuery(sonarrQueries.configured())
+  const stuck = rows.flatMap(({ r, group }) =>
+    sonarr.data && r.sonarrId !== null && (group === 'partial' || group === 'waiting') ? [r] : [],
+  )
+  const holdups = useQueries({
+    queries: stuck.map((r) => sonarrQueries.series(r.sonarrId ?? 0)),
+    combine: (results) =>
+      new Map(
+        results.flatMap((s, i) =>
+          s.data ? [[titleKey(stuck[i]), holdup(stuck[i].seasons, s.data)] as const] : [],
+        ),
+      ),
+  })
 
   return (
     <div {...stylex.props(list.page, styles.page)}>
@@ -155,6 +171,7 @@ function RequestList({ user }: { user: SeerrUser }) {
                         request={r}
                         title={title}
                         coverage={c}
+                        holdup={holdups.get(titleKey(r)) ?? null}
                         requester={everyone ? r.requestedBy : null}
                       />
                     ),
@@ -196,9 +213,10 @@ function RequestRow({
   request: r,
   title,
   coverage: c,
+  holdup,
   requester,
-}: RowProps & { requester: string | null }) {
-  const bar = requestProgress(r, c)
+}: RowProps & { holdup: string | null; requester: string | null }) {
+  const bar = requestProgress(r, c, holdup)
   return (
     <li>
       <Link {...requestLink(r, title)} {...stylex.props(focus.ring, styles.row)}>
@@ -217,7 +235,9 @@ function RequestRow({
           <span {...stylex.props(styles.failed)}>Failed</span>
         ) : bar ? (
           <Progress value={bar} title={releaseNames(r.downloads)} />
-        ) : null}
+        ) : (
+          holdup && <span {...stylex.props(styles.meta)}>{holdup}</span>
+        )}
       </Link>
     </li>
   )

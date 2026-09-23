@@ -167,7 +167,13 @@ function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string
         const news = newsFor(entry)
         return (
           <div {...stylex.props(styles.season)}>
-            {news && <SeasonHeader season={news} owned={entry.item.ChildCount ?? 0} />}
+            {news && (
+              <SeasonHeader
+                season={news}
+                owned={entry.item.ChildCount ?? 0}
+                sonarrId={title?.sonarrId}
+              />
+            )}
             <Episodes userId={userId} season={entry.item} expanded={episode} />
           </div>
         )

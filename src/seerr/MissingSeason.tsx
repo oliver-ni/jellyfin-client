@@ -24,6 +24,7 @@ export function MissingSeason({ title, season }: { title: TvDetails; season: Sea
     <div {...stylex.props(styles.root)}>
       <SeasonHeader
         season={season}
+        sonarrId={title.sonarrId}
         request={
           <RequestButton title={title} seasons={[season.number]} size="sm">
             Request

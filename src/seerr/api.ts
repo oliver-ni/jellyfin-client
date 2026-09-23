@@ -91,6 +91,8 @@ export interface Episode {
 export interface TvDetails extends Title {
   type: 'tv'
   seasons: Season[]
+  /** Sonarr's id for the show once Seerr has sent it there. */
+  sonarrId: number | null
 }
 
 /** Seasons nobody has asked for yet. */
@@ -137,6 +139,8 @@ export interface Request {
   seasons: number[]
   requestedBy: string
   jellyfinId: string | null
+  /** Sonarr's id for a show Seerr has sent there; `null` for a film. */
+  sonarrId: number | null
   downloads: Download[]
 }
 
@@ -238,6 +242,7 @@ interface RawRequest {
     tmdbId: number
     status: number
     jellyfinMediaId: string | null
+    externalServiceId?: number | null
     downloadStatus?: RawDownload[]
   }
   seasons: { seasonNumber: number }[]
@@ -247,6 +252,7 @@ interface RawRequest {
 interface RawMediaInfo {
   status?: number
   jellyfinMediaId?: string | null
+  externalServiceId?: number | null
   seasons?: { seasonNumber: number; status: number }[]
   requests?: { status: number; seasons?: { seasonNumber: number }[] }[]
   downloadStatus?: RawDownload[]
@@ -425,6 +431,7 @@ export async function tv(tmdbId: number): Promise<TvDetails> {
   return {
     ...toTitle(raw),
     type: 'tv',
+    sonarrId: raw.mediaInfo?.externalServiceId ?? null,
     seasons: (raw.seasons ?? [])
       .filter((s) => s.seasonNumber > 0)
       .map((s) => ({
@@ -455,15 +462,17 @@ export async function requests(userId?: number): Promise<Request[]> {
   )
   return page.results.map((r) => {
     const seasons = r.seasons.map((s) => s.seasonNumber).sort((a, b) => a - b)
+    const type = r.type === 'tv' ? 'tv' : 'movie'
     return {
       id: r.id,
-      type: r.type === 'tv' ? 'tv' : 'movie',
+      type,
       tmdbId: r.media.tmdbId,
       status: REQUEST_STATUS[r.status] ?? 'pending',
       availability: AVAILABILITY[r.media.status] ?? 'unknown',
       seasons,
       requestedBy: r.requestedBy.displayName,
       jellyfinId: r.media.jellyfinMediaId,
+      sonarrId: type === 'tv' ? (r.media.externalServiceId ?? null) : null,
       downloads: toDownloads(
         (r.media.downloadStatus ?? []).filter(
           (d) => !d.episode || seasons.includes(d.episode.seasonNumber),

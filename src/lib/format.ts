@@ -56,6 +56,17 @@ export function formatDate(iso: string | null | undefined): string | null {
   return dateFormat.format(d)
 }
 
+const relativeFormat = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+
+/** `3 hours ago`, `yesterday`, `12 days ago`; the date itself past a month. */
+export function timeAgo(iso: string, now = new Date()): string {
+  const minutes = Math.round((now.getTime() - new Date(iso).getTime()) / 60_000)
+  if (minutes < 60) return relativeFormat.format(-minutes, 'minute')
+  if (minutes < 24 * 60) return relativeFormat.format(-Math.round(minutes / 60), 'hour')
+  if (minutes < 30 * 24 * 60) return relativeFormat.format(-Math.round(minutes / 1440), 'day')
+  return formatDate(iso) ?? ''
+}
+
 const languageNames =
   typeof Intl !== 'undefined' && 'DisplayNames' in Intl
     ? new Intl.DisplayNames(undefined, { type: 'language', fallback: 'none' })

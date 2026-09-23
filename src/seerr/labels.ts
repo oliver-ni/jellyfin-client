@@ -156,10 +156,15 @@ export const REQUEST_GROUP_LABEL: Record<RequestGroup, string> = {
  * A bar for a request that isn't `done`, or `null` when there's nothing to draw — the section it
  * sits under already says where it stands. For a show with some of the requested episodes here
  * (`c` from `coverage`), the bar is how many, with the episodes on their way drawn fainter after
- * it: `3 of 12 episodes` over `Downloading 9 episodes · 42% · 12m left`, or over `9 missing`.
- * Otherwise it's the download alone.
+ * it: `3 of 12 episodes` over `Downloading 9 episodes · 42% · 12m left`, or when nothing is
+ * over Sonarr's `holdup` (`Last searched yesterday`), failing that `9 missing`. Otherwise it's
+ * the download alone.
  */
-export function requestProgress(r: Request, c: Coverage | null): Progress | null {
+export function requestProgress(
+  r: Request,
+  c: Coverage | null,
+  holdup: string | null = null,
+): Progress | null {
   switch (r.status) {
     case 'pending':
     case 'declined':
@@ -177,6 +182,8 @@ export function requestProgress(r: Request, c: Coverage | null): Progress | null
     fraction: c.owned / c.total,
     coming: download ? coming / c.total : 0,
     label: `${c.owned} of ${episodes(c.total)}`,
-    detail: download ? `${fetching(download.state)} · ${download.detail}` : `${missing} missing`,
+    detail: download
+      ? `${fetching(download.state)} · ${download.detail}`
+      : (holdup ?? `${missing} missing`),
   }
 }

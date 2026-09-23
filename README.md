@@ -44,15 +44,23 @@ or as Docker `--build-arg`s); leave both unset for a generic build:
 Seerr is reached through the app's own origin at `/seerr`; point the dev proxy at an instance with
 `SEERR_URL=https://seerr.example.com npm run dev` (or a `.env.local`).
 
-### Throwaway Jellyfin + Seerr
+With Sonarr reachable too, the request pages say why a show isn't downloading (unmonitored, not
+aired, last searched, import blocked). It's read through a same-origin `/sonarr` proxy that adds the
+API key on the way and admits only a handful of GETs, so the key never reaches the browser:
+`SONARR_URL=https://sonarr.example.com SONARR_API_KEY=… npm run dev`. The Docker image does the same
+from the same variables (see `docker/proxies.sh`); behind another server, copy its `/sonarr/` block.
 
-`dev/seed.sh` brings up both in Docker (needs `docker compose`, `ffmpeg`, `jq`), generates a small
-library of test-pattern clips filed under real titles so metadata and artwork resolve, and completes
-both setup wizards. Re-running it is a no-op for everything already done; data lives in `dev/data`.
+### Throwaway Jellyfin + Seerr + Sonarr
+
+`dev/seed.sh` brings up all three in Docker (needs `docker compose`, `ffmpeg`, `jq`), generates a
+small library of test-pattern clips filed under real titles so metadata and artwork resolve, and
+completes the setup wizards. Sonarr has no indexer, so requests stay stuck at "not searched yet".
+Re-running it is a no-op for everything already done; data lives in `dev/data`.
 
 ```sh
 ./dev/seed.sh
-SEERR_URL=http://localhost:5055 npm run dev
+SEERR_URL=http://localhost:5055 SONARR_URL=http://localhost:8989 \
+  SONARR_API_KEY=$(sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' dev/data/sonarr/config.xml) npm run dev
 ```
 
 Sign in with server `http://localhost:8096`, user `devin`, password `devin`. Haikyu!! and Mob Psycho

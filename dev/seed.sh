@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# Throwaway Jellyfin + Seerr for development: generates a small media library with ffmpeg,
-# completes both setup wizards and leaves the stack running. Safe to re-run; every step is
-# skipped once done. Sign in at http://localhost:8096 as devin / devin.
+# Throwaway Jellyfin + Seerr + Sonarr for development: generates a small media library with
+# ffmpeg, completes the setup wizards, and gives Sonarr the incomplete show so Seerr hands
+# requests to it. Sonarr has no indexer, so nothing ever downloads: the requests stay stuck,
+# which is the state worth looking at. Safe to re-run; every step is skipped once done. Sign in
+# at http://localhost:8096 as devin / devin.
 set -euo pipefail
 cd "$(dirname "$0")"
 
 JF=http://localhost:8096
 SEERR=http://localhost:5055/api/v1
+SONARR=http://localhost:8989
+SONARR_KEY=''
 USER=devin
 PASS=devin
 AUTH='MediaBrowser Client="seed", Device="seed", DeviceId="seed", Version="1"'
@@ -89,27 +93,50 @@ jellyfin() {
   echo "jellyfin: $count items"
 }
 
+sn() { # sn <method> <path> [json]
+  curl -sf -X "$1" "$SONARR/api/v3$2" -H "X-Api-Key: $SONARR_KEY" -H 'Content-Type: application/json' ${3:+--data "$3"}
+}
+
+sonarr() {
+  wait_for "$SONARR/ping" 180
+  SONARR_KEY=$(sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' data/sonarr/config.xml)
+  sn GET /rootfolder | jq -e 'any(.path == "/media/anime")' >/dev/null ||
+    sn POST /rootfolder '{"path":"/media/anime"}' >/dev/null
+  # Haikyu!! at the folder Jellyfin already indexes, so Sonarr finds the three episodes there.
+  sn GET /series | jq -e 'any(.tvdbId == 278157)' >/dev/null ||
+    sn GET '/series/lookup?term=tvdb:278157' |
+    jq '.[0] + {path: "/media/anime/Haikyu!! (2014)", qualityProfileId: 1, monitored: true, seasonFolder: true, addOptions: {searchForMissingEpisodes: false}}' |
+    sn POST /series @- >/dev/null
+  echo "sonarr: ready"
+}
+
+se() { # se <method> <path> [json]
+  curl -sf -b "$JAR" -c "$JAR" -X "$1" "$SEERR$2" -H 'Content-Type: application/json' ${3:+--data "$3"}
+}
+
 seerr() {
   wait_for "$SEERR/status" 180
-  [ "$(curl -sf "$SEERR/settings/public" | jq .initialized)" = true ] && return
-  local jar
-  jar=$(mktemp)
+  JAR=$(mktemp)
   # The first sign-in also points Seerr at Jellyfin; later ones must omit the hostname.
   local login="{\"username\":\"$USER\",\"password\":\"$PASS\""
-  curl -sf -c "$jar" -H 'Content-Type: application/json' "$SEERR/auth/jellyfin" \
-    --data "$login,\"hostname\":\"jellyfin\",\"port\":8096,\"useSsl\":false,\"urlBase\":\"\",\"serverType\":2}" >/dev/null ||
-    curl -sf -c "$jar" -H 'Content-Type: application/json' "$SEERR/auth/jellyfin" --data "$login}" >/dev/null
-  local ids
-  ids=$(curl -sf -b "$jar" "$SEERR/settings/jellyfin/library?sync=true" | jq -r 'map(.id) | join(",")')
-  curl -sf -b "$jar" "$SEERR/settings/jellyfin/library?enable=$ids" >/dev/null
-  curl -sf -b "$jar" -X POST -H 'Content-Type: application/json' "$SEERR/settings/jellyfin/sync" --data '{"start":true}' >/dev/null
-  curl -sf -b "$jar" -X POST -H 'Content-Type: application/json' "$SEERR/settings/initialize" >/dev/null
-  rm -f "$jar"
-  echo "seerr: initialized"
+  se POST /auth/jellyfin "$login,\"hostname\":\"jellyfin\",\"port\":8096,\"useSsl\":false,\"urlBase\":\"\",\"serverType\":2}" >/dev/null ||
+    se POST /auth/jellyfin "$login}" >/dev/null
+  if [ "$(curl -sf "$SEERR/settings/public" | jq .initialized)" != true ]; then
+    local ids
+    ids=$(se GET '/settings/jellyfin/library?sync=true' | jq -r 'map(.id) | join(",")')
+    se GET "/settings/jellyfin/library?enable=$ids" >/dev/null
+    se POST /settings/jellyfin/sync '{"start":true}' >/dev/null
+    se POST /settings/initialize >/dev/null
+    echo "seerr: initialized"
+  fi
+  [ "$(se GET /settings/sonarr | jq length)" != 0 ] ||
+    se POST /settings/sonarr "{\"name\":\"Sonarr\",\"hostname\":\"sonarr\",\"port\":8989,\"apiKey\":\"$SONARR_KEY\",\"useSsl\":false,\"baseUrl\":\"\",\"activeProfileId\":1,\"activeProfileName\":\"Any\",\"activeDirectory\":\"/media/anime\",\"activeAnimeProfileId\":1,\"activeAnimeProfileName\":\"Any\",\"activeAnimeDirectory\":\"/media/anime\",\"tags\":[],\"animeTags\":[],\"is4k\":false,\"isDefault\":true,\"enableSeasonFolders\":true,\"preventSearch\":true,\"syncEnabled\":false}" >/dev/null
+  rm -f "$JAR"
 }
 
 media
 mkdir -p data/seerr # Seerr runs unprivileged; Docker would otherwise create this root-owned
 docker compose up -d
 jellyfin
+sonarr
 seerr
