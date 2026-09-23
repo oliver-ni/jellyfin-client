@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { ArrowDown, Circle, Clock } from '@phosphor-icons/react'
+import { Clock } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import type { ReactNode } from 'react'
 import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components'
@@ -20,29 +20,36 @@ function Hint({ entry }: { entry: SeasonEntry }) {
   ) : null
 }
 
-// Phosphor's bold `Circle`: a 256 grid, radius 96, 24 wide.
+// Phosphor's bold `ArrowCircleDown`, taken apart: its ring (radius 96, 24 wide on the 256 grid)
+// drawn as a stroke so an arc can fill it, and its arrow verbatim.
 const RING = 2 * Math.PI * 96
+const ARROW =
+  'M168.49,127.51a12,12,0,0,1,0,17l-32,32a12,12,0,0,1-17,0l-32-32a12,12,0,1,1,17-17L116,139V88a12,12,0,0,1,24,0v51l11.51-11.52A12,12,0,0,1,168.49,127.51Z'
 
-/** Phosphor's arrow inside its circle, with an arc over the circle that fills as the download lands. */
 function DownloadRing({ fraction, label }: { fraction: number; label: string }) {
   return (
-    <span role="img" aria-label={label} {...stylex.props(styles.ring)}>
-      <Circle size={14} weight="bold" {...stylex.props(styles.layer, styles.track)} />
-      <svg viewBox="0 0 256 256" width={14} height={14} {...stylex.props(styles.layer)}>
-        <circle
-          cx={128}
-          cy={128}
-          r={96}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={24}
-          strokeLinecap="round"
-          strokeDasharray={`${fraction * RING} ${RING}`}
-          transform="rotate(-90 128 128)"
-        />
-      </svg>
-      <ArrowDown size={7} weight="bold" {...stylex.props(styles.layer)} />
-    </span>
+    <svg
+      viewBox="0 0 256 256"
+      width={14}
+      height={14}
+      fill="currentColor"
+      role="img"
+      aria-label={label}
+    >
+      <g fill="none" stroke="currentColor" strokeWidth={24} transform="rotate(-90 128 128)">
+        <circle cx={128} cy={128} r={96} opacity={0.3} />
+        {fraction > 0 && (
+          <circle
+            cx={128}
+            cy={128}
+            r={96}
+            strokeLinecap="round"
+            strokeDasharray={`${fraction * RING} ${RING}`}
+          />
+        )}
+      </g>
+      <path d={ARROW} />
+    </svg>
   )
 }
 
@@ -161,15 +168,5 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: space.sm,
     lineHeight: 1,
-  },
-  ring: {
-    display: 'inline-grid',
-    placeItems: 'center',
-  },
-  layer: {
-    gridArea: '1 / 1',
-  },
-  track: {
-    opacity: 0.3,
   },
 })
