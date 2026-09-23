@@ -128,9 +128,9 @@ export function progress(downloads: Download[], episodeCount?: number): Progress
 const episodes = (n: number) => `${n} ${n === 1 ? 'episode' : 'episodes'}`
 
 /**
- * Where a request stands. Its own status until approved; then a bar while something is
- * downloading — for a show, how many of the requested episodes are here (`c` from `coverage`)
- * over what is being fetched for the rest — and otherwise the plain fact.
+ * Where a request stands. Its own status until approved; then, for a show with some of the
+ * requested episodes here (`c` from `coverage`), a bar of how many, with what is being fetched
+ * for the rest drawn fainter after it; otherwise the download alone, or the plain fact.
  */
 export function requestStatus(r: Request, c: Coverage | null): Progress | string {
   switch (r.status) {
@@ -142,23 +142,19 @@ export function requestStatus(r: Request, c: Coverage | null): Progress | string
       return 'Failed'
   }
   const download = progress(r.downloads)
-  if (!download) {
-    if (c?.owned) {
-      return covered(c)
-        ? `${episodes(c.owned)} downloaded`
-        : `${c.owned} of ${episodes(c.total)} downloaded`
-    }
+  if (c && covered(c)) return `${episodes(c.owned)} downloaded`
+  if (!c?.owned) {
+    if (download) return download
     return r.availability === 'available' ? 'In your library' : 'Not downloading yet'
   }
-  if (!c) return download
   // A release without episode numbers is a season pack: everything still missing is on its way.
   const coming = r.downloads.some((d) => d.episodes.length === 0)
     ? c.total - c.owned
     : new Set(r.downloads.flatMap((d) => d.episodes.map((e) => `${e.season}/${e.number}`))).size
   return {
-    fraction: c.total ? c.owned / c.total : 0,
-    coming: c.total ? Math.min(coming, c.total - c.owned) / c.total : 0,
+    fraction: c.owned / c.total,
+    coming: download ? Math.min(coming, c.total - c.owned) / c.total : 0,
     label: `${c.owned} of ${episodes(c.total)} downloaded`,
-    detail: `${download.label} · ${download.detail}`,
+    detail: download ? `${download.label} · ${download.detail}` : 'Not downloading yet',
   }
 }
