@@ -1,12 +1,11 @@
 import * as stylex from '@stylexjs/stylex'
 import type { Download } from './api'
 import { progress } from './labels'
-import { statusPill } from '@/theme/status'
-import { colors, motion } from '@/theme/tokens.stylex'
+import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 /**
- * What Radarr/Sonarr is pulling — `Downloading · 42% · 12m left` — as a pill that fills up as it
- * lands; nothing when idle. Release names sit in the tooltip.
+ * What Radarr/Sonarr is pulling — `Downloading · 42% · 12m left` — over a thin bar; nothing when
+ * idle. Release names sit in the tooltip.
  */
 export function Progress({ downloads, size }: { downloads: Download[]; size?: 'lg' }) {
   const p = progress(downloads)
@@ -14,26 +13,46 @@ export function Progress({ downloads, size }: { downloads: Download[]; size?: 'l
   return (
     <span
       title={downloads.map((d) => d.title).join('\n')}
-      {...stylex.props(statusPill.base, size === 'lg' && statusPill.lg)}
+      {...stylex.props(styles.root, size === 'lg' && styles.lg)}
     >
-      <span {...stylex.props(styles.fill)} style={{ width: `${p.fraction * 100}%` }} />
-      <span {...stylex.props(styles.text)}>{p.text}</span>
+      {p.text}
+      <span {...stylex.props(styles.track)}>
+        <span {...stylex.props(styles.bar)} style={{ width: `${p.fraction * 100}%` }} />
+      </span>
     </span>
   )
 }
 
 const styles = stylex.create({
-  fill: {
-    position: 'absolute',
-    insetBlock: 0,
-    left: 0,
+  root: {
+    display: 'inline-flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: space.xs,
+    width: 220,
+    fontSize: 13,
+    fontWeight: 500,
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
+    color: colors.textMuted,
+  },
+  lg: {
+    width: 320,
+    fontSize: 15,
+  },
+  track: {
+    width: '100%',
+    height: 3,
+    borderRadius: radii.full,
     backgroundColor: colors.surfaceHover,
+    overflow: 'hidden',
+  },
+  bar: {
+    display: 'block',
+    height: '100%',
+    backgroundColor: colors.progress,
     transitionProperty: 'width',
     transitionDuration: motion.slow,
     transitionTimingFunction: motion.ease,
-  },
-  text: {
-    position: 'relative',
-    color: colors.text,
   },
 })
