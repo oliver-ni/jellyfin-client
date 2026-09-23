@@ -97,6 +97,9 @@ export async function series(id: number): Promise<Series> {
   }
 }
 
+/** The `holdup` for a release Sonarr is fetching that Seerr's copy of the queue has not caught up to. */
+export const DOWNLOADING = 'Downloading in Sonarr'
+
 /**
  * Why the requested `seasons` aren't in the library, as far as Sonarr can tell: it isn't watching
  * them, a download is stuck at import (or failed, or still running), it looked and found nothing
@@ -108,7 +111,7 @@ export function holdup(seasons: number[], s: Series, now = new Date()): string {
   const missing = s.episodes.filter((e) => !e.hasFile && watched.some((x) => x.number === e.season))
   const queue = (state: QueueState) => missing.some((e) => e.queue === state)
   if (queue('blocked')) return 'Downloaded, import blocked in Sonarr'
-  if (queue('downloading')) return 'Downloading in Sonarr'
+  if (queue('downloading')) return DOWNLOADING
   if (queue('failed')) return 'Download failed in Sonarr'
   const aired = missing.filter((e) => e.airDate && new Date(e.airDate) <= now)
   const wanted = aired.filter((e) => e.monitored)

@@ -32,7 +32,7 @@ import {
 } from '@/seerr/labels'
 import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
-import { holdup } from '@/sonarr/api'
+import { DOWNLOADING, holdup } from '@/sonarr/api'
 import { sonarrQueries } from '@/sonarr/queries'
 import { focus } from '@/theme/focus'
 import { list } from '@/theme/list'
@@ -89,7 +89,7 @@ function RequestList({ user }: { user: SeerrUser }) {
     }),
   })
   // Seerr hands requests back newest first, which holds within each group.
-  const rows = (requests.data ?? []).map((r) => {
+  const idle = (requests.data ?? []).map((r) => {
     const title = titles.byKey.get(titleKey(r))
     const c =
       title?.type === 'tv'
@@ -99,7 +99,7 @@ function RequestList({ user }: { user: SeerrUser }) {
   })
   // Why a show isn't downloading is Sonarr's to say, when there is one to ask.
   const sonarr = useQuery(sonarrQueries.configured())
-  const stuck = rows.flatMap(({ r, group }) =>
+  const stuck = idle.flatMap(({ r, group }) =>
     sonarr.data && r.sonarrId !== null && (group === 'partial' || group === 'waiting') ? [r] : [],
   )
   const holdups = useQueries({
@@ -111,28 +111,32 @@ function RequestList({ user }: { user: SeerrUser }) {
         ),
       ),
   })
+  const rows = idle.map((row) => {
+    const holdup = holdups.get(titleKey(row.r)) ?? null
+    return { ...row, holdup, group: holdup === DOWNLOADING ? 'downloading' : row.group }
+  })
 
   return (
     <div {...stylex.props(list.page, styles.page)}>
       <header {...stylex.props(list.head)}>
         <h1 {...stylex.props(list.title)}>Requests</h1>
         {requests.data && <span {...stylex.props(list.faint)}>{requests.data.length}</span>}
-        {canViewAll && (
-          <span {...stylex.props(styles.filters)}>
-            <Segmented
-              label="Requested by"
-              options={FROM_OPTIONS}
-              selected={everyone ? 'everyone' : 'me'}
-              onChange={(key) =>
-                void navigate({
-                  search: { from: key === 'everyone' ? key : undefined },
-                  replace: true,
-                })
-              }
-            />
-          </span>
-        )}
       </header>
+      {canViewAll && (
+        <div>
+          <Segmented
+            label="Requested by"
+            options={FROM_OPTIONS}
+            selected={everyone ? 'everyone' : 'me'}
+            onChange={(key) =>
+              void navigate({
+                search: { from: key === 'everyone' ? key : undefined },
+                replace: true,
+              })
+            }
+          />
+        </div>
+      )}
       {requests.isError ? (
         <Notice
           title="Couldn’t load your requests"
@@ -162,7 +166,7 @@ function RequestList({ user }: { user: SeerrUser }) {
                   <span {...stylex.props(styles.count)}>{members.length}</span>
                 </h2>
                 <ul {...stylex.props(styles.list, g === 'done' && styles.grid)}>
-                  {members.map(({ r, title, c }) =>
+                  {members.map(({ r, title, c, holdup }) =>
                     g === 'done' ? (
                       <DoneCard key={titleKey(r)} request={r} title={title} coverage={c} />
                     ) : (
@@ -171,7 +175,7 @@ function RequestList({ user }: { user: SeerrUser }) {
                         request={r}
                         title={title}
                         coverage={c}
-                        holdup={holdups.get(titleKey(r)) ?? null}
+                        holdup={holdup}
                         requester={everyone ? r.requestedBy : null}
                       />
                     ),
@@ -264,14 +268,11 @@ const styles = stylex.create({
   page: {
     maxWidth: 960,
   },
-  filters: {
-    marginLeft: 'auto',
-    alignSelf: 'center',
-  },
   groups: {
     display: 'flex',
     flexDirection: 'column',
     gap: space.xl,
+    marginTop: space.sm,
   },
   group: {
     display: 'flex',
