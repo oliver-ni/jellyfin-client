@@ -1,33 +1,24 @@
 import * as stylex from '@stylexjs/stylex'
-import type { Download } from './api'
-import { progress } from './labels'
+import type { Progress as Value } from './labels'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 /**
- * What Radarr/Sonarr is pulling — `Downloading episodes 3–5` over `42% · 12m left` over a thin
- * bar; nothing when idle. Release names sit in the tooltip.
+ * A state over a thin bar: `Downloading episodes 3–5` over `42% · 12m left`, or `16 of 24
+ * episodes` over what's coming for the rest. `title` is the tooltip, for release names.
  */
-export function Progress({
-  downloads,
-  episodeCount,
-  size,
-}: {
-  downloads: Download[]
-  /** Length of the season the downloads belong to, to name the episodes they cover. */
-  episodeCount?: number
-  size?: 'lg'
-}) {
-  const p = progress(downloads, episodeCount)
-  if (!p) return null
+export function Progress({ value, title, size }: { value: Value; title?: string; size?: 'lg' }) {
   return (
-    <span
-      title={downloads.map((d) => d.title).join('\n')}
-      {...stylex.props(styles.root, size === 'lg' && styles.lg)}
-    >
-      {p.label}
-      <span {...stylex.props(styles.detail)}>{p.detail}</span>
+    <span title={title} {...stylex.props(styles.root, size === 'lg' && styles.lg)}>
+      {value.label}
+      <span {...stylex.props(styles.detail)}>{value.detail}</span>
       <span {...stylex.props(styles.track)}>
-        <span {...stylex.props(styles.bar)} style={{ width: `${p.fraction * 100}%` }} />
+        <span {...stylex.props(styles.bar)} style={{ width: `${value.fraction * 100}%` }} />
+        {value.coming ? (
+          <span
+            {...stylex.props(styles.bar, styles.coming)}
+            style={{ width: `${value.coming * 100}%` }}
+          />
+        ) : null}
       </span>
     </span>
   )
@@ -53,6 +44,7 @@ const styles = stylex.create({
     marginBottom: space.xs,
   },
   track: {
+    display: 'flex',
     width: '100%',
     height: 3,
     borderRadius: radii.full,
@@ -62,9 +54,13 @@ const styles = stylex.create({
   bar: {
     display: 'block',
     height: '100%',
+    flexShrink: 0,
     backgroundColor: colors.progress,
     transitionProperty: 'width',
     transitionDuration: motion.slow,
     transitionTimingFunction: motion.ease,
+  },
+  coming: {
+    opacity: 0.35,
   },
 })

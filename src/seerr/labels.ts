@@ -1,7 +1,9 @@
 import { Clock, DownloadSimple, Plus, Prohibit, type Icon } from '@phosphor-icons/react'
 import {
   DOWNLOAD_STATES,
+  covered,
   type Availability,
+  type Coverage,
   type Download,
   type DownloadState,
   type MediaType,
@@ -77,7 +79,7 @@ function range(noun: string, numbers: number[]): string {
  * Which part of a show the downloads cover: episodes of one season when `episodeCount` says how
  * long that season is, seasons of the title otherwise. `null` for a film, which has no parts.
  */
-function coverage(downloads: Download[], episodeCount?: number): string | null {
+function part(downloads: Download[], episodeCount?: number): string | null {
   const episodes = downloads.flatMap((d) => d.episodes)
   if (episodes.length === 0) return null
   const distinct = (ns: number[]) => [...new Set(ns)].sort((a, b) => a - b)
@@ -86,8 +88,13 @@ function coverage(downloads: Download[], episodeCount?: number): string | null {
   return numbers.length >= episodeCount ? 'whole season' : range('episode', numbers)
 }
 
+/** Tooltip for a set of downloads: their release names, one per line. */
+export const releaseNames = (downloads: Download[]) => downloads.map((d) => d.title).join('\n')
+
 export interface Progress {
   fraction: number
+  /** Share of the bar drawn fainter after `fraction`, for what is on its way but not here. */
+  coming?: number
   /** What's happening to what: `Downloading episodes 3–5`. */
   label: string
   /** How far along: `42% · 12m left`. */
@@ -108,9 +115,7 @@ export function progress(downloads: Download[], episodeCount?: number): Progress
   const estimates = downloads.flatMap((d) => (d.timeLeft ? [minutesLeft(d.timeLeft)] : []))
   return {
     fraction,
-    label: [DOWNLOAD_STATE_LABEL[state], coverage(downloads, episodeCount)]
-      .filter(Boolean)
-      .join(' '),
+    label: [DOWNLOAD_STATE_LABEL[state], part(downloads, episodeCount)].filter(Boolean).join(' '),
     detail: [
       `${Math.round(fraction * 100)}%`,
       estimates.length > 0 && formatLeft(Math.max(...estimates)),
@@ -120,8 +125,14 @@ export function progress(downloads: Download[], episodeCount?: number): Progress
   }
 }
 
-/** Where a request stands: its own status until approved, then the title's availability. */
-export function requestLabel(r: Request): string {
+const episodes = (n: number) => `${n} ${n === 1 ? 'episode' : 'episodes'}`
+
+/**
+ * Where a request stands. Its own status until approved; then, for a show, how many of the
+ * requested episodes are in the library over what is downloading for the rest (`c` from
+ * `coverage`), and for a film just the download or the plain fact.
+ */
+export function requestStatus(r: Request, c: Coverage | null): Progress | string {
   switch (r.status) {
     case 'pending':
       return 'Awaiting approval'
@@ -129,15 +140,22 @@ export function requestLabel(r: Request): string {
       return 'Declined'
     case 'failed':
       return 'Failed'
-    case 'completed':
-      return 'In your library'
-    case 'approved':
-      if (r.availability === 'partial') {
-        const here = r.seasonsHere.length
-        return here > 0 && r.seasons.length > 1
-          ? `${here} of ${r.seasons.length} seasons in library`
-          : 'Some episodes in library'
-      }
-      return AVAILABILITY_LABEL[r.availability] ?? 'On its way'
+  }
+  const download = progress(r.downloads)
+  if (!c) {
+    return download ?? (r.availability === 'available' ? 'In your library' : 'Nothing downloading')
+  }
+  if (!download && (covered(c) || r.availability === 'available')) {
+    return c.owned ? `${episodes(c.owned)} in library` : 'In your library'
+  }
+  // A release without episode numbers is a season pack: everything still missing is on its way.
+  const coming = r.downloads.some((d) => d.episodes.length === 0)
+    ? c.total - c.owned
+    : new Set(r.downloads.flatMap((d) => d.episodes.map((e) => `${e.season}/${e.number}`))).size
+  return {
+    fraction: c.total ? c.owned / c.total : 0,
+    coming: c.total ? Math.min(coming, c.total - c.owned) / c.total : 0,
+    label: `${c.owned} of ${episodes(c.total)}`,
+    detail: download ? `${download.label} · ${download.detail}` : 'Nothing downloading',
   }
 }

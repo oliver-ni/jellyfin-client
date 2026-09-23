@@ -132,11 +132,9 @@ export interface Request {
   type: MediaType
   tmdbId: number
   status: RequestStatus
-  /** Where what was asked for stands: the requested seasons for a show, the film otherwise. */
+  /** Where the title stands in the library, by Seerr's last scan. */
   availability: Availability
   seasons: number[]
-  /** Requested seasons the library already holds in full. */
-  seasonsHere: number[]
   requestedBy: string
   jellyfinId: string | null
   downloads: Download[]
@@ -155,25 +153,49 @@ export function byTitle(requests: Request[]): Request[] {
   return [...groups.values()].map((rs) => ({
     ...rs.reduce((a, b) => (requestRank(b) < requestRank(a) ? b : a)),
     seasons: [...new Set(rs.flatMap((r) => r.seasons))].sort((a, b) => a - b),
-    seasonsHere: [...new Set(rs.flatMap((r) => r.seasonsHere))].sort((a, b) => a - b),
     requestedBy: [...new Set(rs.map((r) => r.requestedBy))].join(', '),
     downloads: [...new Map(rs.flatMap((r) => r.downloads).map((d) => [d.title, d])).values()],
   }))
 }
 
+/**
+ * How much of a show request the library holds: episodes of the requested seasons that Jellyfin
+ * has (`owned`, per season number) against how many TMDB lists for them.
+ */
+export interface Coverage {
+  owned: number
+  total: number
+}
+
+export function coverage(
+  seasons: number[],
+  title: TvDetails,
+  owned: ReadonlyMap<number, number>,
+): Coverage {
+  const wanted = title.seasons.filter((s) => seasons.includes(s.number))
+  return {
+    owned: wanted.reduce((n, s) => n + Math.min(owned.get(s.number) ?? 0, s.episodeCount), 0),
+    total: wanted.reduce((n, s) => n + s.episodeCount, 0),
+  }
+}
+
+export const covered = (c: Coverage) => c.total > 0 && c.owned >= c.total
+
 /** Ranks from here on are states Seerr will no longer move a request out of. */
 export const DONE_RANK = 3
 
-/** Order for a list of requests: the closer one is to landing, the earlier it sorts. */
-export function requestRank(r: Request): number {
+/**
+ * Order for a list of requests: the closer one is to landing, the earlier it sorts. A show whose
+ * requested episodes are all in Jellyfin is done whatever Seerr's scan last said.
+ */
+export function requestRank(r: Request, c?: Coverage): number {
   if (r.downloads.length > 0) return 0
   switch (r.status) {
     case 'approved':
-      return r.availability === 'available' ? DONE_RANK : 1
+    case 'completed':
+      return r.availability === 'available' || (c && covered(c)) ? DONE_RANK : 1
     case 'pending':
       return 2
-    case 'completed':
-      return DONE_RANK
     case 'declined':
     case 'failed':
       return DONE_RANK + 1
@@ -206,7 +228,6 @@ interface RawRequest {
     tmdbId: number
     status: number
     jellyfinMediaId: string | null
-    seasons?: { seasonNumber: number; status: number }[]
     downloadStatus?: RawDownload[]
   }
   seasons: { seasonNumber: number }[]
@@ -417,14 +438,6 @@ export async function episodes(tmdbId: number, season: number): Promise<Episode[
   }))
 }
 
-/** A show request stands where its seasons do; the title's own status covers the rest. */
-function requestedAvailability(title: Availability, seasons: Availability[]): Availability {
-  if (seasons.length === 0 || title === 'available') return title
-  if (seasons.every((a) => a === 'available')) return 'available'
-  if (seasons.some((a) => a === 'available' || a === 'partial')) return 'partial'
-  return title === 'partial' ? 'processing' : title
-}
-
 /** Newest first; one user's, or everyone's when `userId` is omitted. */
 export async function requests(userId?: number): Promise<Request[]> {
   const page = await request<{ results: RawRequest[] }>(
@@ -432,16 +445,13 @@ export async function requests(userId?: number): Promise<Request[]> {
   )
   return page.results.map((r) => {
     const seasons = r.seasons.map((s) => s.seasonNumber).sort((a, b) => a - b)
-    const bySeason = new Map(r.media.seasons?.map((s) => [s.seasonNumber, AVAILABILITY[s.status]]))
-    const per = seasons.map((n) => bySeason.get(n) ?? 'unknown')
     return {
       id: r.id,
       type: r.type === 'tv' ? 'tv' : 'movie',
       tmdbId: r.media.tmdbId,
       status: REQUEST_STATUS[r.status] ?? 'pending',
-      availability: requestedAvailability(AVAILABILITY[r.media.status] ?? 'unknown', per),
+      availability: AVAILABILITY[r.media.status] ?? 'unknown',
       seasons,
-      seasonsHere: seasons.filter((_, i) => per[i] === 'available'),
       requestedBy: r.requestedBy.displayName,
       jellyfinId: r.media.jellyfinMediaId,
       downloads: toDownloads(

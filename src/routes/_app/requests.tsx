@@ -8,18 +8,22 @@ import { Notice } from '@/components/Notice'
 import { Segmented } from '@/components/Segmented'
 import { titleLink } from '@/lib/item-link'
 import { fadeUp } from '@/lib/motion'
+import { queries } from '@/lib/queries'
+import { useRequiredSession } from '@/lib/session'
 import {
   DONE_RANK,
   byTitle,
   canViewAllRequests,
+  coverage,
   requestRank,
   titleKey,
+  type Coverage,
   type Request,
   type SeerrUser,
   type Title,
 } from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
-import { MEDIA_TYPE_LABEL, requestLabel } from '@/seerr/labels'
+import { MEDIA_TYPE_LABEL, releaseNames, requestStatus } from '@/seerr/labels'
 import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
 import { focus } from '@/theme/focus'
@@ -45,6 +49,7 @@ function RequestsPage() {
 function RequestList({ user }: { user: SeerrUser }) {
   const { from } = Route.useSearch()
   const navigate = Route.useNavigate()
+  const { userId } = useRequiredSession()
   const canViewAll = canViewAllRequests(user)
   const everyone = from === 'everyone' && canViewAll
   const requests = useQuery({
@@ -59,17 +64,42 @@ function RequestList({ user }: { user: SeerrUser }) {
       byKey: new Map(results.flatMap((t) => (t.data ? [[titleKey(t.data), t.data] as const] : []))),
     }),
   })
+  // How many episodes of each show are actually here comes from Jellyfin's seasons.
+  const series = (requests.data ?? []).flatMap((r) =>
+    r.type === 'tv' && r.jellyfinId ? [r.jellyfinId] : [],
+  )
+  const owned = useQueries({
+    queries: series.map((id) => queries.seasons(userId, id)),
+    combine: (results) => ({
+      pending: results.some((s) => s.isPending),
+      bySeries: new Map(
+        results.map((s, i) => [
+          series[i],
+          new Map(s.data?.Items?.map((item) => [item.IndexNumber ?? 0, item.ChildCount ?? 0])),
+        ]),
+      ),
+    }),
+  })
+  const rows = (requests.data ?? []).map((r) => {
+    const title = titles.byKey.get(titleKey(r))
+    const c =
+      title?.type === 'tv'
+        ? coverage(r.seasons, title, owned.bySeries.get(r.jellyfinId ?? '') ?? new Map())
+        : null
+    return { r, title, c, rank: requestRank(r, c ?? undefined) }
+  })
   // Seerr hands them back newest first; a stable sort keeps that within each rank.
-  const ranked = (requests.data ?? []).toSorted((a, b) => requestRank(a) - requestRank(b))
-  const active = ranked.filter((r) => requestRank(r) < DONE_RANK)
-  const done = ranked.filter((r) => requestRank(r) >= DONE_RANK)
-  const rows = (list: Request[]) => (
+  const ranked = rows.toSorted((a, b) => a.rank - b.rank)
+  const active = ranked.filter((x) => x.rank < DONE_RANK)
+  const done = ranked.filter((x) => x.rank >= DONE_RANK)
+  const group = (list: typeof rows) => (
     <ul {...stylex.props(styles.list)}>
-      {list.map((r) => (
+      {list.map(({ r, title, c }) => (
         <RequestRow
           key={titleKey(r)}
           request={r}
-          title={titles.byKey.get(titleKey(r))}
+          title={title}
+          coverage={c}
           requester={everyone ? r.requestedBy : null}
         />
       ))}
@@ -108,7 +138,7 @@ function RequestList({ user }: { user: SeerrUser }) {
           title="Nothing requested yet"
           text="Search with / for something the library is missing and request it."
         />
-      ) : requests.data && !titles.pending ? (
+      ) : requests.data && !titles.pending && !owned.pending ? (
         <m.div
           key={String(everyone)}
           initial="hidden"
@@ -116,11 +146,11 @@ function RequestList({ user }: { user: SeerrUser }) {
           variants={fadeUp}
           {...stylex.props(styles.groups)}
         >
-          {active.length > 0 && rows(active)}
+          {active.length > 0 && group(active)}
           {done.length > 0 && (
             <section {...stylex.props(styles.group)}>
               <h2 {...stylex.props(list.faint)}>Done</h2>
-              {rows(done)}
+              {group(done)}
             </section>
           )}
         </m.div>
@@ -144,15 +174,18 @@ const seasonList = (seasons: number[]) =>
 function RequestRow({
   request: r,
   title,
+  coverage: c,
   requester,
 }: {
   request: Request
   title: Pick<Title, 'name' | 'year' | 'poster'> | undefined
+  coverage: Coverage | null
   requester: string | null
 }) {
   const link = r.jellyfinId
     ? titleLink(r.jellyfinId, title?.name)
     : ({ to: '/request/$type/$tmdbId', params: { type: r.type, tmdbId: r.tmdbId } } as const)
+  const status = requestStatus(r, c)
   return (
     <li>
       <Link {...link} {...stylex.props(focus.ring, styles.row)}>
@@ -167,12 +200,12 @@ function RequestRow({
               .join(' · ')}
           </span>
         </span>
-        {r.downloads.length > 0 ? (
-          <Progress downloads={r.downloads} />
-        ) : (
+        {typeof status === 'string' ? (
           <span {...stylex.props(styles.status, r.status === 'failed' && styles.failed)}>
-            {requestLabel(r)}
+            {status}
           </span>
+        ) : (
+          <Progress value={status} title={releaseNames(r.downloads)} />
         )}
       </Link>
     </li>

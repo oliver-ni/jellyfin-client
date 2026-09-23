@@ -13,7 +13,7 @@ import { fadeUp, stagger } from '@/lib/motion'
 import { defaultSeason, seasonEntries } from '@/lib/seasons'
 import * as seerr from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
-import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL } from '@/seerr/labels'
+import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL, progress, releaseNames } from '@/seerr/labels'
 import { MissingSeason } from '@/seerr/MissingSeason'
 import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
@@ -132,7 +132,10 @@ function HeroAction({ title }: { title: seerr.MovieDetails | seerr.TvDetails }) 
       </RequestButton>
     )
   }
-  if (title.downloads.length > 0) return <Progress downloads={title.downloads} size="lg" />
+  const download = progress(title.downloads)
+  if (download) {
+    return <Progress value={download} title={releaseNames(title.downloads)} size="lg" />
+  }
   const label = AVAILABILITY_LABEL[title.availability]
   if (!label) return null
   return (

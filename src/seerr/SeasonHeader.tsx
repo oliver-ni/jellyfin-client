@@ -1,7 +1,13 @@
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { requestable, type Season } from './api'
-import { AVAILABILITY_ICON, AVAILABILITY_LABEL, seasonLabel } from './labels'
+import {
+  AVAILABILITY_ICON,
+  AVAILABILITY_LABEL,
+  progress,
+  releaseNames,
+  seasonLabel,
+} from './labels'
 import { Progress } from './Progress'
 import { statusPill } from '@/theme/status'
 import { colors, space } from '@/theme/tokens.stylex'
@@ -19,11 +25,12 @@ export function SeasonHeader({
   owned?: number
   request?: ReactNode
 }) {
+  const download = progress(season.downloads, season.episodeCount)
   return (
     <div {...stylex.props(styles.root)}>
       <p {...stylex.props(styles.meta)}>{seasonLabel(season, owned)}</p>
-      {season.downloads.length > 0 ? (
-        <Progress downloads={season.downloads} episodeCount={season.episodeCount} />
+      {download ? (
+        <Progress value={download} title={releaseNames(season.downloads)} />
       ) : requestable(season.availability) ? (
         request
       ) : (
