@@ -5,21 +5,26 @@ import { text } from '@/theme/text'
 import { colors, radii, space } from '@/theme/tokens.stylex'
 
 /**
- * State, percentage, time left and a thin bar for what Radarr/Sonarr is pulling; nothing when
- * idle. `titled` also names the releases, for where there's room.
+ * What Radarr/Sonarr is pulling: state, percentage and time left over a thin bar; nothing when
+ * idle. `titled` also names the releases, on the same line, for where there's room.
  */
 export function Progress({ downloads, titled }: { downloads: Download[]; titled?: boolean }) {
   const p = progress(downloads)
   if (!p) return null
   return (
     <span {...stylex.props(styles.root)}>
-      {titled &&
-        downloads.map((d) => (
-          <span key={d.title} {...stylex.props(text.ellipsis, styles.title)}>
-            {d.title}
+      <span {...stylex.props(styles.line)}>
+        {titled && (
+          <span {...stylex.props(styles.titles)}>
+            {downloads.map((d) => (
+              <span key={d.title} {...stylex.props(text.ellipsis)}>
+                {d.title}
+              </span>
+            ))}
           </span>
-        ))}
-      <span {...stylex.props(styles.text)}>{p.text}</span>
+        )}
+        <span {...stylex.props(styles.text)}>{p.text}</span>
+      </span>
       <span {...stylex.props(styles.track)}>
         <span {...stylex.props(styles.bar)} style={{ width: `${p.fraction * 100}%` }} />
       </span>
@@ -33,13 +38,22 @@ const styles = stylex.create({
     flexDirection: 'column',
     gap: space.xs,
     width: '100%',
-  },
-  title: {
     fontSize: 13,
+  },
+  line: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    gap: space.md,
+  },
+  titles: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
     color: colors.text,
   },
   text: {
-    fontSize: 13,
+    marginLeft: 'auto',
+    whiteSpace: 'nowrap',
     color: colors.textMuted,
   },
   track: {

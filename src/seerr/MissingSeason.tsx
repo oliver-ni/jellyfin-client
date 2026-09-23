@@ -31,6 +31,6 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
-    gap: space.md,
+    gap: space.lg,
   },
 })

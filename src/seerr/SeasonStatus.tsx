@@ -19,6 +19,7 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.md,
+    width: '100%',
     maxWidth: 480,
   },
   meta: {

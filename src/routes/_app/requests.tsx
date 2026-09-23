@@ -10,9 +10,10 @@ import { titleLink } from '@/lib/item-link'
 import { fadeUp } from '@/lib/motion'
 import {
   DONE_RANK,
+  byTitle,
   canViewAllRequests,
   requestRank,
-  type MediaType,
+  titleKey,
   type Request,
   type SeerrUser,
   type Title,
@@ -46,25 +47,27 @@ function RequestList({ user }: { user: SeerrUser }) {
   const navigate = Route.useNavigate()
   const canViewAll = canViewAllRequests(user)
   const everyone = from === 'everyone' && canViewAll
-  const requests = useQuery(seerrQueries.requests(everyone ? undefined : user.id))
-  // Requests only carry ids; the titles behind them come from Seerr, once per distinct title.
-  const distinct = [...new Map((requests.data ?? []).map((r) => [titleKey(r), r])).values()]
+  const requests = useQuery({
+    ...seerrQueries.requests(everyone ? undefined : user.id),
+    select: byTitle,
+  })
+  // Requests only carry ids; the titles behind them come from Seerr.
   const titles = useQueries({
-    queries: distinct.map((r) => seerrQueries.title(r.type, r.tmdbId)),
+    queries: (requests.data ?? []).map((r) => seerrQueries.title(r.type, r.tmdbId)),
     combine: (results) => ({
       pending: results.some((t) => t.isPending),
       byKey: new Map(results.flatMap((t) => (t.data ? [[titleKey(t.data), t.data] as const] : []))),
     }),
   })
   // Seerr hands them back newest first; a stable sort keeps that within each rank.
-  const ranked = [...(requests.data ?? [])].sort((a, b) => requestRank(a) - requestRank(b))
+  const ranked = (requests.data ?? []).toSorted((a, b) => requestRank(a) - requestRank(b))
   const active = ranked.filter((r) => requestRank(r) < DONE_RANK)
   const done = ranked.filter((r) => requestRank(r) >= DONE_RANK)
   const rows = (list: Request[]) => (
     <ul {...stylex.props(styles.list)}>
       {list.map((r) => (
         <RequestRow
-          key={r.id}
+          key={titleKey(r)}
           request={r}
           title={titles.byKey.get(titleKey(r))}
           requester={everyone ? r.requestedBy : null}
@@ -130,8 +133,6 @@ const FROM_OPTIONS = [
   { key: 'me', label: 'Yours' },
   { key: 'everyone', label: 'Everyone' },
 ] as const
-
-const titleKey = (t: { type: MediaType; tmdbId: number }) => `${t.type}/${t.tmdbId}`
 
 const seasonList = (seasons: number[]) =>
   seasons.length === 0

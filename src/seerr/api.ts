@@ -129,6 +129,22 @@ export interface Request {
   downloads: Download[]
 }
 
+export const titleKey = (t: { type: MediaType; tmdbId: number }) => `${t.type}/${t.tmdbId}`
+
+/**
+ * One request per title. Seerr keeps a failed request beside its retry, and later seasons come
+ * as requests of their own; the liveliest one speaks for the title, with everyone's seasons.
+ */
+export function byTitle(requests: Request[]): Request[] {
+  const groups = new Map<string, Request[]>()
+  for (const r of requests) groups.set(titleKey(r), [...(groups.get(titleKey(r)) ?? []), r])
+  return [...groups.values()].map((rs) => ({
+    ...rs.reduce((a, b) => (requestRank(b) < requestRank(a) ? b : a)),
+    seasons: [...new Set(rs.flatMap((r) => r.seasons))].sort((a, b) => a - b),
+    requestedBy: [...new Set(rs.map((r) => r.requestedBy))].join(', '),
+  }))
+}
+
 /** Ranks from here on are states Seerr will no longer move a request out of. */
 export const DONE_RANK = 3
 
