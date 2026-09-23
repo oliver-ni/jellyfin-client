@@ -165,6 +165,8 @@ export function requestStatus(r: Request, c: Coverage | null): Progress | string
     fraction: c.owned / c.total,
     coming: download ? coming / c.total : 0,
     label: `${c.owned} of ${episodes(c.total)} downloaded`,
-    detail: download ? `${download.label} · ${download.detail}` : 'Not downloading yet',
+    detail: download
+      ? `${download.label} · ${download.detail}`
+      : `${c.total - c.owned} left, not downloading yet`,
   }
 }
