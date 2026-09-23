@@ -15,16 +15,13 @@ buildNpmPackage {
   src = lib.fileset.toSource {
     root = ./.;
     fileset = lib.fileset.unions [
-      ./.browserslistrc
       ./index.html
       ./package.json
       ./package-lock.json
       ./patches
       ./public
       ./src
-      ./tsconfig.app.json
       ./tsconfig.json
-      ./tsconfig.node.json
       ./vite.config.ts
     ];
   };
