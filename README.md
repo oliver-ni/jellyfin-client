@@ -1,12 +1,28 @@
 # jellyfin-client
 
-A fast, minimal web client for [Jellyfin](https://jellyfin.org).
+A web client for [Jellyfin](https://jellyfin.org) with its own look: a cinematic home page,
+one page per title with seasons and episodes inline, a `/` search palette, a custom player, and
+optional [Seerr](https://github.com/seerr-team/seerr) integration for requesting what the library
+is missing and watching it download.
+
+![Home](docs/home.jpg)
+
+<table>
+  <tr>
+    <td><img src="docs/series.jpg" alt="Series page"></td>
+    <td><img src="docs/episode.jpg" alt="Episode expanded inline"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/library.jpg" alt="Library"></td>
+    <td><img src="docs/search.jpg" alt="Search palette with Seerr results"></td>
+  </tr>
+</table>
 
 ## Stack
 
 - React 19 + TypeScript, Vite SPA
 - TanStack Router (file-based routes) + TanStack Query (IndexedDB-persisted cache)
-- StyleX + React Aria Components
+- StyleX + React Aria Components, Motion
 - Typed API client generated from the Jellyfin OpenAPI spec with `@hey-api/openapi-ts`
 - oxlint + oxfmt, Vitest
 
@@ -57,7 +73,7 @@ npm run generate
 | ------------------- | ---------------------------- |
 | `npm run dev`       | Vite dev server              |
 | `npm run build`     | Typecheck + production build |
-| `npm run typecheck` | `tsc -b`                     |
+| `npm run typecheck` | `tsc`                        |
 | `npm run lint`      | oxlint                       |
 | `npm run fmt`       | oxfmt (write)                |
 | `npm run fmt:check` | oxfmt (check)                |
