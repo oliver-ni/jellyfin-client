@@ -128,9 +128,9 @@ export function progress(downloads: Download[], episodeCount?: number): Progress
 const episodes = (n: number) => `${n} ${n === 1 ? 'episode' : 'episodes'}`
 
 /**
- * Where a request stands. Its own status until approved; then, for a show, how many of the
- * requested episodes are in the library over what is downloading for the rest (`c` from
- * `coverage`), and for a film just the download or the plain fact.
+ * Where a request stands. Its own status until approved; then a bar while something is
+ * downloading — for a show, how many of the requested episodes are here (`c` from `coverage`)
+ * over what is being fetched for the rest — and otherwise the plain fact.
  */
 export function requestStatus(r: Request, c: Coverage | null): Progress | string {
   switch (r.status) {
@@ -142,12 +142,15 @@ export function requestStatus(r: Request, c: Coverage | null): Progress | string
       return 'Failed'
   }
   const download = progress(r.downloads)
-  if (!c) {
-    return download ?? (r.availability === 'available' ? 'In your library' : 'Nothing downloading')
+  if (!download) {
+    if (c?.owned) {
+      return covered(c)
+        ? `${episodes(c.owned)} downloaded`
+        : `${c.owned} of ${episodes(c.total)} downloaded`
+    }
+    return r.availability === 'available' ? 'In your library' : 'Not downloading yet'
   }
-  if (!download && (covered(c) || r.availability === 'available')) {
-    return c.owned ? `${episodes(c.owned)} in library` : 'In your library'
-  }
+  if (!c) return download
   // A release without episode numbers is a season pack: everything still missing is on its way.
   const coming = r.downloads.some((d) => d.episodes.length === 0)
     ? c.total - c.owned
@@ -155,7 +158,7 @@ export function requestStatus(r: Request, c: Coverage | null): Progress | string
   return {
     fraction: c.total ? c.owned / c.total : 0,
     coming: c.total ? Math.min(coming, c.total - c.owned) / c.total : 0,
-    label: `${c.owned} of ${episodes(c.total)}`,
-    detail: download ? `${download.label} · ${download.detail}` : 'Nothing downloading',
+    label: `${c.owned} of ${episodes(c.total)} downloaded`,
+    detail: `${download.label} · ${download.detail}`,
   }
 }
