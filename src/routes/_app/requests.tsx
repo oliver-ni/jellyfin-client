@@ -28,7 +28,7 @@ import {
   REQUEST_GROUP_LABEL,
   episodes,
   releaseNames,
-  requestStatus,
+  requestProgress,
 } from '@/seerr/labels'
 import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
@@ -198,7 +198,7 @@ function RequestRow({
   coverage: c,
   requester,
 }: RowProps & { requester: string | null }) {
-  const status = requestStatus(r, c)
+  const bar = requestProgress(r, c)
   return (
     <li>
       <Link {...requestLink(r, title)} {...stylex.props(focus.ring, styles.row)}>
@@ -213,13 +213,11 @@ function RequestRow({
               .join(' · ')}
           </span>
         </span>
-        {typeof status === 'string' ? (
-          <span {...stylex.props(styles.status, r.status === 'failed' && styles.failed)}>
-            {status}
-          </span>
-        ) : (
-          <Progress value={status} title={releaseNames(r.downloads)} />
-        )}
+        {r.status === 'failed' ? (
+          <span {...stylex.props(styles.failed)}>Failed</span>
+        ) : bar ? (
+          <Progress value={bar} title={releaseNames(r.downloads)} />
+        ) : null}
       </Link>
     </li>
   )
@@ -345,12 +343,9 @@ const styles = stylex.create({
     fontSize: 13,
     color: colors.textMuted,
   },
-  status: {
+  failed: {
     fontSize: 13,
     fontWeight: 500,
-    color: colors.textMuted,
-  },
-  failed: {
     color: colors.danger,
   },
 })

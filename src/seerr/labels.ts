@@ -153,37 +153,30 @@ export const REQUEST_GROUP_LABEL: Record<RequestGroup, string> = {
 }
 
 /**
- * Where a request that isn't `done` stands, in a line or over a bar:
- *
- * - its own status, until approved;
- * - for a show with some of the requested episodes here (`c` from `coverage`), a bar of how
- *   many, with the episodes on their way drawn fainter after it: `3 of 12 episodes downloaded`
- *   over `Downloading 9 episodes · 42% · 12m left`, or over `9 left, not downloading yet`;
- * - otherwise the download alone, or `Not downloading yet`.
+ * A bar for a request that isn't `done`, or `null` when there's nothing to draw — the section it
+ * sits under already says where it stands. For a show with some of the requested episodes here
+ * (`c` from `coverage`), the bar is how many, with the episodes on their way drawn fainter after
+ * it: `3 of 12 episodes` over `Downloading 9 episodes · 42% · 12m left`, or over `9 missing`.
+ * Otherwise it's the download alone.
  */
-export function requestStatus(r: Request, c: Coverage | null): Progress | string {
+export function requestProgress(r: Request, c: Coverage | null): Progress | null {
   switch (r.status) {
     case 'pending':
-      return 'Awaiting approval'
     case 'declined':
-      return 'Declined'
     case 'failed':
-      return 'Failed'
+      return null
   }
-  const idle = 'Not downloading yet'
-  if (!c?.total) return progress(r.downloads) ?? idle
+  if (!c?.total) return progress(r.downloads)
   const missing = c.total - c.owned
   const coming = Math.min(missing, named(r.downloads) ?? missing)
   const download = progress(r.downloads)
   const fetching = (state: DownloadState) => `${DOWNLOAD_STATE_LABEL[state]} ${episodes(coming)}`
-  if (!c.owned) return download ? { ...download, label: fetching(download.state) } : idle
+  if (!c.owned) return download && { ...download, label: fetching(download.state) }
   return {
     state: download?.state ?? null,
     fraction: c.owned / c.total,
     coming: download ? coming / c.total : 0,
-    label: `${c.owned} of ${episodes(c.total)} downloaded`,
-    detail: download
-      ? `${fetching(download.state)} · ${download.detail}`
-      : `${missing} left, not downloading yet`,
+    label: `${c.owned} of ${episodes(c.total)}`,
+    detail: download ? `${fetching(download.state)} · ${download.detail}` : `${missing} missing`,
   }
 }
