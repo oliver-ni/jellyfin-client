@@ -60,13 +60,16 @@ function formatLeft(minutes: number): string {
   return `${parts.join(' ')} left`
 }
 
-const DOWNLOAD_STATE_LABEL: Record<DownloadState, string> = {
-  downloading: 'Downloading',
-  importing: 'Importing',
-  queued: 'Queued',
-  paused: 'Paused',
-  stalled: 'Stalled',
+/** What the client is doing with a parked download; `null` while it moves. */
+const DOWNLOAD_STATE_NOTE: Record<DownloadState, string | null> = {
+  downloading: null,
+  importing: null,
+  queued: 'queued',
+  paused: 'paused',
+  stalled: 'stalled',
 }
+
+const verb = (state: DownloadState) => (state === 'importing' ? 'Importing' : 'Downloading')
 
 /** `episode 7`, `episodes 3–5`, or `4 episodes` when they don't run in sequence. */
 function range(noun: string, numbers: number[]): string {
@@ -118,7 +121,8 @@ export interface Progress {
  * How far along a set of downloads is, or `null` when nothing is downloading. The liveliest
  * download's state stands for the set, over the `part` of the show it covers — episodes of one
  * season when `episodeCount` says how long that season is, seasons of the title otherwise. The
- * percentage is of the releases' combined size; a queue with no size yet is 0%.
+ * percentage is of the releases' combined size; a queue with no size yet is 0%. A download the
+ * client has parked says so after the percentage (`41% · queued`) instead of a time left.
  */
 export function progress(
   downloads: Download[],
@@ -130,14 +134,13 @@ export function progress(
   const left = downloads.reduce((sum, d) => sum + d.sizeLeft, 0)
   const fraction = size ? 1 - left / size : 0
   const estimates = downloads.flatMap((d) => (d.timeLeft ? [minutesLeft(d.timeLeft)] : []))
+  const eta =
+    state === 'downloading' && estimates.length ? formatLeft(Math.max(...estimates)) : null
   return {
     state,
     fraction,
-    label: [DOWNLOAD_STATE_LABEL[state], part(downloads, episodeCount)].filter(Boolean).join(' '),
-    detail: [
-      `${Math.round(fraction * 100)}%`,
-      estimates.length > 0 && formatLeft(Math.max(...estimates)),
-    ]
+    label: [verb(state), part(downloads, episodeCount)].filter(Boolean).join(' '),
+    detail: [`${Math.round(fraction * 100)}%`, DOWNLOAD_STATE_NOTE[state] ?? eta]
       .filter(Boolean)
       .join(' · '),
   }
@@ -175,7 +178,7 @@ export function requestProgress(
   const missing = c.total - c.owned
   const coming = Math.min(missing, named(r.downloads) ?? missing)
   const download = progress(r.downloads)
-  const fetching = (state: DownloadState) => `${DOWNLOAD_STATE_LABEL[state]} ${episodes(coming)}`
+  const fetching = (state: DownloadState) => `${verb(state)} ${episodes(coming)}`
   if (!c.owned) return download && { ...download, label: fetching(download.state) }
   return {
     state: download?.state ?? null,

@@ -184,7 +184,7 @@ export function coverage(
   }
 }
 
-export const covered = (c: Coverage) => c.total > 0 && c.owned >= c.total
+const covered = (c: Coverage) => c.total > 0 && c.owned >= c.total
 
 /** What is happening to a request, in the order a list shows them: closest to landing first. */
 export const REQUEST_GROUPS = [

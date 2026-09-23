@@ -37,7 +37,7 @@ export function seasonEntries(
 export const newsFor = (e: SeasonEntry): Season | null =>
   e.kind === 'missing' || (e.season && incoming(e.season.availability)) ? e.season : null
 
-export const unplayed = (item: BaseItemDto) => item.UserData?.UnplayedItemCount ?? 0
+const unplayed = (item: BaseItemDto) => item.UserData?.UnplayedItemCount ?? 0
 
 export const defaultSeason = (entries: SeasonEntry[], number: number | undefined) =>
   entries.find((e) => e.number === number) ??
