@@ -4,11 +4,20 @@ import { progress } from './labels'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 /**
- * What Radarr/Sonarr is pulling — `Downloading · 42% · 12m left` — over a thin bar; nothing when
+ * What Radarr/Sonarr is pulling — `Downloading episodes 3–5 · 42% · 12m left` — over a thin bar; nothing when
  * idle. Release names sit in the tooltip.
  */
-export function Progress({ downloads, size }: { downloads: Download[]; size?: 'lg' }) {
-  const p = progress(downloads)
+export function Progress({
+  downloads,
+  episodeCount,
+  size,
+}: {
+  downloads: Download[]
+  /** Length of the season the downloads belong to, to name the episodes they cover. */
+  episodeCount?: number
+  size?: 'lg'
+}) {
+  const p = progress(downloads, episodeCount)
   if (!p) return null
   return (
     <span
@@ -28,16 +37,15 @@ const styles = stylex.create({
     display: 'inline-flex',
     flexDirection: 'column',
     alignItems: 'flex-end',
-    gap: space.xs,
-    width: 220,
+    gap: space.xxs,
+    minWidth: 220,
     fontSize: 13,
     fontWeight: 500,
-    lineHeight: 1,
     whiteSpace: 'nowrap',
     color: colors.textMuted,
   },
   lg: {
-    width: 320,
+    minWidth: 320,
     fontSize: 15,
   },
   track: {

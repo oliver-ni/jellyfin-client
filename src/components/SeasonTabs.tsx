@@ -13,7 +13,7 @@ import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 function Hint({ entry }: { entry: SeasonEntry }) {
   const season = newsFor(entry)
   if (!season) return null
-  const p = progress(season.downloads)
+  const p = progress(season.downloads, season.episodeCount)
   if (p) return <DownloadRing fraction={p.fraction} label={p.text} />
   return season.availability === 'pending' || season.availability === 'processing' ? (
     <Clock size={16} weight="bold" role="img" aria-label="Requested" />

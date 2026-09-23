@@ -23,7 +23,7 @@ export function SeasonHeader({
     <div {...stylex.props(styles.root)}>
       <p {...stylex.props(styles.meta)}>{seasonLabel(season, owned)}</p>
       {season.downloads.length > 0 ? (
-        <Progress downloads={season.downloads} />
+        <Progress downloads={season.downloads} episodeCount={season.episodeCount} />
       ) : requestable(season.availability) ? (
         request
       ) : (

@@ -65,11 +65,36 @@ const DOWNLOAD_STATE_LABEL: Record<DownloadState, string> = {
   stalled: 'Stalled',
 }
 
+/** `episode 7`, `episodes 3–5`, or `4 episodes` when they don't run in sequence. */
+function range(noun: string, numbers: number[]): string {
+  const [first, last] = [numbers[0], numbers[numbers.length - 1]]
+  if (numbers.length === 1) return `${noun} ${first}`
+  if (last === first + numbers.length - 1) return `${noun}s ${first}–${last}`
+  return `${numbers.length} ${noun}s`
+}
+
 /**
- * How far along a set of downloads is — `Downloading · 42% · 12m left` — or `null` when nothing is
- * downloading. The liveliest download's state stands for the set; a queue with no size yet is 0%.
+ * Which part of a show the downloads cover: episodes of one season when `episodeCount` says how
+ * long that season is, seasons of the title otherwise. `null` for a film, which has no parts.
  */
-export function progress(downloads: Download[]): { fraction: number; text: string } | null {
+function coverage(downloads: Download[], episodeCount?: number): string | null {
+  const episodes = downloads.flatMap((d) => d.episodes)
+  if (episodes.length === 0) return null
+  const distinct = (ns: number[]) => [...new Set(ns)].sort((a, b) => a - b)
+  if (episodeCount === undefined) return range('season', distinct(episodes.map((e) => e.season)))
+  const numbers = distinct(episodes.map((e) => e.number))
+  return numbers.length >= episodeCount ? 'whole season' : range('episode', numbers)
+}
+
+/**
+ * How far along a set of downloads is — `Downloading episodes 3–5 · 42% · 12m left` — or `null`
+ * when nothing is downloading. The liveliest download's state stands for the set, the percentage
+ * is of the releases' combined size, and a queue with no size yet is 0%.
+ */
+export function progress(
+  downloads: Download[],
+  episodeCount?: number,
+): { fraction: number; text: string } | null {
   const state = DOWNLOAD_STATES.find((s) => downloads.some((d) => d.state === s))
   if (!state) return null
   const size = downloads.reduce((sum, d) => sum + d.size, 0)
@@ -79,7 +104,7 @@ export function progress(downloads: Download[]): { fraction: number; text: strin
   return {
     fraction,
     text: [
-      DOWNLOAD_STATE_LABEL[state],
+      [DOWNLOAD_STATE_LABEL[state], coverage(downloads, episodeCount)].filter(Boolean).join(' '),
       `${Math.round(fraction * 100)}%`,
       estimates.length > 0 && formatLeft(Math.max(...estimates)),
     ]

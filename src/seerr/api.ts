@@ -67,6 +67,8 @@ export interface Download {
   sizeLeft: number
   /** Downloader's estimate as `HH:MM:SS` (or `D.HH:MM:SS`); gone once it stops guessing. */
   timeLeft: string | null
+  /** Episodes the release covers, as Sonarr matched them; empty for a film. */
+  episodes: { season: number; number: number }[]
 }
 
 export interface Season {
@@ -191,7 +193,7 @@ interface RawDownload {
   size: number
   sizeLeft: number
   timeLeft?: string
-  episode?: { seasonNumber: number }
+  episode?: { seasonNumber: number; episodeNumber: number }
 }
 
 interface RawRequest {
@@ -284,16 +286,25 @@ const DOWNLOAD_STATE: Record<string, DownloadState> = {
 }
 
 /** Sonarr lists a season pack once per episode; one entry per actual download. */
-const toDownloads = (raw: RawDownload[]): Download[] =>
-  raw
-    .filter((d, i) => !d.downloadId || raw.findIndex((o) => o.downloadId === d.downloadId) === i)
-    .map((d) => ({
+function toDownloads(raw: RawDownload[]): Download[] {
+  const out = new Map<string | RawDownload, Download>()
+  for (const d of raw) {
+    const key = d.downloadId ?? d
+    const download = out.get(key) ?? {
       title: d.title,
       state: DOWNLOAD_STATE[d.status] ?? 'queued',
       size: d.size,
       sizeLeft: d.sizeLeft,
       timeLeft: d.timeLeft ?? null,
-    }))
+      episodes: [],
+    }
+    if (d.episode) {
+      download.episodes.push({ season: d.episode.seasonNumber, number: d.episode.episodeNumber })
+    }
+    out.set(key, download)
+  }
+  return [...out.values()]
+}
 
 function toTitle(raw: RawTitle): Title {
   return {
