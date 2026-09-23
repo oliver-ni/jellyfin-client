@@ -199,8 +199,8 @@ function RequestList({ user }: { user: SeerrUser }) {
 }
 
 const FROM_OPTIONS = [
-  { key: 'me', label: 'Yours' },
-  { key: 'everyone', label: 'Everyone' },
+  { key: 'me', label: 'Your requests' },
+  { key: 'everyone', label: 'All requests' },
 ] as const
 
 const seasonList = (seasons: number[]) =>
