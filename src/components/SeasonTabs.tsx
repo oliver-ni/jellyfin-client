@@ -16,7 +16,7 @@ function Hint({ entry }: { entry: SeasonEntry }) {
   const p = progress(season.downloads)
   if (p) return <DownloadRing fraction={p.fraction} label={p.text} />
   return season.availability === 'pending' || season.availability === 'processing' ? (
-    <Clock size={13} weight="bold" role="img" aria-label="Requested" />
+    <Clock size={16} weight="bold" role="img" aria-label="Requested" />
   ) : null
 }
 
@@ -30,8 +30,8 @@ function DownloadRing({ fraction, label }: { fraction: number; label: string }) 
   return (
     <svg
       viewBox="0 0 256 256"
-      width={14}
-      height={14}
+      width={16}
+      height={16}
       fill="currentColor"
       role="img"
       aria-label={label}
