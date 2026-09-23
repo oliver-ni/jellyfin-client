@@ -77,6 +77,15 @@ export interface Season {
   downloads: Download[]
 }
 
+/** An episode as TMDB lists it, for seasons the library doesn't have. */
+export interface Episode {
+  number: number
+  name: string
+  overview: string
+  airDate: string | null
+  still: string | null
+}
+
 export interface TvDetails extends Title {
   type: 'tv'
   seasons: Season[]
@@ -121,9 +130,11 @@ export interface Request {
   type: MediaType
   tmdbId: number
   status: RequestStatus
-  /** Where the title as a whole stands, from the media record the request points at. */
+  /** Where what was asked for stands: the requested seasons for a show, the film otherwise. */
   availability: Availability
   seasons: number[]
+  /** Requested seasons the library already holds in full. */
+  seasonsHere: number[]
   requestedBy: string
   jellyfinId: string | null
   downloads: Download[]
@@ -141,6 +152,7 @@ export function byTitle(requests: Request[]): Request[] {
   return [...groups.values()].map((rs) => ({
     ...rs.reduce((a, b) => (requestRank(b) < requestRank(a) ? b : a)),
     seasons: [...new Set(rs.flatMap((r) => r.seasons))].sort((a, b) => a - b),
+    seasonsHere: [...new Set(rs.flatMap((r) => r.seasonsHere))].sort((a, b) => a - b),
     requestedBy: [...new Set(rs.map((r) => r.requestedBy))].join(', '),
   }))
 }
@@ -190,6 +202,7 @@ interface RawRequest {
     tmdbId: number
     status: number
     jellyfinMediaId: string | null
+    seasons?: { seasonNumber: number; status: number }[]
     downloadStatus?: RawDownload[]
   }
   seasons: { seasonNumber: number }[]
@@ -202,6 +215,14 @@ interface RawMediaInfo {
   seasons?: { seasonNumber: number; status: number }[]
   requests?: { status: number; seasons?: { seasonNumber: number }[] }[]
   downloadStatus?: RawDownload[]
+}
+
+interface RawEpisode {
+  episodeNumber: number
+  name: string
+  overview?: string
+  airDate?: string | null
+  stillPath?: string | null
 }
 
 interface RawTitle {
@@ -247,6 +268,9 @@ const json = (body: unknown): RequestInit => ({
 const year = (date?: string) => (date ? Number(date.slice(0, 4)) || null : null)
 const image = (path: string | null | undefined, size: string) =>
   path ? `${TMDB_IMAGE}/${size}${path}` : null
+// Stills come back as full `…/t/p/original//path` URLs where posters are bare paths.
+const still = (url: string | null | undefined) =>
+  image(url?.replace(/^.*\/t\/p\/\w+\/+/, '/'), 'w500')
 
 const DOWNLOAD_STATE: Record<string, DownloadState> = {
   downloading: 'downloading',
@@ -369,6 +393,25 @@ export async function tv(tmdbId: number): Promise<TvDetails> {
   }
 }
 
+export async function episodes(tmdbId: number, season: number): Promise<Episode[]> {
+  const raw = await request<{ episodes: RawEpisode[] }>(`/tv/${tmdbId}/season/${season}`)
+  return raw.episodes.map((e) => ({
+    number: e.episodeNumber,
+    name: e.name,
+    overview: e.overview ?? '',
+    airDate: e.airDate ?? null,
+    still: still(e.stillPath),
+  }))
+}
+
+/** A show request stands where its seasons do; the title's own status covers the rest. */
+function requestedAvailability(title: Availability, seasons: Availability[]): Availability {
+  if (seasons.length === 0 || title === 'available') return title
+  if (seasons.every((a) => a === 'available')) return 'available'
+  if (seasons.some((a) => a === 'available' || a === 'partial')) return 'partial'
+  return title === 'partial' ? 'processing' : title
+}
+
 /** Newest first; one user's, or everyone's when `userId` is omitted. */
 export async function requests(userId?: number): Promise<Request[]> {
   const page = await request<{ results: RawRequest[] }>(
@@ -376,13 +419,16 @@ export async function requests(userId?: number): Promise<Request[]> {
   )
   return page.results.map((r) => {
     const seasons = r.seasons.map((s) => s.seasonNumber).sort((a, b) => a - b)
+    const bySeason = new Map(r.media.seasons?.map((s) => [s.seasonNumber, AVAILABILITY[s.status]]))
+    const per = seasons.map((n) => bySeason.get(n) ?? 'unknown')
     return {
       id: r.id,
       type: r.type === 'tv' ? 'tv' : 'movie',
       tmdbId: r.media.tmdbId,
       status: REQUEST_STATUS[r.status] ?? 'pending',
-      availability: AVAILABILITY[r.media.status] ?? 'unknown',
+      availability: requestedAvailability(AVAILABILITY[r.media.status] ?? 'unknown', per),
       seasons,
+      seasonsHere: seasons.filter((_, i) => per[i] === 'available'),
       requestedBy: r.requestedBy.displayName,
       jellyfinId: r.media.jellyfinMediaId,
       downloads: toDownloads(

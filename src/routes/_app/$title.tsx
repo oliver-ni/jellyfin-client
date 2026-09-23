@@ -22,9 +22,10 @@ import { defaultSeason, newsFor, seasonEntries } from '@/lib/seasons'
 import { getSession, useRequiredSession } from '@/lib/session'
 import { MissingSeason } from '@/seerr/MissingSeason'
 import { useSeerrSeries } from '@/seerr/queries'
-import { SeasonStatus } from '@/seerr/SeasonStatus'
+import { SeasonHeader } from '@/seerr/SeasonHeader'
 import { detail } from '@/theme/detail'
-import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
+import { episode as ep } from '@/theme/episode'
+import { sizes, space } from '@/theme/tokens.stylex'
 
 /** Season and episode numbers, as on the tabs and rows. */
 export interface ItemSearch {
@@ -144,7 +145,7 @@ function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string
   const entries = seasonEntries(seasons.data?.Items ?? [], title)
   const active = defaultSeason(entries, selected)
 
-  if (seasons.isPending) return <div {...stylex.props(styles.listSkeleton)} />
+  if (seasons.isPending) return <div {...stylex.props(ep.skeleton)} />
   if (!active) return null
 
   return (
@@ -166,7 +167,7 @@ function SeriesSeasons({ series, userId }: { series: BaseItemDto; userId: string
         const news = newsFor(entry)
         return (
           <div {...stylex.props(styles.season)}>
-            {news && <SeasonStatus season={news} owned={entry.item.ChildCount ?? 0} />}
+            {news && <SeasonHeader season={news} owned={entry.item.ChildCount ?? 0} />}
             <Episodes userId={userId} season={entry.item} expanded={episode} />
           </div>
         )
@@ -192,7 +193,7 @@ function Episodes({
   const shown = useSettled(season.Id, !episodes.isPlaceholderData)
   const list = episodes.data?.Items ?? []
 
-  if (episodes.isPending) return <div {...stylex.props(styles.listSkeleton)} />
+  if (episodes.isPending) return <div {...stylex.props(ep.skeleton)} />
   if (episodes.isError) return <Notice title="Couldn’t load episodes" />
   if (list.length === 0) return <Notice title="No episodes" />
   return (
@@ -233,11 +234,6 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.lg,
-  },
-  listSkeleton: {
-    height: 320,
-    borderRadius: radii.md,
-    backgroundColor: colors.skeleton,
   },
   rails: {
     display: 'flex',

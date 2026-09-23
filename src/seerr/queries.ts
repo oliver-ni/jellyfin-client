@@ -53,6 +53,12 @@ export const seerrQueries = {
           type === 'movie' ? seerr.movie(tmdbId) : seerr.tv(tmdbId),
         ),
     }),
+  episodes: (tmdbId: number, season: number) =>
+    queryOptions({
+      queryKey: ['seerr', 'tv', tmdbId, 'season', season],
+      queryFn: () => withSession(() => seerr.episodes(tmdbId, season)),
+      staleTime: 60 * 60_000,
+    }),
   /** Kept fresh while on screen so download progress moves. */
   requests: (userId?: number) =>
     queryOptions({

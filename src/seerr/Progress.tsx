@@ -1,71 +1,39 @@
 import * as stylex from '@stylexjs/stylex'
 import type { Download } from './api'
 import { progress } from './labels'
-import { text } from '@/theme/text'
-import { colors, radii, space } from '@/theme/tokens.stylex'
+import { statusPill } from '@/theme/status'
+import { colors, motion } from '@/theme/tokens.stylex'
 
 /**
- * What Radarr/Sonarr is pulling: state, percentage and time left over a thin bar; nothing when
- * idle. `titled` also names the releases, on the same line, for where there's room.
+ * What Radarr/Sonarr is pulling — `Downloading · 42% · 12m left` — as a pill that fills up as it
+ * lands; nothing when idle. Release names sit in the tooltip.
  */
-export function Progress({ downloads, titled }: { downloads: Download[]; titled?: boolean }) {
+export function Progress({ downloads, size }: { downloads: Download[]; size?: 'lg' }) {
   const p = progress(downloads)
   if (!p) return null
   return (
-    <span {...stylex.props(styles.root)}>
-      <span {...stylex.props(styles.line)}>
-        {titled && (
-          <span {...stylex.props(styles.titles)}>
-            {downloads.map((d) => (
-              <span key={d.title} {...stylex.props(text.ellipsis)}>
-                {d.title}
-              </span>
-            ))}
-          </span>
-        )}
-        <span {...stylex.props(styles.text)}>{p.text}</span>
-      </span>
-      <span {...stylex.props(styles.track)}>
-        <span {...stylex.props(styles.bar)} style={{ width: `${p.fraction * 100}%` }} />
-      </span>
+    <span
+      title={downloads.map((d) => d.title).join('\n')}
+      {...stylex.props(statusPill.base, size === 'lg' && statusPill.lg)}
+    >
+      <span {...stylex.props(styles.fill)} style={{ width: `${p.fraction * 100}%` }} />
+      <span {...stylex.props(styles.text)}>{p.text}</span>
     </span>
   )
 }
 
 const styles = stylex.create({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xs,
-    width: '100%',
-    fontSize: 13,
-  },
-  line: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    gap: space.md,
-  },
-  titles: {
-    display: 'flex',
-    flexDirection: 'column',
-    minWidth: 0,
-    color: colors.text,
+  fill: {
+    position: 'absolute',
+    insetBlock: 0,
+    left: 0,
+    backgroundColor: colors.surfaceHover,
+    transitionProperty: 'width',
+    transitionDuration: motion.slow,
+    transitionTimingFunction: motion.ease,
   },
   text: {
-    marginLeft: 'auto',
-    whiteSpace: 'nowrap',
-    color: colors.textMuted,
-  },
-  track: {
-    width: '100%',
-    height: 3,
-    borderRadius: radii.full,
-    backgroundColor: colors.surfaceHover,
-    overflow: 'hidden',
-  },
-  bar: {
-    display: 'block',
-    height: '100%',
-    backgroundColor: colors.progress,
+    position: 'relative',
+    color: colors.text,
   },
 })

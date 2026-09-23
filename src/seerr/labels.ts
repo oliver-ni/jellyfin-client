@@ -1,3 +1,4 @@
+import { Clock, DownloadSimple, Plus, Prohibit, type Icon } from '@phosphor-icons/react'
 import {
   DOWNLOAD_STATES,
   type Availability,
@@ -16,26 +17,31 @@ export const AVAILABILITY_LABEL: Record<Availability, string | null> = {
   deleted: null,
   pending: 'Requested',
   processing: 'On its way',
-  partial: 'Partly in library',
+  partial: 'Some seasons in library',
   available: 'In your library',
   blocklisted: 'Unavailable',
 }
 
+/** What a season's state looks like at a glance: requestable, waiting, downloading or refused. */
+export const AVAILABILITY_ICON: Record<Availability, Icon | null> = {
+  unknown: Plus,
+  deleted: Plus,
+  partial: null,
+  pending: Clock,
+  processing: DownloadSimple,
+  blocklisted: Prohibit,
+  available: null,
+}
+
 /**
- * One line on a season: how many episodes, how many of them the library already holds, and
- * what Seerr is doing about the rest. A count of owned episodes says "partly here" on its own.
+ * One line on a season: how many episodes, and how many of them the library already holds.
+ * Says outright when none are, since the rest of Seerr's news sits in a pill beside it.
  */
 export function seasonLabel(s: Season, owned: number): string {
   const count = owned
     ? `${owned} of ${s.episodeCount} episodes`
     : `${s.episodeCount} ${s.episodeCount === 1 ? 'episode' : 'episodes'}`
-  const state =
-    s.downloads.length > 0
-      ? 'On its way'
-      : owned && s.availability === 'partial'
-        ? null
-        : (AVAILABILITY_LABEL[s.availability] ?? 'Not in your library')
-  return [count, state].filter(Boolean).join(' · ')
+  return owned ? count : `${count} · Not in your library`
 }
 
 /** Radarr/Sonarr's `D.HH:MM:SS` estimate, in minutes. */
@@ -61,19 +67,19 @@ const DOWNLOAD_STATE_LABEL: Record<DownloadState, string> = {
 
 /**
  * How far along a set of downloads is — `Downloading · 42% · 12m left` — or `null` when nothing is
- * downloading. The liveliest download's state stands for the set.
+ * downloading. The liveliest download's state stands for the set; a queue with no size yet is 0%.
  */
 export function progress(downloads: Download[]): { fraction: number; text: string } | null {
-  const size = downloads.reduce((sum, d) => sum + d.size, 0)
-  if (!size) return null
-  const left = downloads.reduce((sum, d) => sum + d.sizeLeft, 0)
-  const fraction = 1 - left / size
   const state = DOWNLOAD_STATES.find((s) => downloads.some((d) => d.state === s))
+  if (!state) return null
+  const size = downloads.reduce((sum, d) => sum + d.size, 0)
+  const left = downloads.reduce((sum, d) => sum + d.sizeLeft, 0)
+  const fraction = size ? 1 - left / size : 0
   const estimates = downloads.flatMap((d) => (d.timeLeft ? [minutesLeft(d.timeLeft)] : []))
   return {
     fraction,
     text: [
-      state && DOWNLOAD_STATE_LABEL[state],
+      DOWNLOAD_STATE_LABEL[state],
       `${Math.round(fraction * 100)}%`,
       estimates.length > 0 && formatLeft(Math.max(...estimates)),
     ]
@@ -94,6 +100,12 @@ export function requestLabel(r: Request): string {
     case 'completed':
       return 'In your library'
     case 'approved':
+      if (r.availability === 'partial') {
+        const here = r.seasonsHere.length
+        return here > 0 && r.seasons.length > 1
+          ? `${here} of ${r.seasons.length} seasons in library`
+          : 'Some episodes in library'
+      }
       return AVAILABILITY_LABEL[r.availability] ?? 'On its way'
   }
 }

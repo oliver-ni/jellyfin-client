@@ -1,29 +1,53 @@
 import * as stylex from '@stylexjs/stylex'
-import { Clock, DownloadSimple, Plus, Prohibit, type Icon } from '@phosphor-icons/react'
+import { Clock } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import type { ReactNode } from 'react'
 import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components'
 import { springs } from '@/lib/motion'
-import { newsFor, unplayed, type SeasonEntry } from '@/lib/seasons'
-import type { Availability } from '@/seerr/api'
+import { newsFor, type SeasonEntry } from '@/lib/seasons'
+import { progress } from '@/seerr/labels'
 import { focus } from '@/theme/focus'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
-/** What a season's tab hints at: requestable, waiting, downloading or refused. */
-const ICON: Record<Availability, Icon | null> = {
-  unknown: Plus,
-  deleted: Plus,
-  partial: null,
-  pending: Clock,
-  processing: DownloadSimple,
-  blocklisted: Prohibit,
-  available: null,
+/** What Seerr is doing about a season: downloading it, or still waiting on it. */
+function Hint({ entry }: { entry: SeasonEntry }) {
+  const season = newsFor(entry)
+  if (!season) return null
+  const p = progress(season.downloads)
+  if (p) return <DownloadRing fraction={p.fraction} label={p.text} />
+  return season.availability === 'pending' || season.availability === 'processing' ? (
+    <Clock size={13} weight="bold" role="img" aria-label="Requested" />
+  ) : null
 }
 
-function hint(e: SeasonEntry): Icon | null {
-  const s = newsFor(e)
-  if (!s) return null
-  return s.downloads.length > 0 ? DownloadSimple : ICON[s.availability]
+const RING = 2 * Math.PI * 5.5
+
+/** A down arrow inside a ring that fills as the download completes. */
+function DownloadRing({ fraction, label }: { fraction: number; label: string }) {
+  return (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-label={label}
+    >
+      <circle cx={7} cy={7} r={5.5} opacity={0.3} />
+      <circle
+        cx={7}
+        cy={7}
+        r={5.5}
+        strokeDasharray={`${fraction * RING} ${RING}`}
+        transform="rotate(-90 7 7)"
+      />
+      <path d="M7 4.25v5M5 7.5l2 2 2-2" />
+    </svg>
+  )
 }
 
 /** Season tabs over library and missing seasons alike; the panel is the caller's. */
@@ -47,7 +71,6 @@ export function SeasonTabs({
       <TabList aria-label="Seasons" {...stylex.props(styles.tabs)}>
         {entries.map((e) => {
           const active = e.number === selected.number
-          const Hint = hint(e)
           return (
             <Tab
               key={e.number}
@@ -69,14 +92,7 @@ export function SeasonTabs({
               )}
               <span {...stylex.props(styles.label)}>
                 {e.kind === 'library' ? e.item.Name : e.season.name}
-                {e.kind === 'library' && unplayed(e.item) > 0 && (
-                  <span
-                    role="img"
-                    aria-label={`${unplayed(e.item)} unplayed`}
-                    {...stylex.props(styles.unplayedDot)}
-                  />
-                )}
-                {Hint && <Hint size={13} weight="bold" aria-hidden />}
+                <Hint entry={e} />
               </span>
             </Tab>
           )
@@ -148,12 +164,6 @@ const styles = stylex.create({
     display: 'inline-flex',
     alignItems: 'center',
     gap: space.sm,
-  },
-  unplayedDot: {
-    width: 6,
-    height: 6,
-    borderRadius: radii.full,
-    backgroundColor: 'currentColor',
-    opacity: 0.6,
+    lineHeight: 1,
   },
 })

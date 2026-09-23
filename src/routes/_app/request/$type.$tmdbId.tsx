@@ -102,11 +102,7 @@ function RequestPage() {
             {t.overview}
           </m.p>
         )}
-        {t.type === 'movie' ? (
-          <m.div variants={fadeUp} {...stylex.props(styles.progress)}>
-            <Progress downloads={t.downloads} titled />
-          </m.div>
-        ) : (
+        {t.type === 'tv' && (
           <m.section variants={fadeUp}>
             <Seasons title={t} />
           </m.section>
@@ -136,6 +132,7 @@ function HeroAction({ title }: { title: seerr.MovieDetails | seerr.TvDetails }) 
       </RequestButton>
     )
   }
+  if (title.downloads.length > 0) return <Progress downloads={title.downloads} size="lg" />
   const label = AVAILABILITY_LABEL[title.availability]
   if (!label) return null
   return (
@@ -170,8 +167,5 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.xxl,
-  },
-  progress: {
-    maxWidth: 480,
   },
 })

@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { Plus } from '@phosphor-icons/react'
 import { useMutation } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { Button } from '@/components/Button'
+import { Button, type ButtonSize } from '@/components/Button'
 import type { Title } from './api'
 import { requestTitle } from './queries'
 import { colors, radii, space } from '@/theme/tokens.stylex'
@@ -16,7 +16,7 @@ export function RequestButton({
 }: {
   title: Title
   seasons: number[]
-  size?: 'lg'
+  size?: ButtonSize
   children: ReactNode
 }) {
   const request = useMutation({ mutationFn: () => requestTitle(title, seasons) })
@@ -29,7 +29,7 @@ export function RequestButton({
         isPending={request.isPending}
         onPress={() => request.mutate()}
       >
-        <Plus size={size === 'lg' ? 18 : 16} weight="bold" />
+        <Plus size={size === 'lg' ? 18 : size === 'sm' ? 14 : 16} weight="bold" />
         {request.isPending ? 'Requesting…' : children}
       </Button>
       {request.isError && <span {...stylex.props(styles.error)}>{request.error.message}</span>}

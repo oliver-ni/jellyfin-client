@@ -18,6 +18,7 @@ import {
 import { landscapeImage } from '@/lib/images'
 import { itemLink, onPage, playLink } from '@/lib/item-link'
 import { fadeUp, springs, stagger, vanish } from '@/lib/motion'
+import { episode as ep, STILL_WIDTH } from '@/theme/episode'
 import { focus } from '@/theme/focus'
 import { media, playPill } from '@/theme/media'
 import { text } from '@/theme/text'
@@ -35,8 +36,6 @@ export interface EpisodeListProps {
   ref?: Ref<HTMLOListElement>
 }
 
-const STILL_WIDTH = 224
-
 const MotionLink = createLink(m.a)
 
 export function EpisodeList({ episodes, userId, expanded, ref }: EpisodeListProps) {
@@ -47,14 +46,14 @@ export function EpisodeList({ episodes, userId, expanded, ref }: EpisodeListProp
       animate="show"
       exit={vanish}
       variants={stagger()}
-      {...stylex.props(styles.list)}
+      {...stylex.props(ep.list)}
     >
-      {episodes.map((ep) => (
+      {episodes.map((e) => (
         <EpisodeRow
-          key={ep.Id}
-          episode={ep}
+          key={e.Id}
+          episode={e}
           userId={userId}
-          expanded={expanded !== undefined && ep.IndexNumber === expanded}
+          expanded={expanded !== undefined && e.IndexNumber === expanded}
         />
       ))}
     </m.ol>
@@ -108,14 +107,14 @@ function EpisodeRow({ episode, userId, expanded }: EpisodeRowProps) {
       ref={rowRef}
       variants={fadeUp}
       initial={source ? false : undefined}
-      {...stylex.props(styles.row, expanded && styles.rowExpanded, stylex.defaultMarker())}
+      {...stylex.props(ep.row, styles.row, expanded && styles.rowExpanded, stylex.defaultMarker())}
     >
       <MotionLink
         ref={stillRef}
         data-morph={id}
         {...playLink(episode)}
         aria-label={`Play ${episode.Name ?? 'episode'}`}
-        {...stylex.props(focus.ring, styles.still)}
+        {...stylex.props(focus.ring, ep.still)}
       >
         <BlurImage src={still?.url} blurhash={still?.blurhash} alt="" style={media.fill} />
         <span {...stylex.props(media.hoverScrim)}>
@@ -134,21 +133,23 @@ function EpisodeRow({ episode, userId, expanded }: EpisodeRowProps) {
           </span>
         )}
       </MotionLink>
-      <div {...stylex.props(styles.body)}>
+      <div {...stylex.props(ep.body)}>
         <Link
           {...link}
           search={expanded ? { season: link.search.season } : link.search}
           replace
           resetScroll={false}
           aria-expanded={expanded}
-          {...stylex.props(focus.ring, styles.titleLink)}
+          {...stylex.props(focus.ring, ep.heading, styles.titleLink)}
         >
-          <span {...stylex.props(styles.number)}>{episode.IndexNumber ?? '–'}</span>
-          <span {...stylex.props(styles.title, played && styles.titlePlayed)}>{episode.Name}</span>
+          <span {...stylex.props(ep.number)}>{episode.IndexNumber ?? '–'}</span>
+          <span {...stylex.props(ep.title, styles.title, played && styles.titlePlayed)}>
+            {episode.Name}
+          </span>
         </Link>
-        {sub && <p {...stylex.props(styles.sub)}>{sub}</p>}
+        {sub && <p {...stylex.props(ep.sub)}>{sub}</p>}
         {overview && (
-          <p {...stylex.props(styles.overview, expanded ? styles.overviewFull : text.clamp2)}>
+          <p {...stylex.props(ep.overview, expanded ? styles.overviewFull : text.clamp2)}>
             {overview}
           </p>
         )}
@@ -200,25 +201,7 @@ function EpisodeDetails({ episode, userId }: { episode: BaseItemDto; userId: str
 }
 
 const styles = stylex.create({
-  list: {
-    display: 'flex',
-    flexDirection: 'column',
-    listStyle: 'none',
-    margin: 0,
-    padding: 0,
-  },
   row: {
-    display: 'grid',
-    gridTemplateColumns: {
-      default: `${STILL_WIDTH}px minmax(0, 1fr)`,
-      '@media (max-width: 720px)': '128px minmax(0, 1fr)',
-    },
-    gap: space.lg,
-    alignItems: 'start',
-    paddingBlock: space.lg,
-    paddingInline: space.md,
-    marginInline: `calc(-1 * ${space.md})`,
-    borderRadius: radii.md,
     backgroundColor: {
       default: 'transparent',
       ':hover': colors.surface,
@@ -229,39 +212,10 @@ const styles = stylex.create({
   rowExpanded: {
     backgroundColor: colors.surface,
   },
-  still: {
-    position: 'relative',
-    display: 'block',
-    aspectRatio: '16 / 9',
-    borderRadius: radii.xs,
-    overflow: 'hidden',
-    backgroundColor: colors.skeleton,
-  },
-  body: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xs,
-    minWidth: 0,
-  },
   titleLink: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: space.sm,
-    color: colors.text,
     borderRadius: radii.xs,
-  },
-  number: {
-    flexShrink: 0,
-    minWidth: 20,
-    fontSize: 14,
-    fontWeight: 600,
-    fontVariantNumeric: 'tabular-nums',
-    color: colors.textFaint,
   },
   title: {
-    fontSize: 16,
-    fontWeight: 600,
-    letterSpacing: '-0.01em',
     textDecoration: {
       default: 'none',
       [stylex.when.ancestor(':hover')]: 'underline',
@@ -271,16 +225,6 @@ const styles = stylex.create({
   },
   titlePlayed: {
     color: colors.textMuted,
-  },
-  sub: {
-    fontSize: 13,
-    color: colors.textFaint,
-  },
-  overview: {
-    fontSize: 14,
-    lineHeight: 1.5,
-    color: colors.textMuted,
-    marginTop: space.xs,
   },
   overviewFull: {
     whiteSpace: 'pre-line',
