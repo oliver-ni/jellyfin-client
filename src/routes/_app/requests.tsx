@@ -7,6 +7,7 @@ import { BlurImage } from '@/components/BlurImage'
 import { Card } from '@/components/Card'
 import { Notice } from '@/components/Notice'
 import { Segmented } from '@/components/Segmented'
+import { Select } from '@/components/Select'
 import { titleLink } from '@/lib/item-link'
 import { fadeUp } from '@/lib/motion'
 import { queries } from '@/lib/queries'
@@ -20,6 +21,7 @@ import {
   titleKey,
   type Coverage,
   type Request,
+  type RequestSort,
   type SeerrUser,
   type Title,
 } from '@/seerr/api'
@@ -43,6 +45,7 @@ import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 export const Route = createFileRoute('/_app/requests')({
   validateSearch: (raw: Record<string, unknown>) => ({
     from: raw.from === 'everyone' ? ('everyone' as const) : undefined,
+    sort: raw.sort === 'modified' ? ('modified' as const) : undefined,
   }),
   head: () => titleHead('Requests'),
   component: RequestsPage,
@@ -56,13 +59,15 @@ function RequestsPage() {
 }
 
 function RequestList({ user }: { user: SeerrUser }) {
-  const { from } = Route.useSearch()
+  const { from, sort = 'added' } = Route.useSearch()
   const navigate = Route.useNavigate()
+  const update = (next: { from?: 'everyone'; sort?: 'modified' }) =>
+    void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true })
   const { userId } = useRequiredSession()
   const canViewAll = canViewAllRequests(user)
   const everyone = from === 'everyone' && canViewAll
   const requests = useQuery({
-    ...seerrQueries.requests(everyone ? undefined : user.id),
+    ...seerrQueries.requests(everyone ? undefined : user.id, sort),
     select: byTitle,
   })
   // Requests only carry ids; the titles behind them come from Seerr.
@@ -89,7 +94,7 @@ function RequestList({ user }: { user: SeerrUser }) {
       ),
     }),
   })
-  // Seerr hands requests back newest first, which holds within each group.
+  // Seerr hands requests back in the chosen order, which holds within each group.
   const idle = (requests.data ?? []).map((r) => {
     const title = titles.byKey.get(titleKey(r))
     const c =
@@ -123,21 +128,23 @@ function RequestList({ user }: { user: SeerrUser }) {
         <h1 {...stylex.props(list.title)}>Requests</h1>
         {requests.data && <span {...stylex.props(list.faint)}>{requests.data.length}</span>}
       </header>
-      {canViewAll && (
-        <div>
+      <div {...stylex.props(styles.toolbar)}>
+        {canViewAll && (
           <Segmented
             label="Requested by"
             options={FROM_OPTIONS}
             selected={everyone ? 'everyone' : 'me'}
-            onChange={(key) =>
-              void navigate({
-                search: { from: key === 'everyone' ? key : undefined },
-                replace: true,
-              })
-            }
+            onChange={(key) => update({ from: key === 'everyone' ? key : undefined })}
           />
-        </div>
-      )}
+        )}
+        <Select
+          label="Sort"
+          aria-label="Sort by"
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={(key) => update({ sort: key === 'modified' ? key : undefined })}
+        />
+      </div>
       {requests.isError ? (
         <Notice
           title="Couldn’t load your requests"
@@ -151,7 +158,7 @@ function RequestList({ user }: { user: SeerrUser }) {
         />
       ) : requests.data && !titles.pending && !owned.pending ? (
         <m.div
-          key={String(everyone)}
+          key={`${everyone}/${sort}`}
           initial="hidden"
           animate="show"
           variants={fadeUp}
@@ -202,6 +209,11 @@ const FROM_OPTIONS = [
   { key: 'me', label: 'Your requests' },
   { key: 'everyone', label: 'All requests' },
 ] as const
+
+const SORT_OPTIONS: readonly { key: RequestSort; label: string }[] = [
+  { key: 'added', label: 'Recently requested' },
+  { key: 'modified', label: 'Recently updated' },
+]
 
 const seasonList = (seasons: number[]) =>
   seasons.length === 0
@@ -258,6 +270,12 @@ function RequestRow({
 const styles = stylex.create({
   page: {
     maxWidth: 960,
+  },
+  toolbar: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: space.sm,
   },
   groups: {
     display: 'flex',

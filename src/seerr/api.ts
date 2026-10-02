@@ -455,10 +455,13 @@ export async function episodes(tmdbId: number, season: number): Promise<Episode[
   }))
 }
 
-/** Newest first; one user's, or everyone's when `userId` is omitted. */
-export async function requests(userId?: number): Promise<Request[]> {
+/** Seerr's `/request` orderings: by when a request was made, or by when it last changed. */
+export type RequestSort = 'added' | 'modified'
+
+/** Newest first by `sort`; one user's, or everyone's when `userId` is omitted. */
+export async function requests(userId?: number, sort: RequestSort = 'added'): Promise<Request[]> {
   const page = await request<{ results: RawRequest[] }>(
-    `/request?take=100&sort=added${userId === undefined ? '' : `&requestedBy=${userId}`}`,
+    `/request?take=100&sort=${sort}${userId === undefined ? '' : `&requestedBy=${userId}`}`,
   )
   return page.results.map((r) => {
     const seasons = r.seasons.map((s) => s.seasonNumber).sort((a, b) => a - b)
