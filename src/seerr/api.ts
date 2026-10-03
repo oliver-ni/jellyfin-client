@@ -459,7 +459,10 @@ export async function episodes(tmdbId: number, season: number): Promise<Episode[
 export type RequestSort = 'added' | 'modified'
 
 /** Newest first by `sort`; one user's, or everyone's when `userId` is omitted. */
-export async function requests(userId?: number, sort: RequestSort = 'added'): Promise<Request[]> {
+export async function requests(
+  userId?: number,
+  sort: RequestSort = 'modified',
+): Promise<Request[]> {
   const page = await request<{ results: RawRequest[] }>(
     `/request?take=100&sort=${sort}${userId === undefined ? '' : `&requestedBy=${userId}`}`,
   )

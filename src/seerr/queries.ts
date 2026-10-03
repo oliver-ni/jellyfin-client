@@ -60,7 +60,7 @@ export const seerrQueries = {
       staleTime: 60 * 60_000,
     }),
   /** Kept fresh while on screen so download progress moves. */
-  requests: (userId?: number, sort: seerr.RequestSort = 'added') =>
+  requests: (userId?: number, sort: seerr.RequestSort = 'modified') =>
     queryOptions({
       queryKey: ['seerr', 'requests', userId ?? 'all', sort],
       queryFn: () => withSession(() => seerr.requests(userId, sort)),

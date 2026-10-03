@@ -44,8 +44,8 @@ import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app/requests')({
   validateSearch: (raw: Record<string, unknown>) => ({
-    from: raw.from === 'everyone' ? ('everyone' as const) : undefined,
-    sort: raw.sort === 'modified' ? ('modified' as const) : undefined,
+    from: raw.from === 'me' ? ('me' as const) : undefined,
+    sort: raw.sort === 'added' ? ('added' as const) : undefined,
   }),
   head: () => titleHead('Requests'),
   component: RequestsPage,
@@ -59,13 +59,13 @@ function RequestsPage() {
 }
 
 function RequestList({ user }: { user: SeerrUser }) {
-  const { from, sort = 'added' } = Route.useSearch()
+  const { from, sort = 'modified' } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const update = (next: { from?: 'everyone'; sort?: 'modified' }) =>
+  const update = (next: { from?: 'me'; sort?: 'added' }) =>
     void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true })
   const { userId } = useRequiredSession()
   const canViewAll = canViewAllRequests(user)
-  const everyone = from === 'everyone' && canViewAll
+  const everyone = from !== 'me' && canViewAll
   const requests = useQuery({
     ...seerrQueries.requests(everyone ? undefined : user.id, sort),
     select: byTitle,
@@ -134,7 +134,7 @@ function RequestList({ user }: { user: SeerrUser }) {
             label="Requested by"
             options={FROM_OPTIONS}
             selected={everyone ? 'everyone' : 'me'}
-            onChange={(key) => update({ from: key === 'everyone' ? key : undefined })}
+            onChange={(key) => update({ from: key === 'me' ? key : undefined })}
           />
         )}
         <Select
@@ -142,7 +142,7 @@ function RequestList({ user }: { user: SeerrUser }) {
           aria-label="Sort by"
           value={sort}
           options={SORT_OPTIONS}
-          onChange={(key) => update({ sort: key === 'modified' ? key : undefined })}
+          onChange={(key) => update({ sort: key === 'added' ? key : undefined })}
         />
       </div>
       {requests.isError ? (
