@@ -206,13 +206,13 @@ function RequestList({ user }: { user: SeerrUser }) {
 }
 
 const FROM_OPTIONS = [
-  { key: 'me', label: 'Your requests' },
   { key: 'everyone', label: 'All requests' },
+  { key: 'me', label: 'Your requests' },
 ] as const
 
 const SORT_OPTIONS: readonly { key: RequestSort; label: string }[] = [
-  { key: 'added', label: 'Recently requested' },
   { key: 'modified', label: 'Recently updated' },
+  { key: 'added', label: 'Recently requested' },
 ]
 
 const seasonList = (seasons: number[]) =>
