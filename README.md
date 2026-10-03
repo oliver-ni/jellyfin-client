@@ -40,9 +40,19 @@ or as Docker `--build-arg`s); leave both unset for a generic build:
   page skips the address step. Otherwise the server is entered at runtime.
 - `VITE_BRAND_MARK=🍵` — an emoji or short glyph used as the header mark and favicon. Otherwise a
   neutral icon is used.
+- `VITE_SSO_PROVIDER=ochazuke` — with `VITE_JELLYFIN_URL`, sign-in leads with "Sign in with
+  <server> account" through that provider of the server's
+  [SSO plugin](https://github.com/9p4/jellyfin-plugin-sso), and username/password move behind a
+  link. The plugin's pages have to run on the client's origin, so `/sso/*` is proxied to the
+  server with the Host header kept: the dev server does it by itself, the Docker image from
+  `JELLYFIN_URL`, anywhere else copy nginx's `/sso/` block from `docker/proxies.sh`. Register
+  `https://<client origin>/sso/OID/redirect/<provider>` as a redirect URI with the provider. How
+  the hand-off works is in `src/lib/sso.ts`.
 
 Seerr is reached through the app's own origin at `/seerr`; point the dev proxy at an instance with
-`SEERR_URL=https://seerr.example.com npm run dev` (or a `.env.local`).
+`SEERR_URL=https://seerr.example.com npm run dev` (or a `.env.local`). Its session is made from the
+Jellyfin one through Quick Connect, so nobody types a password twice; turn Quick Connect on in the
+server's settings.
 
 With Sonarr reachable too, the request pages say why a show isn't downloading (unmonitored, not
 aired, last searched, import blocked). It's read through a same-origin `/sonarr` proxy that adds the

@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { MagnifyingGlass, PlugsConnected, SignOut } from '@phosphor-icons/react'
+import { MagnifyingGlass, SignOut } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Menu, MenuItem, MenuTrigger, Popover, Button as AriaButton } from 'react-aria-components'
@@ -13,7 +13,6 @@ import { libraryLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { requireSession, useSession, type Session } from '@/lib/session'
-import { ConnectDialog } from '@/seerr/ConnectDialog'
 import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
 import { glass, overlay } from '@/theme/glass'
 import { menu } from '@/theme/menu'
@@ -56,7 +55,6 @@ function TopNav({ session }: { session: Session }) {
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
   const [searchOpen, setSearchOpen] = useState(false)
   const seerr = useSeerr()
-  const [connectOpen, setConnectOpen] = useState(false)
 
   useEffect(() => {
     if (searchOpen) return
@@ -73,11 +71,6 @@ function TopNav({ session }: { session: Session }) {
   return (
     <header {...stylex.props(styles.nav)}>
       <SearchPalette userId={session.userId} isOpen={searchOpen} onOpenChange={setSearchOpen} />
-      <ConnectDialog
-        userName={session.userName}
-        isOpen={connectOpen}
-        onOpenChange={setConnectOpen}
-      />
       <Link
         to="/"
         aria-label={session.serverName}
@@ -92,7 +85,7 @@ function TopNav({ session }: { session: Session }) {
             {lib.Name}
           </NavLink>
         ))}
-        {seerr?.state === 'signedIn' && <NavLink to="/requests">Requests</NavLink>}
+        {seerr && seerr.state !== 'unavailable' && <NavLink to="/requests">Requests</NavLink>}
       </nav>
       <div {...stylex.props(styles.right)}>
         <AriaButton
@@ -127,21 +120,12 @@ function TopNav({ session }: { session: Session }) {
             <Menu
               {...stylex.props(menu.list)}
               onAction={async (key) => {
-                if (key === 'seerr-connect') setConnectOpen(true)
                 if (key === 'logout') {
                   await Promise.all([logout(), seerrSignOut()])
                   await navigate({ to: '/login', replace: true })
                 }
               }}
             >
-              {seerr?.state === 'signedOut' && (
-                <MenuItem id="seerr-connect" {...stylex.props(menu.item)}>
-                  <span {...stylex.props(menu.check)}>
-                    <PlugsConnected size={14} />
-                  </span>
-                  Connect Seerr
-                </MenuItem>
-              )}
               <MenuItem id="logout" {...stylex.props(menu.item)}>
                 <span {...stylex.props(menu.check)}>
                   <SignOut size={14} />

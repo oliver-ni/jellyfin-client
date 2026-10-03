@@ -15,6 +15,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppTitleRouteImport } from './routes/_app/$title'
 import { Route as AppRequestsRouteImport } from './routes/_app/requests'
 import { Route as PlayTitleRouteImport } from './routes/play/$title'
+import { Route as WebIndexDothtmlRouteImport } from './routes/web/index[.]html'
 import { Route as AppLibraryLibraryRouteImport } from './routes/_app/library/$library'
 import { Route as AppRequestTypeTmdbIdRouteImport } from './routes/_app/request/$type.$tmdbId'
 
@@ -47,6 +48,11 @@ const PlayTitleRoute = PlayTitleRouteImport.update({
   path: '/play/$title',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WebIndexDothtmlRoute = WebIndexDothtmlRouteImport.update({
+  id: '/web/index.html',
+  path: '/web/index.html',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppLibraryLibraryRoute = AppLibraryLibraryRouteImport.update({
   id: '/library/$library',
   path: '/library/$library',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/$title': typeof AppTitleRoute
   '/requests': typeof AppRequestsRoute
   '/play/$title': typeof PlayTitleRoute
+  '/web/index.html': typeof WebIndexDothtmlRoute
   '/library/$library': typeof AppLibraryLibraryRoute
   '/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
 }
@@ -72,6 +79,7 @@ export interface FileRoutesByTo {
   '/$title': typeof AppTitleRoute
   '/requests': typeof AppRequestsRoute
   '/play/$title': typeof PlayTitleRoute
+  '/web/index.html': typeof WebIndexDothtmlRoute
   '/': typeof AppIndexRoute
   '/library/$library': typeof AppLibraryLibraryRoute
   '/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/_app/$title': typeof AppTitleRoute
   '/_app/requests': typeof AppRequestsRoute
   '/play/$title': typeof PlayTitleRoute
+  '/web/index.html': typeof WebIndexDothtmlRoute
   '/_app/': typeof AppIndexRoute
   '/_app/library/$library': typeof AppLibraryLibraryRoute
   '/_app/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/$title'
     | '/requests'
     | '/play/$title'
+    | '/web/index.html'
     | '/library/$library'
     | '/request/$type/$tmdbId'
   fileRoutesByTo: FileRoutesByTo
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
     | '/$title'
     | '/requests'
     | '/play/$title'
+    | '/web/index.html'
     | '/'
     | '/library/$library'
     | '/request/$type/$tmdbId'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/_app/$title'
     | '/_app/requests'
     | '/play/$title'
+    | '/web/index.html'
     | '/_app/'
     | '/_app/library/$library'
     | '/_app/request/$type/$tmdbId'
@@ -122,6 +134,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   PlayTitleRoute: typeof PlayTitleRoute
+  WebIndexDothtmlRoute: typeof WebIndexDothtmlRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayTitleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/web/index.html': {
+      id: '/web/index.html'
+      path: '/web/index.html'
+      fullPath: '/web/index.html'
+      preLoaderRoute: typeof WebIndexDothtmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/library/$library': {
       id: '/_app/library/$library'
       path: '/library/$library'
@@ -207,6 +227,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   PlayTitleRoute: PlayTitleRoute,
+  WebIndexDothtmlRoute: WebIndexDothtmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

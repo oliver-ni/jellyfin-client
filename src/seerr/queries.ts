@@ -1,5 +1,7 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
+import { authorizeQuickConnect } from '@/api/gen/sdk.gen'
 import { queryClient } from '@/lib/query'
+import { getSession } from '@/lib/session'
 import * as seerr from './api'
 
 /**
@@ -31,11 +33,15 @@ export const seerrQueries = {
       staleTime: 5 * 60_000,
       retry: false,
     }),
-  /** Cached like the rest so the shell renders signed-in at once; a 401 anywhere corrects it. */
+  /**
+   * Cached like the rest so the shell renders signed-in at once; a 401 anywhere corrects it. With
+   * no session but a Jellyfin one, tries to make one from it first.
+   */
   me: () =>
     queryOptions({
       queryKey: ['seerr', 'me'],
-      queryFn: seerr.me,
+      queryFn: async () =>
+        (await seerr.me()) ?? (getSession() ? connect().catch(() => null) : null),
       staleTime: 5 * 60_000,
       retry: false,
     }),
@@ -93,9 +99,21 @@ export function useSeerrSeries(tmdbId: number | null): seerr.TvDetails | null {
   return session?.state === 'signedIn' && title.data?.type === 'tv' ? title.data : null
 }
 
-/** Rejects with a `SeerrError` when Seerr is missing, unreachable or refuses the credentials. */
-export async function signIn(username: string, password: string) {
-  setUser(await seerr.signIn(username, password))
+/**
+ * A Seerr session from the Jellyfin one, with no password: Seerr opens a Quick Connect request,
+ * this browser authorises it with its Jellyfin token, and Seerr signs in as the user who did.
+ * Rejects with a `SeerrError` when Seerr is missing, Quick Connect is off on the server, or Seerr
+ * won't admit the user.
+ */
+export async function connect(): Promise<seerr.SeerrUser> {
+  const { code, secret } = await seerr.quickConnectInitiate()
+  const { error, response } = await authorizeQuickConnect({ query: { code } })
+  if (error) {
+    throw new seerr.SeerrError(response?.status ?? 0, 'Jellyfin refused the Quick Connect request')
+  }
+  const user = await seerr.quickConnectAuthenticate(secret)
+  setUser(user)
+  return user
 }
 
 export async function signOut() {

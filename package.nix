@@ -4,6 +4,9 @@
   nodejs_24,
   # Jellyfin server this build signs into; null asks for one at sign-in.
   jellyfinUrl ? null,
+  # Provider name in the server's SSO plugin; offers "Sign in with <server> account" first.
+  # The deployment must proxy /sso/* on the client's origin to the server (see src/lib/sso.ts).
+  ssoProvider ? null,
   # Emoji or short glyph for the header mark and favicon; null uses a neutral icon.
   brandMark ? null,
 }:
@@ -31,6 +34,7 @@ buildNpmPackage {
 
   env =
     lib.optionalAttrs (jellyfinUrl != null) { VITE_JELLYFIN_URL = jellyfinUrl; }
+    // lib.optionalAttrs (ssoProvider != null) { VITE_SSO_PROVIDER = ssoProvider; }
     // lib.optionalAttrs (brandMark != null) { VITE_BRAND_MARK = brandMark; };
 
   installPhase = ''

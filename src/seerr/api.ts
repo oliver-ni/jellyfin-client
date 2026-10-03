@@ -378,9 +378,14 @@ export async function me(): Promise<SeerrUser | null> {
   })
 }
 
-/** Signs in with Jellyfin credentials; Seerr verifies them against its own Jellyfin. */
-export function signIn(username: string, password: string): Promise<SeerrUser> {
-  return request<SeerrUser>('/auth/jellyfin', json({ username, password }))
+/** Opens a Jellyfin Quick Connect request through Seerr's own connection to the server. */
+export function quickConnectInitiate(): Promise<{ code: string; secret: string }> {
+  return request('/auth/jellyfin/quickconnect/initiate', { method: 'POST' })
+}
+
+/** Signs in as the Jellyfin user who authorised the request behind `secret`. */
+export function quickConnectAuthenticate(secret: string): Promise<SeerrUser> {
+  return request<SeerrUser>('/auth/jellyfin/quickconnect/authenticate', json({ secret }))
 }
 
 export function signOut() {

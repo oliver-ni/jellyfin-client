@@ -16,8 +16,11 @@ const SONARR_READS = /^\/sonarr\/api\/v3\/(system\/status|series\/\d+|episode|qu
 
 // Seerr sends no CORS headers and Sonarr wants an API key, so the client reaches both through
 // same-origin `/seerr` and `/sonarr` proxies: these in development, nginx (see nginx.conf) in
-// the container.
+// the container. The SSO plugin's pages have to run on this origin too (see src/lib/sso.ts), so
+// `/sso` is passed through with the Host header kept.
 const proxies = (env: Record<string, string>) => ({
+  ...(env.VITE_SSO_PROVIDER &&
+    env.VITE_JELLYFIN_URL && { '/sso': { target: env.VITE_JELLYFIN_URL } }),
   ...(env.SEERR_URL && {
     '/seerr': { target: env.SEERR_URL, changeOrigin: true, rewrite: (p: string) => p.slice(6) },
   }),
