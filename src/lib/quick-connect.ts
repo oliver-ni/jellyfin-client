@@ -18,8 +18,8 @@ const messages: Record<number, string> = {
  * then receives its own session. Rejects with a `QuickConnectError` when Jellyfin refuses.
  */
 export async function approveQuickConnect(code: string): Promise<void> {
-  const { error, response } = await authorizeQuickConnect({ query: { code: code.trim() } })
-  if (error) {
+  const { data, error, response } = await authorizeQuickConnect({ query: { code: code.trim() } })
+  if (error || !data) {
     const status = response?.status ?? 0
     throw new QuickConnectError(status, messages[status] ?? 'Jellyfin refused the code')
   }
