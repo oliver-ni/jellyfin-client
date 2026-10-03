@@ -1,6 +1,6 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
-import { authorizeQuickConnect } from '@/api/gen/sdk.gen'
 import { queryClient } from '@/lib/query'
+import { approveQuickConnect } from '@/lib/quick-connect'
 import { getSession } from '@/lib/session'
 import * as seerr from './api'
 
@@ -102,15 +102,12 @@ export function useSeerrSeries(tmdbId: number | null): seerr.TvDetails | null {
 /**
  * A Seerr session from the Jellyfin one, with no password: Seerr opens a Quick Connect request,
  * this browser authorises it with its Jellyfin token, and Seerr signs in as the user who did.
- * Rejects with a `SeerrError` when Seerr is missing, Quick Connect is off on the server, or Seerr
- * won't admit the user.
+ * Rejects with a `SeerrError` when Seerr is missing or won't admit the user, and with a
+ * `QuickConnectError` when Jellyfin refuses the code.
  */
 export async function connect(): Promise<seerr.SeerrUser> {
   const { code, secret } = await seerr.quickConnectInitiate()
-  const { error, response } = await authorizeQuickConnect({ query: { code } })
-  if (error) {
-    throw new seerr.SeerrError(response?.status ?? 0, 'Jellyfin refused the Quick Connect request')
-  }
+  await approveQuickConnect(code)
   const user = await seerr.quickConnectAuthenticate(secret)
   setUser(user)
   return user
