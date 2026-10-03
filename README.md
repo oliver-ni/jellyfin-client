@@ -40,7 +40,7 @@ or as Docker `--build-arg`s); leave both unset for a generic build:
   page skips the address step. Otherwise the server is entered at runtime.
 - `VITE_BRAND_MARK=🍵` — an emoji or short glyph used as the header mark and favicon. Otherwise a
   neutral icon is used.
-- `VITE_SSO_PROVIDER=ochazuke` — with `VITE_JELLYFIN_URL`, sign-in leads with "Sign in with
+- `VITE_SSO_PROVIDER=ochazuke` — with `VITE_JELLYFIN_URL`, sign-in leads with "Continue with
   <server> account" through that provider of the server's
   [SSO plugin](https://github.com/9p4/jellyfin-plugin-sso), and username/password move behind a
   link. The plugin's pages have to run on the client's origin, so `/sso/*` is proxied to the

@@ -97,7 +97,7 @@ function LoginPage() {
             <>
               {SSO_PROVIDER && (
                 <Button variant="ghost" size="sm" onPress={() => setWithPassword(false)}>
-                  Sign in with {server?.serverName ?? host(serverUrl)} account
+                  Back to {server?.serverName ?? host(serverUrl)} account
                 </Button>
               )}
               {changeServer && (
@@ -175,13 +175,13 @@ function SsoStep({ server, error, onContinue, onUsePassword }: SsoStepProps) {
       error={error}
       footer={
         <Button variant="ghost" size="sm" onPress={onUsePassword}>
-          Sign in with a password
+          Use a password instead
         </Button>
       }
     >
       <div {...stylex.props(styles.form)}>
         <Submit
-          label={server ? `Sign in with ${server.serverName} account` : 'Connecting…'}
+          label={server ? `Continue with ${server.serverName} account` : 'Connecting…'}
           isDisabled={!server}
           onPress={onContinue}
         />
