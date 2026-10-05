@@ -12,7 +12,6 @@ import { AuthError, login, probeServer, type Server } from '@/lib/auth'
 import { fadeUp, stagger } from '@/lib/motion'
 import { getSession, normalizeServerUrl } from '@/lib/session'
 import { SSO_PROVIDER, startSso } from '@/lib/sso'
-import * as seerr from '@/seerr/queries'
 import { glass } from '@/theme/glass'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
@@ -59,7 +58,6 @@ function LoginPage() {
       if (!server) return
       await login(server, username, password)
       localStorage.setItem(RECENT_SERVER_KEY, server.serverUrl)
-      void seerr.connect().catch(() => null)
     },
     onSuccess: () =>
       redirectTo
