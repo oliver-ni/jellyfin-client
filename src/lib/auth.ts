@@ -1,5 +1,5 @@
 import { client } from '@/api/gen/client.gen'
-import { authenticateUserByName, getPublicSystemInfo } from '@/api/gen/sdk.gen'
+import { authenticateUserByName, getCurrentUser, getPublicSystemInfo } from '@/api/gen/sdk.gen'
 import { clearPersistedQueries } from './query'
 import {
   authorizationHeader,
@@ -26,6 +26,8 @@ export class AuthError extends Error {}
 export interface Server {
   serverUrl: string
   serverName: string
+  /** The server's own id, from its public info. */
+  serverId: string
 }
 
 export async function probeServer(input: string): Promise<Server> {
@@ -37,8 +39,8 @@ export async function probeServer(input: string): Promise<Server> {
       baseUrl: serverUrl,
       signal: controller.signal,
     })
-    if (data) {
-      return { serverUrl, serverName: data.ServerName ?? serverUrl }
+    if (data?.Id) {
+      return { serverUrl, serverName: data.ServerName ?? serverUrl, serverId: data.Id }
     }
     const status = response?.status
     throw new AuthError(
@@ -53,10 +55,14 @@ export async function probeServer(input: string): Promise<Server> {
   }
 }
 
+async function startSession(server: Server, user: Omit<Session, 'serverUrl' | 'serverName'>) {
+  await clearPersistedQueries()
+  applySession({ serverUrl: server.serverUrl, serverName: server.serverName, ...user })
+}
+
 export async function login(server: Server, username: string, password: string) {
-  const { serverUrl, serverName } = server
   const { data, error, response } = await authenticateUserByName({
-    baseUrl: serverUrl,
+    baseUrl: server.serverUrl,
     body: { Username: username, Pw: password },
     headers: { Authorization: authorizationHeader() },
   })
@@ -68,14 +74,23 @@ export async function login(server: Server, username: string, password: string) 
         : `Login failed (${status ?? 'network error'})`,
     )
   }
-  await clearPersistedQueries()
-  applySession({
-    serverUrl,
-    serverName,
+  await startSession(server, {
     userId: data.User.Id,
     userName: data.User.Name ?? username,
     accessToken: data.AccessToken,
   })
+}
+
+/** Takes up a session from a token issued elsewhere (the SSO plugin); the user is looked up. */
+export async function loginWithToken(server: Server, accessToken: string) {
+  const { data, response } = await getCurrentUser({
+    baseUrl: server.serverUrl,
+    headers: { Authorization: authorizationHeader(accessToken) },
+  })
+  if (!data?.Id) {
+    throw new AuthError(`Login failed (${response?.status ?? 'network error'})`)
+  }
+  await startSession(server, { userId: data.Id, userName: data.Name ?? '', accessToken })
 }
 
 export async function logout() {

@@ -6,6 +6,7 @@ RUN npm ci
 COPY . .
 ARG VITE_JELLYFIN_URL
 ARG VITE_BRAND_MARK
+ARG VITE_SSO_PROVIDER
 RUN npm run build
 
 FROM nginx:1.27-alpine

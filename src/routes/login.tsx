@@ -11,6 +11,7 @@ import { TextField } from '@/components/TextField'
 import { AuthError, login, probeServer, type Server } from '@/lib/auth'
 import { fadeUp, stagger } from '@/lib/motion'
 import { getSession, normalizeServerUrl } from '@/lib/session'
+import { SSO_PROVIDER, startSso } from '@/lib/sso'
 import * as seerr from '@/seerr/queries'
 import { glass } from '@/theme/glass'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
@@ -41,6 +42,7 @@ function LoginPage() {
   const { redirect: redirectTo } = Route.useSearch()
   const [serverUrl, setServerUrl] = useState<string | null>(FIXED_SERVER)
   const [pickingServer, setPickingServer] = useState(false)
+  const [withPassword, setWithPassword] = useState(SSO_PROVIDER === null)
   const probe = useQuery({
     queryKey: ['server', serverUrl],
     queryFn: () => probeServer(serverUrl ?? ''),
@@ -49,17 +51,15 @@ function LoginPage() {
     retry: false,
     persister: undefined,
   })
-  // A fixed server is signed into straight away; its name catches up when the probe answers.
-  const server: Server | null =
-    probe.data ??
-    (FIXED_SERVER ? { serverUrl: FIXED_SERVER, serverName: host(FIXED_SERVER) } : null)
+  const server = probe.data ?? null
+  const probeError = probe.error ? messageOf(probe.error) : null
 
   const signIn = useMutation({
     mutationFn: async ({ username, password }: { username: string; password: string }) => {
       if (!server) return
       await login(server, username, password)
       localStorage.setItem(RECENT_SERVER_KEY, server.serverUrl)
-      void seerr.signIn(username, password).catch(() => null)
+      void seerr.connect().catch(() => null)
     },
     onSuccess: () =>
       redirectTo
@@ -67,28 +67,53 @@ function LoginPage() {
         : navigate({ to: '/', replace: true }),
   })
 
+  // A fixed server's sign-in shows at once and fills in as the probe answers; any other waits.
+  const signingIn = serverUrl !== null && !pickingServer && (FIXED_SERVER !== null || server)
+  const changeServer = FIXED_SERVER ? undefined : () => setPickingServer(true)
+
   return (
     <main {...stylex.props(styles.page)}>
-      {server && !pickingServer ? (
-        <CredentialsStep
-          key={server.serverUrl}
-          server={server}
-          busy={signIn.isPending}
-          error={signIn.error ? messageOf(signIn.error) : null}
-          onSubmit={signIn.mutate}
-          onChangeServer={FIXED_SERVER ? undefined : () => setPickingServer(true)}
-        />
-      ) : (
+      {!signingIn ? (
         <ServerStep
           initial={serverUrl ?? localStorage.getItem(RECENT_SERVER_KEY) ?? ''}
           busy={probe.isFetching}
-          error={probe.error ? messageOf(probe.error) : null}
+          error={probeError}
           onSubmit={(url) => {
             if (url === serverUrl) void probe.refetch()
             else setServerUrl(url)
             setPickingServer(false)
             signIn.reset()
           }}
+        />
+      ) : withPassword ? (
+        <CredentialsStep
+          key={serverUrl}
+          serverUrl={serverUrl}
+          ready={server !== null}
+          busy={signIn.isPending}
+          error={signIn.error ? messageOf(signIn.error) : probeError}
+          onSubmit={signIn.mutate}
+          footer={
+            <>
+              {SSO_PROVIDER && (
+                <Button variant="ghost" size="sm" onPress={() => setWithPassword(false)}>
+                  Back to {server?.serverName ?? host(serverUrl)} account
+                </Button>
+              )}
+              {changeServer && (
+                <Button variant="ghost" size="sm" onPress={changeServer}>
+                  Use a different server
+                </Button>
+              )}
+            </>
+          }
+        />
+      ) : (
+        <SsoStep
+          server={server}
+          error={probeError}
+          onContinue={() => server && startSso(server, redirectTo)}
+          onUsePassword={() => setWithPassword(true)}
         />
       )}
     </main>
@@ -134,13 +159,46 @@ function ServerStep({ initial, busy, error, onSubmit }: ServerStepProps) {
   )
 }
 
-interface CredentialsStepProps extends StepProps {
-  server: Server
-  onSubmit: (credentials: { username: string; password: string }) => void
-  onChangeServer?: () => void
+interface SsoStepProps {
+  /** `null` until the server has answered. */
+  server: Server | null
+  error: string | null
+  onContinue: () => void
+  onUsePassword: () => void
 }
 
-function CredentialsStep({ server, busy, error, onSubmit, onChangeServer }: CredentialsStepProps) {
+/** One button: the server's SSO provider takes it from here. */
+function SsoStep({ server, error, onContinue, onUsePassword }: SsoStepProps) {
+  return (
+    <Step
+      title="Sign in"
+      error={error}
+      footer={
+        <Button variant="ghost" size="sm" onPress={onUsePassword}>
+          Use a password instead
+        </Button>
+      }
+    >
+      <div {...stylex.props(styles.form)}>
+        <Submit
+          label={server ? `Continue with ${server.serverName} account` : 'Connecting…'}
+          isDisabled={!server}
+          onPress={onContinue}
+        />
+      </div>
+    </Step>
+  )
+}
+
+interface CredentialsStepProps extends StepProps {
+  serverUrl: string
+  /** Whether the server has answered, so a submit can go somewhere. */
+  ready: boolean
+  onSubmit: (credentials: { username: string; password: string }) => void
+  footer: ReactNode
+}
+
+function CredentialsStep({ serverUrl, ready, busy, error, onSubmit, footer }: CredentialsStepProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const submit = (e: FormEvent) => {
@@ -148,18 +206,7 @@ function CredentialsStep({ server, busy, error, onSubmit, onChangeServer }: Cred
     onSubmit({ username, password })
   }
   return (
-    <Step
-      title="Sign in"
-      subtitle={onChangeServer && host(server.serverUrl)}
-      error={error}
-      footer={
-        onChangeServer && (
-          <Button variant="ghost" size="sm" onPress={onChangeServer}>
-            Use a different server
-          </Button>
-        )
-      }
-    >
+    <Step title="Sign in" subtitle={!FIXED_SERVER && host(serverUrl)} error={error} footer={footer}>
       <Form onSubmit={submit} {...stylex.props(styles.form)}>
         <TextField
           label="Username"
@@ -176,16 +223,33 @@ function CredentialsStep({ server, busy, error, onSubmit, onChangeServer }: Cred
           onChange={setPassword}
           autoComplete="current-password"
         />
-        <Submit label={busy ? 'Signing in…' : 'Sign in'} isDisabled={busy || !username} />
+        <Submit
+          label={busy ? 'Signing in…' : 'Sign in'}
+          isDisabled={busy || !ready || !username}
+        />
       </Form>
     </Step>
   )
 }
 
-function Submit({ label, isDisabled }: { label: string; isDisabled: boolean }) {
+interface SubmitProps {
+  label: string
+  isDisabled: boolean
+  /** Submits the enclosing form when omitted. */
+  onPress?: () => void
+}
+
+function Submit({ label, isDisabled, onPress }: SubmitProps) {
   return (
     <m.div variants={fadeUp} {...stylex.props(styles.submit)}>
-      <Button type="submit" variant="primary" size="lg" isDisabled={isDisabled} style={styles.wide}>
+      <Button
+        type={onPress ? 'button' : 'submit'}
+        variant="primary"
+        size="lg"
+        isDisabled={isDisabled}
+        onPress={onPress}
+        style={styles.wide}
+      >
         {label}
       </Button>
     </m.div>
@@ -223,7 +287,11 @@ function Step({ title, subtitle, error, footer, children }: StepLayoutProps) {
       <p role="alert" {...stylex.props(styles.error)}>
         {error}
       </p>
-      {footer && <m.div variants={fadeUp}>{footer}</m.div>}
+      {footer && (
+        <m.div variants={fadeUp} {...stylex.props(styles.footer)}>
+          {footer}
+        </m.div>
+      )}
     </m.section>
   )
 }
@@ -287,5 +355,11 @@ const styles = stylex.create({
     fontSize: 13,
     color: colors.danger,
     textAlign: 'center',
+  },
+  footer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: space.xs,
   },
 })

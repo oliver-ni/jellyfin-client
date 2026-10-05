@@ -1,10 +1,19 @@
 #!/bin/sh
-# Writes the same-origin proxies nginx.conf includes: /seerr/ to the Seerr at $SEERR_URL so the
-# client can use its cookie session without CORS, and a read-only /sonarr/ to $SONARR_URL with
-# $SONARR_API_KEY added here, open only to requests carrying a Seerr session. Each is skipped
-# when its variables are unset.
+# Writes the same-origin proxies nginx.conf includes: /sso/ to the Jellyfin at $JELLYFIN_URL with
+# the Host kept, so its SSO plugin's pages run on this origin (see src/lib/sso.ts); /seerr/ to the
+# Seerr at $SEERR_URL so the client can use its cookie session without CORS; and a read-only
+# /sonarr/ to $SONARR_URL with $SONARR_API_KEY added here, open only to requests carrying a Seerr
+# session. Each is skipped when its variables are unset.
 set -e
 : > /etc/nginx/proxies.conf
+[ -z "$JELLYFIN_URL" ] || cat >> /etc/nginx/proxies.conf <<CONF
+location /sso/ {
+  proxy_pass ${JELLYFIN_URL%/}/sso/;
+  proxy_ssl_server_name on;
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
+CONF
 [ -z "$SEERR_URL" ] || cat >> /etc/nginx/proxies.conf <<CONF
 location /seerr/ {
   proxy_pass ${SEERR_URL%/}/;
