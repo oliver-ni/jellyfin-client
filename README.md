@@ -33,8 +33,8 @@ npm install
 npm run dev
 ```
 
-Two optional build-time variables tailor a build to one setup (set them in the shell, a `.env.local`,
-or as Docker `--build-arg`s); leave both unset for a generic build:
+Three optional build-time variables tailor a build to one setup (set them in the shell, a `.env.local`,
+or as Docker `--build-arg`s); leave them unset for a generic build:
 
 - `VITE_JELLYFIN_URL=https://jellyfin.example.com` — the server this build signs into, so the login
   page skips the address step. Otherwise the server is entered at runtime.
@@ -110,13 +110,14 @@ Serves the static build with nginx; the Jellyfin server URL is entered at sign-i
 ## Nix
 
 `nix build` puts the `dist/` tree in `result`. Consumers get the same package from the flake and set
-the two build-time variables through its arguments:
+the build-time variables through its arguments:
 
 ```nix
 inputs.jellyfin-client.url = "github:oliver-ni/jellyfin-client";
 
 jellyfin-client.packages.${system}.default.override {
   jellyfinUrl = "https://jellyfin.example.com";
+  ssoProvider = "ochazuke";
   brandMark = "🍵";
 }
 ```

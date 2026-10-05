@@ -1,24 +1,13 @@
+import { createClientConfig } from '@/api/client-config'
 import { client } from '@/api/gen/client.gen'
 import { authenticateUserByName, getCurrentUser, getPublicSystemInfo } from '@/api/gen/sdk.gen'
 import { clearPersistedQueries } from './query'
-import {
-  authorizationHeader,
-  getSession,
-  normalizeServerUrl,
-  setSession,
-  type Session,
-} from './session'
+import { authorizationHeader, normalizeServerUrl, setSession, type Session } from './session'
 
 function applySession(session: Session | null) {
   setSession(session)
-  client.setConfig({
-    baseUrl: session?.serverUrl ?? '',
-    auth: () => authorizationHeader(session?.accessToken),
-    querySerializer: { array: { explode: false, style: 'form' } },
-  })
+  client.setConfig(createClientConfig())
 }
-
-applySession(getSession())
 
 /** A failure with a message fit to show the user. */
 export class AuthError extends Error {}
