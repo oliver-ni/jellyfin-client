@@ -3,14 +3,16 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { Check } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
+import { useState } from 'react'
 import { titleHead } from '@/brand'
 import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
+import { Select } from '@/components/Select'
 import { RequestButton } from '@/components/RequestButton'
 import { fadeUp, stagger } from '@/lib/motion'
 import { Gate } from '@/seerr/Gate'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
-import { thumbnail } from '@/suwayomi/api'
+import { type MangaDetails, thumbnail } from '@/suwayomi/api'
 import { MANGA_STATUS_LABEL, chapters } from '@/suwayomi/labels'
 import { requestManga, suwayomiQueries } from '@/suwayomi/queries'
 import { detail } from '@/theme/detail'
@@ -57,7 +59,11 @@ function MangaRequestPage() {
     )
   }
   if (!manga.data) return <div {...stylex.props(detail.heroSkeleton)} />
-  const t = manga.data
+  return <Details manga={manga.data} />
+}
+
+function Details({ manga: t }: { manga: MangaDetails }) {
+  const [group, setGroup] = useState(t.groups[0]?.name)
 
   return (
     <article {...stylex.props(detail.page)}>
@@ -83,9 +89,23 @@ function MangaRequestPage() {
             No chapters on {t.source}
           </span>
         ) : (
-          <RequestButton request={() => requestManga(t.id)} size="lg">
-            Request
-          </RequestButton>
+          <>
+            <RequestButton request={() => requestManga(t.id, group)} size="lg">
+              Request
+            </RequestButton>
+            {t.groups.length > 1 && (
+              <Select
+                label="Translation"
+                aria-label="Translation group"
+                value={group}
+                options={t.groups.map((g) => ({
+                  key: g.name,
+                  label: `${g.name} · ${chapters(g.chapters)}`,
+                }))}
+                onChange={setGroup}
+              />
+            )}
+          </>
         )}
       </DetailHero>
 

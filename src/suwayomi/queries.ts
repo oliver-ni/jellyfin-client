@@ -34,8 +34,8 @@ export const suwayomiQueries = {
     }),
 }
 
-export function requestManga(id: number) {
+export function requestManga(id: number, group?: string) {
   return suwayomi
-    .requestManga(id)
+    .requestManga(id, group)
     .then(() => queryClient.invalidateQueries({ queryKey: ['suwayomi'] }))
 }

@@ -33,6 +33,8 @@ export interface MangaDetails extends Manga {
   genres: string[]
   status: MangaStatus
   chapters: number
+  /** Scanlation groups offering it, most complete first. */
+  groups: { name: string; chapters: number }[]
 }
 
 /** A requested title and how much of it is downloaded. */
@@ -68,4 +70,9 @@ export const isConfigured = () =>
   )
 
 /** Adds a title and downloads all of its chapters. */
-export const requestManga = (id: number) => request<void>(`/request/${id}`, { method: 'POST' })
+export const requestManga = (id: number, group?: string) =>
+  request<void>(`/request/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ group }),
+  })
