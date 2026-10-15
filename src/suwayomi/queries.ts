@@ -17,6 +17,13 @@ export const suwayomiQueries = {
       staleTime: 5 * 60_000,
       retry: false,
     }),
+  details: (id: number) =>
+    queryOptions({
+      queryKey: ['suwayomi', 'manga', id],
+      queryFn: () => suwayomi.details(id),
+      staleTime: 5 * 60_000,
+      retry: false,
+    }),
   /** Kept fresh while on screen so download counts move. */
   requests: () =>
     queryOptions({
@@ -28,8 +35,7 @@ export const suwayomiQueries = {
 }
 
 export function requestManga(id: number) {
-  return suwayomi.requestManga(id).then(() => {
-    void queryClient.invalidateQueries({ queryKey: ['suwayomi', 'search'] })
-    return queryClient.invalidateQueries({ queryKey: ['suwayomi', 'requests'] })
-  })
+  return suwayomi
+    .requestManga(id)
+    .then(() => queryClient.invalidateQueries({ queryKey: ['suwayomi'] }))
 }
