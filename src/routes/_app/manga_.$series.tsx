@@ -1,22 +1,30 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { Check } from '@phosphor-icons/react'
+import { BookOpen, Check } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { titleHead } from '@/brand'
 import { BlurImage } from '@/components/BlurImage'
-import { Button } from '@/components/Button'
+import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
 import { Gate } from '@/komga/Gate'
 import * as komga from '@/komga/api'
 import { komgaQueries, useKomga } from '@/komga/queries'
 import { fadeUp, stagger } from '@/lib/motion'
 import { detail } from '@/theme/detail'
+import { episode as ep } from '@/theme/episode'
 import { focus } from '@/theme/focus'
-import { list } from '@/theme/list'
-import { media } from '@/theme/media'
-import { text } from '@/theme/text'
-import { colors, radii, space } from '@/theme/tokens.stylex'
+import { media, playPill } from '@/theme/media'
+import { colors, motion, space } from '@/theme/tokens.stylex'
+
+const THUMB_W = 88
+
+const STATUS: Record<string, string> = {
+  ONGOING: 'Ongoing',
+  ENDED: 'Completed',
+  HIATUS: 'On hiatus',
+  ABANDONED: 'Abandoned',
+}
 
 export const Route = createFileRoute('/_app/manga_/$series')({
   loader: ({ context: { queryClient }, params }) =>
@@ -44,8 +52,9 @@ function SeriesDetail() {
       </div>
     )
   }
-  if (!series.data) return null
+  if (!series.data) return <div {...stylex.props(detail.heroSkeleton)} />
   const s = series.data
+  const cover = { url: komga.seriesCover(s.id) }
   // Where "Read" goes: the chapter with a bookmark, else the first unread, else the first.
   const chapters = books.data ?? []
   const resume =
@@ -54,121 +63,136 @@ function SeriesDetail() {
     chapters[0]
 
   return (
-    <m.div
-      initial="hidden"
-      animate="show"
-      variants={stagger()}
-      {...stylex.props(list.page, styles.page)}
-    >
-      <m.header variants={fadeUp} {...stylex.props(styles.head)}>
-        <BlurImage src={komga.seriesCover(s.id)} alt="" style={styles.cover} />
-        <div {...stylex.props(styles.about)}>
-          <h1 {...stylex.props(list.title)}>{s.name}</h1>
-          <p {...stylex.props(list.faint)}>
-            {s.booksCount} {s.booksCount === 1 ? 'chapter' : 'chapters'}
-            {s.booksReadCount > 0 && ` · ${s.booksReadCount} read`}
-            {s.genres.length > 0 && ` · ${s.genres.join(', ')}`}
-          </p>
-          {s.summary && <p {...stylex.props(detail.overview)}>{s.summary}</p>}
-          {resume && (
-            <Link to="/read/$book" params={{ book: resume.id }} {...stylex.props(styles.readLink)}>
-              <Button variant="primary" size="lg" style={styles.readButton}>
-                {resume.progress && !resume.progress.completed ? 'Continue' : 'Read'} ·{' '}
-                {resume.title}
-              </Button>
-            </Link>
-          )}
-        </div>
-      </m.header>
+    <article {...stylex.props(detail.page)}>
+      <DetailHero
+        backdrop={cover}
+        tile={cover}
+        title={s.name}
+        meta={[
+          'Manga',
+          STATUS[s.status],
+          `${s.booksCount} ${s.booksCount === 1 ? 'chapter' : 'chapters'}`,
+          s.booksReadCount > 0 && `${s.booksReadCount} read`,
+        ]}
+        genres={s.genres}
+      >
+        {resume && (
+          <Link
+            to="/read/$book"
+            params={{ book: resume.id }}
+            {...stylex.props(focus.ring, playPill.base)}
+          >
+            <BookOpen size={18} weight="fill" />
+            {resume.progress && !resume.progress.completed ? 'Continue' : 'Read'} · {resume.title}
+          </Link>
+        )}
+      </DetailHero>
 
-      <m.ol variants={fadeUp} {...stylex.props(styles.chapters)}>
-        {chapters.map((b) => (
-          <li key={b.id}>
-            <Link
-              to="/read/$book"
-              params={{ book: b.id }}
-              {...stylex.props(focus.ring, styles.chapter)}
-            >
-              <span {...stylex.props(text.ellipsis, styles.chapterTitle)}>{b.title}</span>
-              <span {...stylex.props(list.faint)}>
-                {b.progress?.completed ? (
-                  <Check size={14} weight="bold" aria-label="Read" />
-                ) : b.progress ? (
-                  `Page ${b.progress.page} of ${b.pagesCount}`
-                ) : (
-                  `${b.pagesCount} pages`
-                )}
-              </span>
-              {b.progress && !b.progress.completed && (
-                <div {...stylex.props(media.progressTrack)}>
-                  <div
-                    {...stylex.props(media.progressBar)}
-                    style={{ width: `${(b.progress.page / b.pagesCount) * 100}%` }}
-                  />
-                </div>
-              )}
-            </Link>
-          </li>
-        ))}
-      </m.ol>
-    </m.div>
+      <m.div
+        initial="hidden"
+        animate="show"
+        variants={stagger(0.03, 0.1)}
+        {...stylex.props(detail.body, styles.body)}
+      >
+        {s.summary && (
+          <m.p variants={fadeUp} {...stylex.props(detail.overview)}>
+            {s.summary}
+          </m.p>
+        )}
+        {books.isError ? (
+          <Notice title="Couldn’t load chapters" onRetry={() => void books.refetch()} />
+        ) : books.isPending ? (
+          <div {...stylex.props(ep.skeleton)} />
+        ) : (
+          <m.ol variants={stagger()} {...stylex.props(ep.list)}>
+            {chapters.map((b) => (
+              <ChapterRow key={b.id} book={b} />
+            ))}
+          </m.ol>
+        )}
+      </m.div>
+    </article>
+  )
+}
+
+function ChapterRow({ book }: { book: komga.Book }) {
+  const done = book.progress?.completed ?? false
+  const page = !done && book.progress ? book.progress.page : 0
+  return (
+    <m.li variants={fadeUp} {...stylex.props(ep.row, styles.row)}>
+      <Link
+        to="/read/$book"
+        params={{ book: book.id }}
+        {...stylex.props(focus.ring, styles.link, stylex.defaultMarker())}
+      >
+        <span {...stylex.props(ep.still, styles.thumb)}>
+          <BlurImage src={komga.bookCover(book.id)} alt="" style={media.fill} />
+          {done && (
+            <span {...stylex.props(media.cornerBadge)}>
+              <Check size={12} weight="bold" />
+            </span>
+          )}
+          {page > 0 && (
+            <span {...stylex.props(media.progressTrack)}>
+              <span
+                {...stylex.props(media.progressBar)}
+                style={{ width: `${(page / book.pagesCount) * 100}%` }}
+              />
+            </span>
+          )}
+        </span>
+        <span {...stylex.props(ep.body)}>
+          <span {...stylex.props(ep.heading)}>
+            <span {...stylex.props(ep.number)}>{book.number}</span>
+            <span {...stylex.props(ep.title, styles.title, done && styles.titleRead)}>
+              {book.title}
+            </span>
+          </span>
+          <span {...stylex.props(ep.sub)}>
+            {page > 0 ? `Page ${page} of ${book.pagesCount}` : `${book.pagesCount} pages`}
+          </span>
+        </span>
+      </Link>
+    </m.li>
   )
 }
 
 const styles = stylex.create({
-  page: {
-    maxWidth: 1100,
-  },
-  head: {
-    display: 'flex',
-    gap: space.xl,
-    alignItems: 'flex-start',
-  },
-  cover: {
-    flexShrink: 0,
-    width: 'clamp(120px, 22vw, 220px)',
-    aspectRatio: '2 / 3',
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    backgroundColor: colors.skeleton,
-  },
-  about: {
+  body: {
     display: 'flex',
     flexDirection: 'column',
-    gap: space.md,
-    minWidth: 0,
+    gap: space.xxl,
   },
-  readLink: {
-    alignSelf: 'flex-start',
-    outline: 'none',
-    borderRadius: radii.md,
+  row: {
+    display: 'block',
+    paddingBlock: space.sm,
+    backgroundColor: {
+      default: 'transparent',
+      ':hover': colors.surface,
+    },
+    transitionProperty: 'background-color',
+    transitionDuration: motion.fast,
   },
-  readButton: {
-    pointerEvents: 'none',
-  },
-  chapters: {
-    listStyle: 'none',
-    margin: 0,
-    padding: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xxs,
-  },
-  chapter: {
-    position: 'relative',
-    display: 'flex',
+  link: {
+    display: 'grid',
+    gridTemplateColumns: `${THUMB_W}px minmax(0, 1fr)`,
+    gap: space.lg,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: space.md,
-    padding: `${space.md} ${space.lg}`,
-    borderRadius: radii.md,
     color: colors.text,
     textDecoration: 'none',
-    overflow: 'hidden',
-    backgroundColor: { default: 'transparent', ':hover': colors.surface },
   },
-  chapterTitle: {
-    fontSize: 15,
-    fontWeight: 500,
+  thumb: {
+    aspectRatio: '2 / 3',
+  },
+  title: {
+    textDecoration: {
+      default: 'none',
+      [stylex.when.ancestor(':hover')]: 'underline',
+    },
+    textUnderlineOffset: 3,
+    textDecorationColor: colors.borderStrong,
+  },
+  titleRead: {
+    color: colors.textMuted,
   },
 })
