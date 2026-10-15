@@ -149,13 +149,7 @@ function SideNav({ session }: { session: Session }) {
     <MenuTrigger>
       <AriaButton aria-label="Account" {...stylex.props(focus.ring, styles.account)}>
         <span {...stylex.props(styles.avatar)}>{session.userName.slice(0, 1).toUpperCase()}</span>
-        <span {...stylex.props(styles.accountText)}>
-          <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
-          <span {...stylex.props(styles.menuServer)}>
-            {session.serverName}
-            {seerr?.state === 'signedIn' && ' · Seerr'}
-          </span>
-        </span>
+        <span {...stylex.props(styles.accountName)}>{session.userName}</span>
       </AriaButton>
       <Popover
         placement="top start"
@@ -503,19 +497,14 @@ const styles = stylex.create({
     backgroundColor: colors.surfaceHover,
     borderRadius: radii.full,
   },
-  accountText: {
-    display: 'flex',
-    flexDirection: 'column',
+  accountName: {
     minWidth: 0,
-  },
-  menuUser: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
     fontSize: 14,
     fontWeight: 600,
     color: colors.text,
-  },
-  menuServer: {
-    fontSize: 12,
-    color: colors.textMuted,
   },
   topBar: {
     position: 'fixed',
