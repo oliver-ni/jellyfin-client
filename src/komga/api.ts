@@ -230,7 +230,6 @@ export const setProgress = (bookId: string, progress: Progress) =>
   patch(`/api/v1/books/${bookId}/read-progress`, progress)
 
 export const seriesCover = (id: string) => `${KOMGA_URL}/api/v1/series/${id}/thumbnail`
-export const bookCover = (id: string) => `${KOMGA_URL}/api/v1/books/${id}/thumbnail`
 /** Full-size page image; `page` is 1-based. */
 export const pageImage = (bookId: string, page: number) =>
   `${KOMGA_URL}/api/v1/books/${bookId}/pages/${page}`
