@@ -1,39 +1,16 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
-import {
-  BookOpenText,
-  Books,
-  Devices,
-  FilmStrip,
-  House,
-  List,
-  MagnifyingGlass,
-  MusicNotes,
-  SignOut,
-  SquaresFour,
-  Television,
-  Tray,
-} from '@phosphor-icons/react'
+import { Devices, MagnifyingGlass, SignOut } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import {
-  Dialog,
-  Menu,
-  MenuItem,
-  MenuTrigger,
-  Modal,
-  ModalOverlay,
-  Popover,
-  Button as AriaButton,
-} from 'react-aria-components'
-import type { BaseItemDto } from '@/api/gen/types.gen'
+import { Menu, MenuItem, MenuTrigger, Popover, Button as AriaButton } from 'react-aria-components'
 import { BrandMark } from '@/components/BrandMark'
 import { QuickConnectDialog } from '@/components/QuickConnectDialog'
 import { SearchPalette } from '@/components/SearchPalette'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
 import { logout } from '@/lib/auth'
-import { libraryLink, type ItemLink } from '@/lib/item-link'
+import { libraryLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { requireSession, useSession, type Session } from '@/lib/session'
@@ -43,7 +20,6 @@ import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
 import { glass, overlay } from '@/theme/glass'
 import { menu } from '@/theme/menu'
 import { focus } from '@/theme/focus'
-import { text } from '@/theme/text'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app')({
@@ -58,7 +34,7 @@ function AppLayout() {
   if (!session) return null
   return (
     <div ref={shell} {...stylex.props(styles.shell)}>
-      <SideNav session={session} />
+      <TopNav session={session} />
       <main {...stylex.props(styles.main)}>
         <Outlet />
       </main>
@@ -76,13 +52,12 @@ function isTypingTarget(target: EventTarget | null): boolean {
   )
 }
 
-function SideNav({ session }: { session: Session }) {
+function TopNav({ session }: { session: Session }) {
   const navigate = useNavigate()
   const views = useQuery(queries.views(session.userId))
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
   const [searchOpen, setSearchOpen] = useState(false)
   const [quickConnectOpen, setQuickConnectOpen] = useState(false)
-  const [drawerOpen, setDrawerOpen] = useState(false)
   const seerr = useSeerr()
 
   useEffect(() => {
@@ -97,161 +72,97 @@ function SideNav({ session }: { session: Session }) {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [searchOpen])
 
-  const links = (
-    <nav
-      aria-label="Libraries"
-      onClick={() => setDrawerOpen(false)}
-      {...stylex.props(styles.links)}
-    >
-      <NavLink to="/" icon={<House size={18} />}>
-        Home
-      </NavLink>
-      {seerr && seerr.state !== 'unavailable' && (
-        <NavLink to="/requests" icon={<Tray size={18} />}>
-          Requests
-        </NavLink>
-      )}
-      <h2 {...stylex.props(styles.section)}>Library</h2>
-      {libraries.map((lib) => (
-        <NavLink key={lib.Id} {...libraryLink(lib)} icon={libraryIcon(lib.CollectionType)}>
-          {lib.Name}
-        </NavLink>
-      ))}
-      {KOMGA_URL && (
-        <NavLink to="/manga" icon={<BookOpenText size={18} />}>
-          Manga
-        </NavLink>
-      )}
-    </nav>
-  )
-
-  const account = (
-    <MenuTrigger>
-      <AriaButton aria-label="Account" {...stylex.props(focus.ring, styles.account)}>
-        <span {...stylex.props(styles.avatar)}>{session.userName.slice(0, 1).toUpperCase()}</span>
-        <span {...stylex.props(text.ellipsis, styles.accountName)}>{session.userName}</span>
-      </AriaButton>
-      <Popover
-        placement="top start"
-        offset={8}
-        {...stylex.props(glass.panel, overlay.popover, menu.popover)}
-      >
-        <Menu
-          {...stylex.props(menu.list)}
-          onAction={async (key) => {
-            if (key === 'quick-connect') setQuickConnectOpen(true)
-            if (key === 'logout') {
-              await Promise.all([logout(), seerrSignOut(), komgaSignOut()])
-              await navigate({ to: '/login', replace: true })
-            }
-          }}
-        >
-          <MenuItem id="quick-connect" {...stylex.props(menu.item)}>
-            <span {...stylex.props(menu.check)}>
-              <Devices size={14} />
-            </span>
-            Quick Connect
-          </MenuItem>
-          <MenuItem id="logout" {...stylex.props(menu.item)}>
-            <span {...stylex.props(menu.check)}>
-              <SignOut size={14} />
-            </span>
-            Sign out
-          </MenuItem>
-        </Menu>
-      </Popover>
-    </MenuTrigger>
-  )
-
-  const panel = (
-    <>
-      <div {...stylex.props(styles.brandRow)}>
-        <Link to="/" aria-label={session.serverName} {...stylex.props(focus.ring, styles.brand)}>
-          <span {...stylex.props(styles.iconSlot)}>
-            <BrandMark size={20} />
-          </span>
-          <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
-        </Link>
-        <AriaButton
-          aria-label="Search"
-          onPress={() => {
-            setDrawerOpen(false)
-            setSearchOpen(true)
-          }}
-          {...stylex.props(focus.ring, styles.searchButton)}
-        >
-          <MagnifyingGlass size={18} />
-        </AriaButton>
-      </div>
-      {links}
-      <div {...stylex.props(styles.panelFoot)}>{account}</div>
-    </>
-  )
-
   return (
-    <>
+    <header {...stylex.props(styles.nav)}>
       <SearchPalette userId={session.userId} isOpen={searchOpen} onOpenChange={setSearchOpen} />
       <QuickConnectDialog
         userName={session.userName}
         isOpen={quickConnectOpen}
         onOpenChange={setQuickConnectOpen}
       />
-      <aside {...stylex.props(glass.panel, styles.panel, styles.sidebar)}>{panel}</aside>
-
-      <header {...stylex.props(styles.topBar)}>
-        <AriaButton
-          aria-label="Menu"
-          onPress={() => setDrawerOpen(true)}
-          {...stylex.props(focus.ring, glass.surface, styles.topButton)}
-        >
-          <List size={18} />
-        </AriaButton>
+      <Link
+        to="/"
+        aria-label={session.serverName}
+        {...stylex.props(focus.ring, glass.surface, styles.brand)}
+      >
+        <BrandMark />
+      </Link>
+      <nav aria-label="Libraries" {...stylex.props(glass.surface, styles.links)}>
+        <NavLink to="/">Home</NavLink>
+        {libraries.map((lib) => (
+          <NavLink key={lib.Id} {...libraryLink(lib)}>
+            {lib.Name}
+          </NavLink>
+        ))}
+        {seerr && seerr.state !== 'unavailable' && <NavLink to="/requests">Requests</NavLink>}
+        {KOMGA_URL && <NavLink to="/manga">Manga</NavLink>}
+      </nav>
+      <div {...stylex.props(styles.right)}>
         <AriaButton
           aria-label="Search"
           onPress={() => setSearchOpen(true)}
-          {...stylex.props(focus.ring, glass.surface, styles.topButton, styles.topSearch)}
+          {...stylex.props(focus.ring, glass.surface, styles.search)}
         >
           <MagnifyingGlass size={16} />
+          <span {...stylex.props(styles.searchLabel)}>Search</span>
+          <kbd {...stylex.props(styles.kbd)}>/</kbd>
         </AriaButton>
-      </header>
-      <ModalOverlay
-        isOpen={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        isDismissable
-        {...stylex.props(styles.drawerScrim)}
-      >
-        <Modal {...stylex.props(glass.panel, styles.drawer)}>
-          <Dialog aria-label="Menu" {...stylex.props(styles.panel, styles.drawerPanel)}>
-            {panel}
-          </Dialog>
-        </Modal>
-      </ModalOverlay>
-    </>
+        <MenuTrigger>
+          <AriaButton
+            aria-label="Account"
+            {...stylex.props(focus.ring, glass.surface, styles.avatar)}
+          >
+            {session.userName.slice(0, 1).toUpperCase()}
+          </AriaButton>
+          <Popover
+            placement="bottom end"
+            offset={8}
+            {...stylex.props(glass.panel, overlay.popover, menu.popover)}
+          >
+            <div {...stylex.props(styles.menuHeader)}>
+              <span {...stylex.props(styles.menuUser)}>{session.userName}</span>
+              <span {...stylex.props(styles.menuServer)}>
+                {session.serverName}
+                {seerr?.state === 'signedIn' && ' · Seerr'}
+              </span>
+            </div>
+            <div {...stylex.props(menu.separator)} />
+            <Menu
+              {...stylex.props(menu.list)}
+              onAction={async (key) => {
+                if (key === 'quick-connect') setQuickConnectOpen(true)
+                if (key === 'logout') {
+                  await Promise.all([logout(), seerrSignOut(), komgaSignOut()])
+                  await navigate({ to: '/login', replace: true })
+                }
+              }}
+            >
+              <MenuItem id="quick-connect" {...stylex.props(menu.item)}>
+                <span {...stylex.props(menu.check)}>
+                  <Devices size={14} />
+                </span>
+                Quick Connect
+              </MenuItem>
+              <MenuItem id="logout" {...stylex.props(menu.item)}>
+                <span {...stylex.props(menu.check)}>
+                  <SignOut size={14} />
+                </span>
+                Sign out
+              </MenuItem>
+            </Menu>
+          </Popover>
+        </MenuTrigger>
+      </div>
+    </header>
   )
 }
 
-function libraryIcon(type: BaseItemDto['CollectionType']) {
-  switch (type) {
-    case 'movies':
-      return <FilmStrip size={18} />
-    case 'tvshows':
-      return <Television size={18} />
-    case 'music':
-      return <MusicNotes size={18} />
-    case 'books':
-      return <Books size={18} />
-    default:
-      return <SquaresFour size={18} />
-  }
-}
-
-type NavLinkProps = { children: ReactNode; icon: ReactNode } & (
+type NavLinkProps = { children: ReactNode } & (
   | { to: '/' | '/requests' | '/manga'; params?: undefined }
   | ReturnType<typeof libraryLink>
-  | ItemLink
 )
 
-function NavLink({ children, icon, ...target }: NavLinkProps) {
+function NavLink({ children, ...target }: NavLinkProps) {
   const link = target.params
     ? target
     : ({ to: target.to, activeOptions: { exact: true, includeSearch: false } } as const)
@@ -266,14 +177,7 @@ function NavLink({ children, icon, ...target }: NavLinkProps) {
               {...stylex.props(styles.linkActive)}
             />
           )}
-          <span
-            {...stylex.props(styles.iconSlot, styles.linkIcon, isActive && styles.linkLabelActive)}
-          >
-            {icon}
-          </span>
-          <span
-            {...stylex.props(text.ellipsis, styles.linkLabel, isActive && styles.linkLabelActive)}
-          >
+          <span {...stylex.props(styles.linkLabel, isActive && styles.linkLabelActive)}>
             {children}
           </span>
         </>
@@ -282,22 +186,6 @@ function NavLink({ children, icon, ...target }: NavLinkProps) {
   )
 }
 
-const slideIn = stylex.keyframes({
-  from: { transform: 'translateX(calc(-100% - 16px))' },
-  to: { transform: 'translateX(0)' },
-})
-const slideOut = stylex.keyframes({
-  from: { transform: 'translateX(0)' },
-  to: { transform: 'translateX(calc(-100% - 16px))' },
-})
-const fadeIn = stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } })
-const fadeOut = stylex.keyframes({ from: { opacity: 1 }, to: { opacity: 0 } })
-
-const HIDE_SIDEBAR = '@media (max-width: 1024px)'
-const SIDEBAR_W = 240
-/** Concentric with the panel: its 20px corner minus the 8px padding. */
-const ROW_RADIUS = 12
-
 const styles = stylex.create({
   shell: {
     minHeight: '100dvh',
@@ -305,94 +193,80 @@ const styles = stylex.create({
     flexDirection: 'column',
     backgroundColor: colors.bg,
   },
-  sidebar: {
+  nav: {
     position: 'fixed',
-    top: space.md,
-    bottom: space.md,
-    left: space.md,
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 50,
-    width: SIDEBAR_W,
-    display: {
-      default: 'flex',
-      [HIDE_SIDEBAR]: 'none',
-    },
-    padding: space.sm,
-    borderRadius: radii.xl,
-  },
-  panel: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xs,
-  },
-  brandRow: {
     display: 'flex',
     alignItems: 'center',
-    marginBottom: space.xs,
+    gap: space.sm,
+    height: sizes.navHeight,
+    paddingInline: sizes.pageGutter,
+    pointerEvents: 'none',
   },
   brand: {
-    flex: 1,
-    minWidth: 0,
-    display: 'flex',
+    pointerEvents: 'auto',
+    display: 'inline-flex',
     alignItems: 'center',
-    gap: space.md,
-    height: 44,
-    paddingInline: space.md,
-    borderRadius: ROW_RADIUS,
-    color: colors.text,
-    textDecoration: 'none',
-  },
-  brandName: {
-    fontSize: 15,
-    fontWeight: 700,
-    letterSpacing: '-0.02em',
+    justifyContent: 'center',
+    width: sizes.navControl,
+    height: sizes.navControl,
+    fontSize: 18,
+    lineHeight: 1,
+    borderRadius: radii.full,
   },
   links: {
+    pointerEvents: 'auto',
     display: 'flex',
-    flexDirection: 'column',
+    alignItems: 'center',
     gap: space.xxs,
-    minHeight: 0,
-    overflowY: 'auto',
+    height: sizes.navControl,
+    padding: space.xs,
+    borderRadius: radii.full,
+    position: {
+      default: 'static',
+      '@media (max-width: 720px)': 'fixed',
+    },
+    bottom: {
+      default: 'auto',
+      '@media (max-width: 720px)': `calc(${space.lg} + env(safe-area-inset-bottom))`,
+    },
+    left: {
+      default: 'auto',
+      '@media (max-width: 720px)': '50%',
+    },
+    translate: {
+      default: 'none',
+      '@media (max-width: 720px)': '-50% 0',
+    },
+    maxWidth: {
+      default: 'none',
+      '@media (max-width: 720px)': `calc(100vw - 2 * ${sizes.pageGutter})`,
+    },
+    overflowX: 'auto',
     scrollbarWidth: 'none',
-  },
-  section: {
-    paddingInline: space.md,
-    paddingTop: space.lg,
-    paddingBottom: space.xs,
-    fontSize: 12,
-    fontWeight: 600,
-    color: colors.textFaint,
   },
   link: {
     position: 'relative',
-    display: 'flex',
+    display: 'inline-flex',
     alignItems: 'center',
-    gap: space.md,
-    minHeight: 36,
+    height: '100%',
     paddingInline: space.md,
-    paddingBlock: space.xs,
-    borderRadius: ROW_RADIUS,
-    textDecoration: 'none',
+    borderRadius: radii.full,
+    whiteSpace: 'nowrap',
     outlineOffset: -2,
   },
   linkActive: {
     position: 'absolute',
     inset: 0,
-    borderRadius: ROW_RADIUS,
+    borderRadius: radii.full,
     backgroundColor: colors.surfaceHover,
-  },
-  iconSlot: {
-    width: 24,
-    flexShrink: 0,
-    display: 'grid',
-    placeItems: 'center',
-  },
-  linkIcon: {
-    position: 'relative',
-    color: colors.textMuted,
+    boxShadow: `inset 0 1px 0 ${colors.glassHighlight}`,
   },
   linkLabel: {
     position: 'relative',
-    minWidth: 0,
     fontSize: 14,
     fontWeight: 500,
     color: {
@@ -406,118 +280,94 @@ const styles = stylex.create({
   linkLabelActive: {
     color: colors.text,
   },
-  panelFoot: {
-    marginTop: 'auto',
+  right: {
+    pointerEvents: 'auto',
+    marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    gap: space.sm,
   },
-  searchButton: {
-    flexShrink: 0,
-    width: 32,
-    height: 32,
-    marginInlineEnd: 6,
-    display: 'grid',
-    placeItems: 'center',
-    borderRadius: radii.full,
+  search: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: space.sm,
+    height: sizes.navControl,
+    minWidth: {
+      default: 220,
+      '@media (max-width: 720px)': sizes.navControl,
+    },
+    paddingInline: {
+      default: space.lg,
+      '@media (max-width: 720px)': 0,
+    },
+    justifyContent: {
+      default: 'flex-start',
+      '@media (max-width: 720px)': 'center',
+    },
     color: {
       default: colors.textMuted,
       '[data-hovered]': colors.text,
     },
-    backgroundColor: {
-      default: 'transparent',
-      '[data-hovered]': colors.surfaceHover,
-    },
-  },
-  account: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    gap: space.md,
-    paddingInline: space.sm,
-    paddingBlock: space.sm,
-    borderRadius: ROW_RADIUS,
-    textAlign: 'left',
-    backgroundColor: {
-      default: 'transparent',
-      '[data-hovered]': colors.surface,
-    },
-    transitionProperty: 'background-color',
+    borderRadius: radii.full,
+    fontSize: 14,
+    transitionProperty: 'color',
     transitionDuration: motion.fast,
   },
+  searchLabel: {
+    flex: 1,
+    textAlign: 'left',
+    display: {
+      default: 'inline',
+      '@media (max-width: 720px)': 'none',
+    },
+  },
+  kbd: {
+    fontFamily: 'inherit',
+    fontSize: 12,
+    lineHeight: 1,
+    color: colors.textMuted,
+    minWidth: 20,
+    paddingBlock: 3,
+    textAlign: 'center',
+    borderRadius: radii.xs,
+    boxShadow: `inset 0 0 0 1px ${colors.glassRim}`,
+    display: {
+      default: 'inline-block',
+      '@media (max-width: 720px)': 'none',
+    },
+  },
   avatar: {
-    width: 32,
-    height: 32,
-    flexShrink: 0,
+    width: sizes.navControl,
+    height: sizes.navControl,
     display: 'grid',
     placeItems: 'center',
     fontSize: 13,
     fontWeight: 600,
     color: colors.text,
-    backgroundColor: colors.surfaceHover,
     borderRadius: radii.full,
   },
-  accountName: {
-    minWidth: 0,
+  menuHeader: {
+    display: 'flex',
+    flexDirection: 'column',
+    paddingInline: space.md,
+    paddingBlock: space.sm,
+  },
+  menuUser: {
     fontSize: 14,
     fontWeight: 600,
     color: colors.text,
   },
-  topBar: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 50,
-    display: {
-      default: 'none',
-      [HIDE_SIDEBAR]: 'flex',
-    },
-    alignItems: 'center',
-    height: sizes.navHeight,
-    paddingInline: sizes.pageGutter,
-    pointerEvents: 'none',
-  },
-  topButton: {
-    pointerEvents: 'auto',
-    display: 'grid',
-    placeItems: 'center',
-    width: sizes.navControl,
-    height: sizes.navControl,
-    color: colors.text,
-    borderRadius: radii.full,
-  },
-  topSearch: {
-    marginInlineStart: 'auto',
-  },
-  drawerScrim: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 100,
-    backgroundColor: colors.scrim,
-    animationName: { default: 'none', '[data-entering]': fadeIn, '[data-exiting]': fadeOut },
-    animationDuration: { default: motion.base, '[data-exiting]': motion.fast },
-    animationTimingFunction: motion.ease,
-    animationFillMode: 'both',
-  },
-  drawer: {
-    position: 'absolute',
-    top: space.sm,
-    bottom: space.sm,
-    left: space.sm,
-    width: `min(${SIDEBAR_W}px, calc(100vw - 2 * ${space.lg}))`,
-    borderRadius: radii.xl,
-    backgroundColor: colors.bgElevated,
-    animationName: { default: 'none', '[data-entering]': slideIn, '[data-exiting]': slideOut },
-    animationDuration: { default: motion.slow, '[data-exiting]': motion.base },
-    animationTimingFunction: motion.ease,
-    animationFillMode: 'both',
-  },
-  drawerPanel: {
-    height: '100%',
-    padding: space.sm,
-    outline: 'none',
+  menuServer: {
+    fontSize: 12,
+    color: colors.textMuted,
   },
   main: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
+    paddingBottom: {
+      default: 0,
+      '@media (max-width: 720px)': `calc(${sizes.navControl} + 2 * ${space.lg})`,
+    },
   },
 })
