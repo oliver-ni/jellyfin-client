@@ -4,7 +4,6 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Slider, SliderThumb, SliderTrack } from 'react-aria-components'
 import { titleHead } from '@/brand'
 import { Button } from '@/components/Button'
 import { Notice } from '@/components/Notice'
@@ -210,27 +209,27 @@ function Reader({ book, direction, pages }: ReaderProps) {
             exit={vanish}
             {...stylex.props(glass.surface, styles.bar, styles.barBottom)}
           >
-            <Slider
-              aria-label="Page"
-              value={page}
-              minValue={1}
-              maxValue={count}
-              step={1}
-              onChange={(v) => setPage(Array.isArray(v) ? v[0] : v)}
-              {...stylex.props(styles.slider)}
+            <div
+              role="group"
+              aria-label="Pages"
+              {...stylex.props(styles.ticks, rtl && styles.ticksRtl)}
             >
-              <SliderTrack {...stylex.props(styles.track)}>
-                {({ state }) => (
-                  <>
-                    <div
-                      {...stylex.props(styles.fill)}
-                      style={{ width: `${state.getThumbPercent(0) * 100}%` }}
-                    />
-                    <SliderThumb {...stylex.props(styles.thumb)} />
-                  </>
-                )}
-              </SliderTrack>
-            </Slider>
+              {Array.from({ length: count }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-label={`Page ${n}`}
+                  aria-current={n === page ? 'page' : undefined}
+                  onClick={() => setPage(n)}
+                  {...stylex.props(
+                    focus.ring,
+                    styles.tick,
+                    n <= page && styles.tickRead,
+                    n === page && styles.tickCurrent,
+                  )}
+                />
+              ))}
+            </div>
           </m.div>
         )}
       </AnimatePresence>
@@ -359,46 +358,39 @@ const styles = stylex.create({
     paddingBottom: 'env(safe-area-inset-bottom)',
     paddingInline: space.lg,
   },
-  slider: {
+  ticks: {
     display: 'flex',
     alignItems: 'center',
+    gap: 2,
     width: '100%',
-    height: 40,
-    touchAction: 'none',
+    height: '100%',
   },
-  track: {
-    position: 'relative',
-    width: '100%',
-    height: 20,
-    display: 'flex',
-    alignItems: 'center',
-    '::before': {
-      content: '""',
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      height: 3,
-      borderRadius: 2,
-      backgroundColor: colors.scrim,
-    },
+  ticksRtl: {
+    flexDirection: 'row-reverse',
   },
-  fill: {
-    position: 'absolute',
-    left: 0,
-    height: 3,
+  tick: {
+    flex: 1,
+    minWidth: 0,
+    height: 24,
+    padding: 0,
+    borderStyle: 'none',
     borderRadius: 2,
-    backgroundColor: colors.progress,
+    backgroundColor: 'transparent',
+    backgroundImage: `linear-gradient(${colors.scrim}, ${colors.scrim})`,
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '100% 3px',
+    backgroundPosition: 'center',
+    cursor: 'pointer',
+    transitionProperty: 'background-size',
+    transitionDuration: '120ms',
+    ':hover': { backgroundSize: '100% 6px' },
   },
-  thumb: {
-    top: '50%',
-    width: 14,
-    height: 14,
-    borderRadius: '50%',
-    backgroundColor: colors.text,
-    boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
-    outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
-    outlineColor: colors.progress,
-    outlineOffset: 2,
+  tickRead: {
+    backgroundImage: `linear-gradient(${colors.progress}, ${colors.progress})`,
+  },
+  tickCurrent: {
+    backgroundImage: `linear-gradient(${colors.text}, ${colors.text})`,
+    backgroundSize: '100% 8px',
   },
   barButton: {
     display: 'grid',
