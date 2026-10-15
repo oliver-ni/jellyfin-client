@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, CaretRight } from '@phosphor-icons/react'
+import { ArrowLeft, CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { titleHead } from '@/brand'
@@ -87,13 +87,17 @@ function Reader({ book, direction, pages }: ReaderProps) {
     return () => clearTimeout(t)
   }, [page, count, save])
 
-  const step = useCallback(
-    (delta: number) => setPage((p) => Math.min(Math.max(p + delta, 1), count)),
-    [count],
-  )
-  const openNext = () => {
+  const openNext = useCallback(() => {
     if (next.data) void navigate({ to: '/read/$book', params: { book: next.data.id } })
-  }
+  }, [next.data, navigate])
+  // Stepping past the last page moves on to the next chapter.
+  const step = useCallback(
+    (delta: number) => {
+      if (page + delta > count) return openNext()
+      setPage(Math.min(Math.max(page + delta, 1), count))
+    },
+    [page, count, openNext],
+  )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -183,7 +187,9 @@ function Reader({ book, direction, pages }: ReaderProps) {
             </span>
             {atEnd && next.data && (
               <Button variant="primary" size="sm" onPress={openNext}>
-                Next chapter <CaretRight size={14} weight="bold" />
+                {rtl && <CaretLeft size={14} weight="bold" />}
+                Next chapter
+                {!rtl && <CaretRight size={14} weight="bold" />}
               </Button>
             )}
           </m.div>
@@ -259,12 +265,10 @@ const styles = stylex.create({
   stage: {
     position: 'absolute',
     inset: 0,
-    display: 'grid',
-    placeItems: 'center',
   },
   pageImage: {
-    maxWidth: '100%',
-    maxHeight: '100%',
+    width: '100%',
+    height: '100%',
     objectFit: 'contain',
     userSelect: 'none',
   },
