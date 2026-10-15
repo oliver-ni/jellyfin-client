@@ -146,7 +146,13 @@ const toPaged = <T, U>(page: PageOf<T>, pageIndex: number, map: (t: T) => U): Pa
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!KOMGA_URL) throw new KomgaError(0, 'Komga is not configured')
-  const res = await fetch(`${KOMGA_URL}${path}`, { credentials: 'include', ...init })
+  const res = await fetch(`${KOMGA_URL}${path}`, {
+    credentials: 'include',
+    ...init,
+    // Without this Komga answers 401 with `WWW-Authenticate: Basic` and the browser pops its own
+    // login dialog over ours.
+    headers: { 'X-Requested-With': 'XMLHttpRequest', ...init.headers },
+  })
   if (!res.ok) throw new KomgaError(res.status, res.statusText)
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
 }
