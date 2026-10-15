@@ -5,7 +5,8 @@ import { colors, sizes, space } from './tokens.stylex'
 export const list = stylex.create({
   /** Pair with a route style setting `maxWidth`. */
   page: {
-    paddingInline: sizes.pageGutter,
+    paddingInlineStart: sizes.gutterStart,
+    paddingInlineEnd: sizes.pageGutter,
     paddingTop: `calc(${sizes.navHeight} + ${space.xxl})`,
     paddingBottom: space.xxxl,
     display: 'flex',

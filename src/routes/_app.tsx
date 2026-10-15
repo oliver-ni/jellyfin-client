@@ -105,16 +105,17 @@ function SideNav({ session }: { session: Session }) {
       <NavLink to="/" icon={<House size={18} />}>
         Home
       </NavLink>
-      {libraries.map((lib) => (
-        <NavLink key={lib.Id} {...libraryLink(lib)} icon={libraryIcon(lib.CollectionType)}>
-          {lib.Name}
-        </NavLink>
-      ))}
       {seerr && seerr.state !== 'unavailable' && (
         <NavLink to="/requests" icon={<Tray size={18} />}>
           Requests
         </NavLink>
       )}
+      <h2 {...stylex.props(styles.section)}>Library</h2>
+      {libraries.map((lib) => (
+        <NavLink key={lib.Id} {...libraryLink(lib)} icon={libraryIcon(lib.CollectionType)}>
+          {lib.Name}
+        </NavLink>
+      ))}
       {KOMGA_URL && (
         <NavLink to="/manga" icon={<BookOpenText size={18} />}>
           Manga
@@ -188,11 +189,9 @@ function SideNav({ session }: { session: Session }) {
         <BrandMark size={20} />
         <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
       </Link>
+      {search}
       {links}
-      <div {...stylex.props(styles.panelFoot)}>
-        {search}
-        {account}
-      </div>
+      <div {...stylex.props(styles.panelFoot)}>{account}</div>
     </>
   )
 
@@ -204,7 +203,7 @@ function SideNav({ session }: { session: Session }) {
         isOpen={quickConnectOpen}
         onOpenChange={setQuickConnectOpen}
       />
-      <aside {...stylex.props(styles.sidebar)}>{panel}</aside>
+      <aside {...stylex.props(glass.panel, styles.sidebar)}>{panel}</aside>
 
       <header {...stylex.props(styles.topBar)}>
         <AriaButton
@@ -230,7 +229,7 @@ function SideNav({ session }: { session: Session }) {
         isDismissable
         {...stylex.props(styles.drawerScrim)}
       >
-        <Modal {...stylex.props(styles.drawer)}>
+        <Modal {...stylex.props(glass.panel, styles.drawer)}>
           <Dialog aria-label="Menu" {...stylex.props(styles.drawerPanel)}>
             <div {...stylex.props(styles.panel)}>{panel}</div>
           </Dialog>
@@ -286,17 +285,18 @@ function NavLink({ children, icon, ...target }: NavLinkProps) {
 }
 
 const slideIn = stylex.keyframes({
-  from: { transform: 'translateX(-100%)' },
+  from: { transform: 'translateX(calc(-100% - 16px))' },
   to: { transform: 'translateX(0)' },
 })
 const slideOut = stylex.keyframes({
   from: { transform: 'translateX(0)' },
-  to: { transform: 'translateX(-100%)' },
+  to: { transform: 'translateX(calc(-100% - 16px))' },
 })
 const fadeIn = stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } })
 const fadeOut = stylex.keyframes({ from: { opacity: 1 }, to: { opacity: 0 } })
 
 const HIDE_SIDEBAR = '@media (max-width: 1024px)'
+const SIDEBAR_W = 240
 
 const styles = stylex.create({
   shell: {
@@ -307,33 +307,33 @@ const styles = stylex.create({
   },
   sidebar: {
     position: 'fixed',
-    top: 0,
-    bottom: 0,
-    left: 0,
+    top: space.md,
+    bottom: space.md,
+    left: space.md,
     zIndex: 50,
-    width: sizes.sidebarWidth,
+    width: SIDEBAR_W,
     display: {
       default: 'flex',
       [HIDE_SIDEBAR]: 'none',
     },
     flexDirection: 'column',
-    gap: space.lg,
-    padding: space.lg,
-    backgroundColor: colors.bg,
-    borderRight: `1px solid ${colors.border}`,
+    gap: space.xs,
+    padding: space.sm,
+    borderRadius: radii.xl,
   },
   panel: {
     display: 'flex',
     flexDirection: 'column',
-    gap: space.lg,
+    gap: space.xs,
     height: '100%',
   },
   brand: {
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
-    height: sizes.navControl,
+    height: 44,
     paddingInline: space.md,
+    marginBottom: space.xs,
     borderRadius: radii.md,
     color: colors.text,
     textDecoration: 'none',
@@ -349,13 +349,22 @@ const styles = stylex.create({
     gap: space.xxs,
     minHeight: 0,
     overflowY: 'auto',
+    scrollbarWidth: 'none',
+  },
+  section: {
+    paddingInline: space.md,
+    paddingTop: space.lg,
+    paddingBottom: space.xs,
+    fontSize: 12,
+    fontWeight: 600,
+    color: colors.textFaint,
   },
   link: {
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
-    height: sizes.navControl,
+    height: 36,
     paddingInline: space.md,
     borderRadius: radii.md,
     whiteSpace: 'nowrap',
@@ -400,15 +409,15 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
-    height: sizes.navControl,
+    height: 36,
     paddingInline: space.md,
     color: {
       default: colors.textMuted,
       '[data-hovered]': colors.text,
     },
     backgroundColor: {
-      default: 'transparent',
-      '[data-hovered]': colors.surface,
+      default: colors.surface,
+      '[data-hovered]': colors.surfaceHover,
     },
     borderRadius: radii.md,
     fontSize: 14,
@@ -516,12 +525,11 @@ const styles = stylex.create({
   },
   drawer: {
     position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: 'min(300px, 85vw)',
-    backgroundColor: colors.bg,
-    borderRight: `1px solid ${colors.border}`,
+    top: space.sm,
+    bottom: space.sm,
+    left: space.sm,
+    width: `min(${SIDEBAR_W}px, calc(100vw - 2 * ${space.lg}))`,
+    borderRadius: radii.xl,
     animationName: { default: 'none', '[data-entering]': slideIn, '[data-exiting]': slideOut },
     animationDuration: { default: motion.slow, '[data-exiting]': motion.base },
     animationTimingFunction: motion.ease,
@@ -529,15 +537,12 @@ const styles = stylex.create({
   },
   drawerPanel: {
     height: '100%',
-    padding: space.lg,
-    paddingTop: `calc(${space.lg} + env(safe-area-inset-top))`,
-    paddingBottom: `calc(${space.lg} + env(safe-area-inset-bottom))`,
+    padding: space.sm,
     outline: 'none',
   },
   main: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    paddingLeft: sizes.sidebarWidth,
   },
 })
