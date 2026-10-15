@@ -43,6 +43,7 @@ import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
 import { glass, overlay } from '@/theme/glass'
 import { menu } from '@/theme/menu'
 import { focus } from '@/theme/focus'
+import { text } from '@/theme/text'
 import { colors, motion, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/_app')({
@@ -128,7 +129,7 @@ function SideNav({ session }: { session: Session }) {
     <MenuTrigger>
       <AriaButton aria-label="Account" {...stylex.props(focus.ring, styles.account)}>
         <span {...stylex.props(styles.avatar)}>{session.userName.slice(0, 1).toUpperCase()}</span>
-        <span {...stylex.props(styles.accountName)}>{session.userName}</span>
+        <span {...stylex.props(text.ellipsis, styles.accountName)}>{session.userName}</span>
       </AriaButton>
       <Popover
         placement="top start"
@@ -195,7 +196,7 @@ function SideNav({ session }: { session: Session }) {
         isOpen={quickConnectOpen}
         onOpenChange={setQuickConnectOpen}
       />
-      <aside {...stylex.props(glass.panel, styles.sidebar)}>{panel}</aside>
+      <aside {...stylex.props(glass.panel, styles.panel, styles.sidebar)}>{panel}</aside>
 
       <header {...stylex.props(styles.topBar)}>
         <AriaButton
@@ -205,15 +206,13 @@ function SideNav({ session }: { session: Session }) {
         >
           <List size={18} />
         </AriaButton>
-        <div {...stylex.props(styles.right)}>
-          <AriaButton
-            aria-label="Search"
-            onPress={() => setSearchOpen(true)}
-            {...stylex.props(focus.ring, glass.surface, styles.topButton)}
-          >
-            <MagnifyingGlass size={16} />
-          </AriaButton>
-        </div>
+        <AriaButton
+          aria-label="Search"
+          onPress={() => setSearchOpen(true)}
+          {...stylex.props(focus.ring, glass.surface, styles.topButton, styles.topSearch)}
+        >
+          <MagnifyingGlass size={16} />
+        </AriaButton>
       </header>
       <ModalOverlay
         isOpen={drawerOpen}
@@ -222,8 +221,8 @@ function SideNav({ session }: { session: Session }) {
         {...stylex.props(styles.drawerScrim)}
       >
         <Modal {...stylex.props(glass.panel, styles.drawer)}>
-          <Dialog aria-label="Menu" {...stylex.props(styles.drawerPanel)}>
-            <div {...stylex.props(styles.panel)}>{panel}</div>
+          <Dialog aria-label="Menu" {...stylex.props(styles.panel, styles.drawerPanel)}>
+            {panel}
           </Dialog>
         </Modal>
       </ModalOverlay>
@@ -272,7 +271,9 @@ function NavLink({ children, icon, ...target }: NavLinkProps) {
           >
             {icon}
           </span>
-          <span {...stylex.props(styles.linkLabel, isActive && styles.linkLabelActive)}>
+          <span
+            {...stylex.props(text.ellipsis, styles.linkLabel, isActive && styles.linkLabelActive)}
+          >
             {children}
           </span>
         </>
@@ -315,8 +316,6 @@ const styles = stylex.create({
       default: 'flex',
       [HIDE_SIDEBAR]: 'none',
     },
-    flexDirection: 'column',
-    gap: space.xs,
     padding: space.sm,
     borderRadius: radii.xl,
   },
@@ -324,7 +323,6 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.xs,
-    height: '100%',
   },
   brandRow: {
     display: 'flex',
@@ -373,7 +371,6 @@ const styles = stylex.create({
     paddingInline: space.md,
     paddingBlock: space.xs,
     borderRadius: ROW_RADIUS,
-    whiteSpace: 'nowrap',
     textDecoration: 'none',
     outlineOffset: -2,
   },
@@ -396,8 +393,6 @@ const styles = stylex.create({
   linkLabel: {
     position: 'relative',
     minWidth: 0,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
     fontSize: 14,
     fontWeight: 500,
     color: {
@@ -413,9 +408,6 @@ const styles = stylex.create({
   },
   panelFoot: {
     marginTop: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xs,
   },
   searchButton: {
     flexShrink: 0,
@@ -424,7 +416,7 @@ const styles = stylex.create({
     marginInlineEnd: 6,
     display: 'grid',
     placeItems: 'center',
-    borderRadius: 999,
+    borderRadius: radii.full,
     color: {
       default: colors.textMuted,
       '[data-hovered]': colors.text,
@@ -463,9 +455,6 @@ const styles = stylex.create({
   },
   accountName: {
     minWidth: 0,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     fontSize: 14,
     fontWeight: 600,
     color: colors.text,
@@ -481,7 +470,6 @@ const styles = stylex.create({
       [HIDE_SIDEBAR]: 'flex',
     },
     alignItems: 'center',
-    gap: space.sm,
     height: sizes.navHeight,
     paddingInline: sizes.pageGutter,
     pointerEvents: 'none',
@@ -495,12 +483,8 @@ const styles = stylex.create({
     color: colors.text,
     borderRadius: radii.full,
   },
-  right: {
-    pointerEvents: 'auto',
-    marginLeft: 'auto',
-    display: 'flex',
-    alignItems: 'center',
-    gap: space.sm,
+  topSearch: {
+    marginInlineStart: 'auto',
   },
   drawerScrim: {
     position: 'fixed',
