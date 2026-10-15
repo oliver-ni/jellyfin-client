@@ -1,10 +1,10 @@
 import type { ParsedLocation } from '@tanstack/react-router'
 import type { BaseItemDto } from '@/api/gen/types.gen'
 import { toHandle } from '@/lib/handle'
-import type { ItemSearch } from '@/routes/_app/$title'
+import type { ItemSearch } from '@/routes/_app/watch/$title'
 
 export interface ItemLink {
-  to: '/$title'
+  to: '/watch/$title'
   params: { title: string }
   search: ItemSearch
 }
@@ -13,7 +13,7 @@ export const titleLink = (
   id: string,
   name: string | null | undefined,
   search: ItemSearch = {},
-): ItemLink => ({ to: '/$title', params: { title: toHandle(id, name) }, search })
+): ItemLink => ({ to: '/watch/$title', params: { title: toHandle(id, name) }, search })
 
 /**
  * Where an item opens. Seasons and episodes have no page of their own: they open the series
@@ -38,13 +38,13 @@ export const playLink = (item: BaseItemDto) =>
 
 export const libraryLink = (library: BaseItemDto) =>
   ({
-    to: '/library/$library',
+    to: '/watch/library/$library',
     params: { library: toHandle(library.Id ?? '', library.Name) },
   }) as const
 
 /** Whether `to` is the page `link` opens, whichever season or episode it shows. */
 export const onPage = (to: ParsedLocation, link: ItemLink) =>
-  to.pathname === `/${link.params.title}`
+  to.pathname === `/watch/${link.params.title}`
 
 /** Whether navigating to `to` lands on `link`: the same page, and the same episode if any. */
 export const opensLink = (to: ParsedLocation<Partial<ItemSearch>>, link: ItemLink) =>

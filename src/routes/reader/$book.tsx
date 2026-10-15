@@ -17,7 +17,7 @@ import { focus } from '@/theme/focus'
 import { text } from '@/theme/text'
 import { colors, fonts, radii, sizes, space } from '@/theme/tokens.stylex'
 
-export const Route = createFileRoute('/read/$book')({
+export const Route = createFileRoute('/reader/$book')({
   beforeLoad: requireSession,
   // The reader opens on the bookmark, which this browser may just have moved, so the book is
   // fetched afresh on every entry; without `gcTime: 0` the router would show the cached match
@@ -45,7 +45,7 @@ function ReaderPage() {
     return (
       <div {...stylex.props(styles.root, styles.state)}>
         <Notice title="Couldn’t open this chapter" onRetry={() => void book.refetch()}>
-          <Link to="/manga" {...stylex.props(focus.ring, styles.stateLink)}>
+          <Link to="/read/manga" {...stylex.props(focus.ring, styles.stateLink)}>
             Back to manga
           </Link>
         </Notice>
@@ -89,7 +89,7 @@ function Reader({ book, direction, pages }: ReaderProps) {
   }, [page, count, save])
 
   const openNext = useCallback(() => {
-    if (next.data) void navigate({ to: '/read/$book', params: { book: next.data.id } })
+    if (next.data) void navigate({ to: '/reader/$book', params: { book: next.data.id } })
   }, [next.data, navigate])
   // Stepping past the last page moves on to the next chapter.
   const step = useCallback(
@@ -103,7 +103,7 @@ function Reader({ book, direction, pages }: ReaderProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape')
-        void navigate({ to: '/manga/$series', params: { series: book.seriesId } })
+        void navigate({ to: '/read/manga/$series', params: { series: book.seriesId } })
       if (strip) return
       const forward = rtl ? 'ArrowLeft' : 'ArrowRight'
       const back = rtl ? 'ArrowRight' : 'ArrowLeft'
@@ -177,7 +177,7 @@ function Reader({ book, direction, pages }: ReaderProps) {
             {...stylex.props(glass.surface, styles.bar)}
           >
             <Link
-              to="/manga/$series"
+              to="/read/manga/$series"
               params={{ series: book.seriesId }}
               aria-label="Back to series"
               {...stylex.props(focus.ring, styles.barButton)}

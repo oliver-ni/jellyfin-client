@@ -9,20 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppTitleRouteImport } from './routes/_app/$title'
-import { Route as AppMangaRouteImport } from './routes/_app/manga'
-import { Route as AppRequestsRouteImport } from './routes/_app/requests'
+import { Route as AppReadRouteImport } from './routes/_app/read'
 import { Route as PlayTitleRouteImport } from './routes/play/$title'
-import { Route as ReadBookRouteImport } from './routes/read/$book'
+import { Route as ReaderBookRouteImport } from './routes/reader/$book'
 import { Route as WebIndexDothtmlRouteImport } from './routes/web/index[.]html'
-import { Route as AppLibraryLibraryRouteImport } from './routes/_app/library/$library'
-import { Route as AppMangaSeriesRouteImport } from './routes/_app/manga_.$series'
-import { Route as AppRequestTypeTmdbIdRouteImport } from './routes/_app/request/$type.$tmdbId'
-import { Route as AppRequestMangaIdRouteImport } from './routes/_app/request/manga.$id'
+import { Route as AppReadIndexRouteImport } from './routes/_app/read/index'
+import { Route as AppReadMangaRouteImport } from './routes/_app/read/manga'
+import { Route as AppReadRequestsRouteImport } from './routes/_app/read/requests'
+import { Route as AppWatchIndexRouteImport } from './routes/_app/watch/index'
+import { Route as AppWatchTitleRouteImport } from './routes/_app/watch/$title'
+import { Route as AppWatchRequestsRouteImport } from './routes/_app/watch/requests'
+import { Route as AppReadMangaSeriesRouteImport } from './routes/_app/read/manga_.$series'
+import { Route as AppReadRequestIdRouteImport } from './routes/_app/read/request/$id'
+import { Route as AppWatchLibraryLibraryRouteImport } from './routes/_app/watch/library/$library'
+import { Route as AppWatchRequestTypeTmdbIdRouteImport } from './routes/_app/watch/request/$type.$tmdbId'
 
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -37,19 +47,9 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppTitleRoute = AppTitleRouteImport.update({
-  id: '/$title',
-  path: '/$title',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMangaRoute = AppMangaRouteImport.update({
-  id: '/manga',
-  path: '/manga',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRequestsRoute = AppRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
+const AppReadRoute = AppReadRouteImport.update({
+  id: '/read',
+  path: '/read',
   getParentRoute: () => AppRoute,
 } as any)
 const PlayTitleRoute = PlayTitleRouteImport.update({
@@ -57,9 +57,9 @@ const PlayTitleRoute = PlayTitleRouteImport.update({
   path: '/play/$title',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReadBookRoute = ReadBookRouteImport.update({
-  id: '/read/$book',
-  path: '/read/$book',
+const ReaderBookRoute = ReaderBookRouteImport.update({
+  id: '/reader/$book',
+  path: '/reader/$book',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WebIndexDothtmlRoute = WebIndexDothtmlRouteImport.update({
@@ -67,127 +67,194 @@ const WebIndexDothtmlRoute = WebIndexDothtmlRouteImport.update({
   path: '/web/index.html',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppLibraryLibraryRoute = AppLibraryLibraryRouteImport.update({
-  id: '/library/$library',
-  path: '/library/$library',
+const AppReadIndexRoute = AppReadIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppReadRoute,
+} as any)
+const AppReadMangaRoute = AppReadMangaRouteImport.update({
+  id: '/manga',
+  path: '/manga',
+  getParentRoute: () => AppReadRoute,
+} as any)
+const AppReadRequestsRoute = AppReadRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AppReadRoute,
+} as any)
+const AppWatchIndexRoute = AppWatchIndexRouteImport.update({
+  id: '/watch/',
+  path: '/watch/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppMangaSeriesRoute = AppMangaSeriesRouteImport.update({
+const AppWatchTitleRoute = AppWatchTitleRouteImport.update({
+  id: '/watch/$title',
+  path: '/watch/$title',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWatchRequestsRoute = AppWatchRequestsRouteImport.update({
+  id: '/watch/requests',
+  path: '/watch/requests',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReadMangaSeriesRoute = AppReadMangaSeriesRouteImport.update({
   id: '/manga_/$series',
   path: '/manga/$series',
+  getParentRoute: () => AppReadRoute,
+} as any)
+const AppReadRequestIdRoute = AppReadRequestIdRouteImport.update({
+  id: '/request/$id',
+  path: '/request/$id',
+  getParentRoute: () => AppReadRoute,
+} as any)
+const AppWatchLibraryLibraryRoute = AppWatchLibraryLibraryRouteImport.update({
+  id: '/watch/library/$library',
+  path: '/watch/library/$library',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRequestTypeTmdbIdRoute = AppRequestTypeTmdbIdRouteImport.update({
-  id: '/request/$type/$tmdbId',
-  path: '/request/$type/$tmdbId',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRequestMangaIdRoute = AppRequestMangaIdRouteImport.update({
-  id: '/request/manga/$id',
-  path: '/request/manga/$id',
-  getParentRoute: () => AppRoute,
-} as any)
+const AppWatchRequestTypeTmdbIdRoute =
+  AppWatchRequestTypeTmdbIdRouteImport.update({
+    id: '/watch/request/$type/$tmdbId',
+    path: '/watch/request/$type/$tmdbId',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
+  '/$': typeof SplatRoute
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
-  '/$title': typeof AppTitleRoute
-  '/manga': typeof AppMangaRoute
-  '/requests': typeof AppRequestsRoute
+  '/read': typeof AppReadRouteWithChildren
   '/play/$title': typeof PlayTitleRoute
-  '/read/$book': typeof ReadBookRoute
+  '/reader/$book': typeof ReaderBookRoute
   '/web/index.html': typeof WebIndexDothtmlRoute
-  '/library/$library': typeof AppLibraryLibraryRoute
-  '/manga/$series': typeof AppMangaSeriesRoute
-  '/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
-  '/request/manga/$id': typeof AppRequestMangaIdRoute
+  '/read/manga': typeof AppReadMangaRoute
+  '/read/requests': typeof AppReadRequestsRoute
+  '/watch/$title': typeof AppWatchTitleRoute
+  '/watch/requests': typeof AppWatchRequestsRoute
+  '/read/': typeof AppReadIndexRoute
+  '/watch/': typeof AppWatchIndexRoute
+  '/read/manga/$series': typeof AppReadMangaSeriesRoute
+  '/read/request/$id': typeof AppReadRequestIdRoute
+  '/watch/library/$library': typeof AppWatchLibraryLibraryRoute
+  '/watch/request/$type/$tmdbId': typeof AppWatchRequestTypeTmdbIdRoute
 }
 export interface FileRoutesByTo {
+  '/$': typeof SplatRoute
   '/login': typeof LoginRoute
-  '/$title': typeof AppTitleRoute
-  '/manga': typeof AppMangaRoute
-  '/requests': typeof AppRequestsRoute
   '/play/$title': typeof PlayTitleRoute
-  '/read/$book': typeof ReadBookRoute
+  '/reader/$book': typeof ReaderBookRoute
   '/web/index.html': typeof WebIndexDothtmlRoute
   '/': typeof AppIndexRoute
-  '/library/$library': typeof AppLibraryLibraryRoute
-  '/manga/$series': typeof AppMangaSeriesRoute
-  '/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
-  '/request/manga/$id': typeof AppRequestMangaIdRoute
+  '/read/manga': typeof AppReadMangaRoute
+  '/read/requests': typeof AppReadRequestsRoute
+  '/watch/$title': typeof AppWatchTitleRoute
+  '/watch/requests': typeof AppWatchRequestsRoute
+  '/read': typeof AppReadIndexRoute
+  '/watch': typeof AppWatchIndexRoute
+  '/read/manga/$series': typeof AppReadMangaSeriesRoute
+  '/read/request/$id': typeof AppReadRequestIdRoute
+  '/watch/library/$library': typeof AppWatchLibraryLibraryRoute
+  '/watch/request/$type/$tmdbId': typeof AppWatchRequestTypeTmdbIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/$': typeof SplatRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/$title': typeof AppTitleRoute
-  '/_app/manga': typeof AppMangaRoute
-  '/_app/requests': typeof AppRequestsRoute
+  '/_app/read': typeof AppReadRouteWithChildren
   '/play/$title': typeof PlayTitleRoute
-  '/read/$book': typeof ReadBookRoute
+  '/reader/$book': typeof ReaderBookRoute
   '/web/index.html': typeof WebIndexDothtmlRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/library/$library': typeof AppLibraryLibraryRoute
-  '/_app/manga_/$series': typeof AppMangaSeriesRoute
-  '/_app/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
-  '/_app/request/manga/$id': typeof AppRequestMangaIdRoute
+  '/_app/read/manga': typeof AppReadMangaRoute
+  '/_app/read/requests': typeof AppReadRequestsRoute
+  '/_app/watch/$title': typeof AppWatchTitleRoute
+  '/_app/watch/requests': typeof AppWatchRequestsRoute
+  '/_app/read/': typeof AppReadIndexRoute
+  '/_app/watch/': typeof AppWatchIndexRoute
+  '/_app/read/manga_/$series': typeof AppReadMangaSeriesRoute
+  '/_app/read/request/$id': typeof AppReadRequestIdRoute
+  '/_app/watch/library/$library': typeof AppWatchLibraryLibraryRoute
+  '/_app/watch/request/$type/$tmdbId': typeof AppWatchRequestTypeTmdbIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/$'
     | '/'
     | '/login'
-    | '/$title'
-    | '/manga'
-    | '/requests'
+    | '/read'
     | '/play/$title'
-    | '/read/$book'
+    | '/reader/$book'
     | '/web/index.html'
-    | '/library/$library'
-    | '/manga/$series'
-    | '/request/$type/$tmdbId'
-    | '/request/manga/$id'
+    | '/read/manga'
+    | '/read/requests'
+    | '/watch/$title'
+    | '/watch/requests'
+    | '/read/'
+    | '/watch/'
+    | '/read/manga/$series'
+    | '/read/request/$id'
+    | '/watch/library/$library'
+    | '/watch/request/$type/$tmdbId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/$'
     | '/login'
-    | '/$title'
-    | '/manga'
-    | '/requests'
     | '/play/$title'
-    | '/read/$book'
+    | '/reader/$book'
     | '/web/index.html'
     | '/'
-    | '/library/$library'
-    | '/manga/$series'
-    | '/request/$type/$tmdbId'
-    | '/request/manga/$id'
+    | '/read/manga'
+    | '/read/requests'
+    | '/watch/$title'
+    | '/watch/requests'
+    | '/read'
+    | '/watch'
+    | '/read/manga/$series'
+    | '/read/request/$id'
+    | '/watch/library/$library'
+    | '/watch/request/$type/$tmdbId'
   id:
     | '__root__'
+    | '/$'
     | '/_app'
     | '/login'
-    | '/_app/$title'
-    | '/_app/manga'
-    | '/_app/requests'
+    | '/_app/read'
     | '/play/$title'
-    | '/read/$book'
+    | '/reader/$book'
     | '/web/index.html'
     | '/_app/'
-    | '/_app/library/$library'
-    | '/_app/manga_/$series'
-    | '/_app/request/$type/$tmdbId'
-    | '/_app/request/manga/$id'
+    | '/_app/read/manga'
+    | '/_app/read/requests'
+    | '/_app/watch/$title'
+    | '/_app/watch/requests'
+    | '/_app/read/'
+    | '/_app/watch/'
+    | '/_app/read/manga_/$series'
+    | '/_app/read/request/$id'
+    | '/_app/watch/library/$library'
+    | '/_app/watch/request/$type/$tmdbId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  SplatRoute: typeof SplatRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   PlayTitleRoute: typeof PlayTitleRoute
-  ReadBookRoute: typeof ReadBookRoute
+  ReaderBookRoute: typeof ReaderBookRoute
   WebIndexDothtmlRoute: typeof WebIndexDothtmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -209,25 +276,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/$title': {
-      id: '/_app/$title'
-      path: '/$title'
-      fullPath: '/$title'
-      preLoaderRoute: typeof AppTitleRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/manga': {
-      id: '/_app/manga'
-      path: '/manga'
-      fullPath: '/manga'
-      preLoaderRoute: typeof AppMangaRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/requests': {
-      id: '/_app/requests'
-      path: '/requests'
-      fullPath: '/requests'
-      preLoaderRoute: typeof AppRequestsRouteImport
+    '/_app/read': {
+      id: '/_app/read'
+      path: '/read'
+      fullPath: '/read'
+      preLoaderRoute: typeof AppReadRouteImport
       parentRoute: typeof AppRoute
     }
     '/play/$title': {
@@ -237,11 +290,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayTitleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/read/$book': {
-      id: '/read/$book'
-      path: '/read/$book'
-      fullPath: '/read/$book'
-      preLoaderRoute: typeof ReadBookRouteImport
+    '/reader/$book': {
+      id: '/reader/$book'
+      path: '/reader/$book'
+      fullPath: '/reader/$book'
+      preLoaderRoute: typeof ReaderBookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/web/index.html': {
@@ -251,66 +304,126 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebIndexDothtmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/library/$library': {
-      id: '/_app/library/$library'
-      path: '/library/$library'
-      fullPath: '/library/$library'
-      preLoaderRoute: typeof AppLibraryLibraryRouteImport
+    '/_app/read/': {
+      id: '/_app/read/'
+      path: '/'
+      fullPath: '/read/'
+      preLoaderRoute: typeof AppReadIndexRouteImport
+      parentRoute: typeof AppReadRoute
+    }
+    '/_app/read/manga': {
+      id: '/_app/read/manga'
+      path: '/manga'
+      fullPath: '/read/manga'
+      preLoaderRoute: typeof AppReadMangaRouteImport
+      parentRoute: typeof AppReadRoute
+    }
+    '/_app/read/requests': {
+      id: '/_app/read/requests'
+      path: '/requests'
+      fullPath: '/read/requests'
+      preLoaderRoute: typeof AppReadRequestsRouteImport
+      parentRoute: typeof AppReadRoute
+    }
+    '/_app/watch/': {
+      id: '/_app/watch/'
+      path: '/watch'
+      fullPath: '/watch/'
+      preLoaderRoute: typeof AppWatchIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/manga_/$series': {
-      id: '/_app/manga_/$series'
+    '/_app/watch/$title': {
+      id: '/_app/watch/$title'
+      path: '/watch/$title'
+      fullPath: '/watch/$title'
+      preLoaderRoute: typeof AppWatchTitleRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/watch/requests': {
+      id: '/_app/watch/requests'
+      path: '/watch/requests'
+      fullPath: '/watch/requests'
+      preLoaderRoute: typeof AppWatchRequestsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/read/manga_/$series': {
+      id: '/_app/read/manga_/$series'
       path: '/manga/$series'
-      fullPath: '/manga/$series'
-      preLoaderRoute: typeof AppMangaSeriesRouteImport
+      fullPath: '/read/manga/$series'
+      preLoaderRoute: typeof AppReadMangaSeriesRouteImport
+      parentRoute: typeof AppReadRoute
+    }
+    '/_app/read/request/$id': {
+      id: '/_app/read/request/$id'
+      path: '/request/$id'
+      fullPath: '/read/request/$id'
+      preLoaderRoute: typeof AppReadRequestIdRouteImport
+      parentRoute: typeof AppReadRoute
+    }
+    '/_app/watch/library/$library': {
+      id: '/_app/watch/library/$library'
+      path: '/watch/library/$library'
+      fullPath: '/watch/library/$library'
+      preLoaderRoute: typeof AppWatchLibraryLibraryRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/request/$type/$tmdbId': {
-      id: '/_app/request/$type/$tmdbId'
-      path: '/request/$type/$tmdbId'
-      fullPath: '/request/$type/$tmdbId'
-      preLoaderRoute: typeof AppRequestTypeTmdbIdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/request/manga/$id': {
-      id: '/_app/request/manga/$id'
-      path: '/request/manga/$id'
-      fullPath: '/request/manga/$id'
-      preLoaderRoute: typeof AppRequestMangaIdRouteImport
+    '/_app/watch/request/$type/$tmdbId': {
+      id: '/_app/watch/request/$type/$tmdbId'
+      path: '/watch/request/$type/$tmdbId'
+      fullPath: '/watch/request/$type/$tmdbId'
+      preLoaderRoute: typeof AppWatchRequestTypeTmdbIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
 }
 
+interface AppReadRouteChildren {
+  AppReadMangaRoute: typeof AppReadMangaRoute
+  AppReadRequestsRoute: typeof AppReadRequestsRoute
+  AppReadIndexRoute: typeof AppReadIndexRoute
+  AppReadMangaSeriesRoute: typeof AppReadMangaSeriesRoute
+  AppReadRequestIdRoute: typeof AppReadRequestIdRoute
+}
+
+const AppReadRouteChildren: AppReadRouteChildren = {
+  AppReadMangaRoute: AppReadMangaRoute,
+  AppReadRequestsRoute: AppReadRequestsRoute,
+  AppReadIndexRoute: AppReadIndexRoute,
+  AppReadMangaSeriesRoute: AppReadMangaSeriesRoute,
+  AppReadRequestIdRoute: AppReadRequestIdRoute,
+}
+
+const AppReadRouteWithChildren =
+  AppReadRoute._addFileChildren(AppReadRouteChildren)
+
 interface AppRouteChildren {
-  AppTitleRoute: typeof AppTitleRoute
-  AppMangaRoute: typeof AppMangaRoute
-  AppRequestsRoute: typeof AppRequestsRoute
+  AppReadRoute: typeof AppReadRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
-  AppLibraryLibraryRoute: typeof AppLibraryLibraryRoute
-  AppMangaSeriesRoute: typeof AppMangaSeriesRoute
-  AppRequestTypeTmdbIdRoute: typeof AppRequestTypeTmdbIdRoute
-  AppRequestMangaIdRoute: typeof AppRequestMangaIdRoute
+  AppWatchTitleRoute: typeof AppWatchTitleRoute
+  AppWatchRequestsRoute: typeof AppWatchRequestsRoute
+  AppWatchIndexRoute: typeof AppWatchIndexRoute
+  AppWatchLibraryLibraryRoute: typeof AppWatchLibraryLibraryRoute
+  AppWatchRequestTypeTmdbIdRoute: typeof AppWatchRequestTypeTmdbIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppTitleRoute: AppTitleRoute,
-  AppMangaRoute: AppMangaRoute,
-  AppRequestsRoute: AppRequestsRoute,
+  AppReadRoute: AppReadRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
-  AppLibraryLibraryRoute: AppLibraryLibraryRoute,
-  AppMangaSeriesRoute: AppMangaSeriesRoute,
-  AppRequestTypeTmdbIdRoute: AppRequestTypeTmdbIdRoute,
-  AppRequestMangaIdRoute: AppRequestMangaIdRoute,
+  AppWatchTitleRoute: AppWatchTitleRoute,
+  AppWatchRequestsRoute: AppWatchRequestsRoute,
+  AppWatchIndexRoute: AppWatchIndexRoute,
+  AppWatchLibraryLibraryRoute: AppWatchLibraryLibraryRoute,
+  AppWatchRequestTypeTmdbIdRoute: AppWatchRequestTypeTmdbIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  SplatRoute: SplatRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   PlayTitleRoute: PlayTitleRoute,
-  ReadBookRoute: ReadBookRoute,
+  ReaderBookRoute: ReaderBookRoute,
   WebIndexDothtmlRoute: WebIndexDothtmlRoute,
 }
 export const routeTree = rootRouteImport

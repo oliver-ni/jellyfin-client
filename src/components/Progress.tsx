@@ -1,13 +1,32 @@
 import * as stylex from '@stylexjs/stylex'
-import type { Progress as Value } from './labels'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
+
+export interface ProgressValue {
+  /** What is moving, or `null` when nothing is. */
+  state: string | null
+  fraction: number
+  /** Share of the bar drawn fainter after `fraction`, for what is on its way but not here. */
+  coming?: number
+  /** What's happening to what: `Downloading episodes 3–5`. */
+  label: string
+  /** How far along: `42% · 12m left`. */
+  detail: string
+}
 
 /**
  * A state over a thin bar: `Downloading episodes 3–5` over `42% · 12m left`, or `16 of 24
  * episodes` over what's coming for the rest. The bar is solid while something is moving and
  * faint when nothing is. `title` is the tooltip, for release names.
  */
-export function Progress({ value, title, size }: { value: Value; title?: string; size?: 'lg' }) {
+export function Progress({
+  value,
+  title,
+  size,
+}: {
+  value: ProgressValue
+  title?: string
+  size?: 'lg'
+}) {
   return (
     <span title={title} {...stylex.props(styles.root, size === 'lg' && styles.lg)}>
       {value.label}

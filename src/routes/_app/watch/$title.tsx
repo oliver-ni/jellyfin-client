@@ -36,7 +36,7 @@ export interface ItemSearch {
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) ? v : undefined)
 
-export const Route = createFileRoute('/_app/$title')({
+export const Route = createFileRoute('/_app/watch/$title')({
   validateSearch: (raw: Record<string, unknown>): ItemSearch => ({
     season: num(raw.season),
     episode: num(raw.episode),

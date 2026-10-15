@@ -66,7 +66,7 @@ function useBack(item: BaseItemDto | undefined) {
   const navigate = useNavigate()
   return useCallback(() => {
     if (router.history.canGoBack()) router.history.back()
-    else void navigate({ ...(item ? itemLink(item) : { to: '/' }), replace: true })
+    else void navigate({ ...(item ? itemLink(item) : { to: '/watch' }), replace: true })
   }, [router, navigate, item])
 }
 

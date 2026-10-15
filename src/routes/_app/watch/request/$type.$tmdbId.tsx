@@ -16,7 +16,7 @@ import * as seerr from '@/seerr/api'
 import { Gate } from '@/seerr/Gate'
 import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL, progress, releaseNames } from '@/seerr/labels'
 import { MissingSeason } from '@/seerr/MissingSeason'
-import { Progress } from '@/seerr/Progress'
+import { Progress } from '@/components/Progress'
 import { requestTitle, seerrQueries, useSeerr } from '@/seerr/queries'
 import { detail } from '@/theme/detail'
 import { playPill } from '@/theme/media'
@@ -26,7 +26,7 @@ import { space } from '@/theme/tokens.stylex'
  * A film or series the library lacks, as Seerr knows it. Titles Seerr has matched to a
  * library item send the visitor on to that item's page, which carries the request state.
  */
-export const Route = createFileRoute('/_app/request/$type/$tmdbId')({
+export const Route = createFileRoute('/_app/watch/request/$type/$tmdbId')({
   params: {
     parse: ({ type, tmdbId }): { type: seerr.MediaType; tmdbId: number } => {
       const id = Number(tmdbId)

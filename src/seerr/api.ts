@@ -1,3 +1,5 @@
+import { REQUEST_GROUPS, type RequestGroup } from '@/lib/request-groups'
+
 /**
  * Seerr (formerly Jellyseerr), reached through the same-origin `/seerr` proxy (vite in
  * development, nginx in the container) so its cookie session works without CORS. Responses
@@ -185,17 +187,6 @@ export function coverage(
 }
 
 const covered = (c: Coverage) => c.total > 0 && c.owned >= c.total
-
-/** What is happening to a request, in the order a list shows them: closest to landing first. */
-export const REQUEST_GROUPS = [
-  'downloading',
-  'partial',
-  'waiting',
-  'pending',
-  'done',
-  'closed',
-] as const
-export type RequestGroup = (typeof REQUEST_GROUPS)[number]
 
 /**
  * Which group a request falls in. Approved with nothing in the downloader's queue is `partial`

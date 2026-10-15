@@ -21,6 +21,10 @@ import { episodeCode, itemKindLabel } from '@/lib/format'
 import { itemImage } from '@/lib/images'
 import { itemLink } from '@/lib/item-link'
 import { queries } from '@/lib/queries'
+import type { Section } from '@/lib/section'
+import * as komga from '@/komga/api'
+import { chapters } from '@/komga/labels'
+import { komgaQueries, useKomga } from '@/komga/queries'
 import type { Title } from '@/seerr/api'
 import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL } from '@/seerr/labels'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
@@ -33,6 +37,7 @@ import { BlurImage } from './BlurImage'
 
 export interface SearchPaletteProps {
   userId: string
+  section: Section
   isOpen: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -69,50 +74,69 @@ function subtitle(item: BaseItemDto): string {
 }
 
 const titleKey = (t: Title) => `${t.type}/${t.tmdbId}`
+const seriesKey = (s: komga.Series) => `series/${s.id}`
 const mangaKey = (m: Manga) => `manga/${m.id}`
 
 /**
- * Global search, opened with `/` or the header's search capsule. Library results navigate to
- * the item; with Seerr signed in, titles the library lacks follow in a second section and
- * open their request page. Seerr titles already matched to a library item are left to the
- * library results, whose series page carries the missing seasons. Manga from the request
- * service's sources come last and open their own request page.
+ * Global search, opened with `/` or the header's search capsule, over the section's library and
+ * then what it lacks. On Watch, Jellyfin results navigate to the item; with Seerr signed in,
+ * titles the library lacks follow in a second section and open their request page. Seerr titles
+ * already matched to a library item are left to the library results, whose series page carries
+ * the missing seasons. On Read, Komga series come first and manga from the request service's
+ * sources follow, opening their request page.
  */
-export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPaletteProps) {
+export function SearchPalette({ userId, section, isOpen, onOpenChange }: SearchPaletteProps) {
   const navigate = useNavigate()
   const seerr = useSeerr()
+  const shelf = useKomga()
   const [term, setTerm] = useState('')
   const query = useDebounced(term.trim(), DEBOUNCE_MS)
   const mangaQuery = useDebounced(term.trim(), MANGA_DEBOUNCE_MS)
+  const watch = section === 'watch'
   const enabled = isOpen && query.length > 0
   const signedIn = seerr?.state === 'signedIn'
 
   const library = useQuery({
     ...queries.search(userId, query),
-    enabled,
+    enabled: enabled && watch,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   })
   const discover = useQuery({
     ...seerrQueries.search(query),
-    enabled: enabled && signedIn,
+    enabled: enabled && watch && signedIn,
     placeholderData: keepPreviousData,
   })
-  const mangaConfigured = useQuery({ ...suwayomiQueries.configured(), enabled: signedIn })
+  const series = useQuery({
+    ...komgaQueries.searchSeries(query),
+    enabled: enabled && !watch && shelf?.state === 'signedIn',
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  })
+  const mangaConfigured = useQuery({ ...suwayomiQueries.configured(), enabled: !watch && signedIn })
   const manga = useQuery({
     ...suwayomiQueries.search(mangaQuery),
-    enabled: isOpen && mangaQuery.length > 0 && mangaConfigured.data === true,
+    enabled: isOpen && !watch && mangaQuery.length > 0 && mangaConfigured.data === true,
     placeholderData: keepPreviousData,
   })
 
-  const items = query ? rank(library.data?.Items ?? [], query) : []
-  const titles = query
-    ? (discover.data ?? [])
-        .filter((t) => !t.jellyfinId && t.availability !== 'available')
-        .slice(0, MAX_TITLES)
-    : []
-  const mangas = query ? (manga.data ?? []) : []
-  const empty = items.length === 0 && titles.length === 0 && mangas.length === 0
+  const items = watch && query ? rank(library.data?.Items ?? [], query) : []
+  const titles =
+    watch && query
+      ? (discover.data ?? [])
+          .filter((t) => !t.jellyfinId && t.availability !== 'available')
+          .slice(0, MAX_TITLES)
+      : []
+  const shelved = !watch && query ? (series.data ?? []) : []
+  const mangas = !watch && query ? (manga.data ?? []) : []
+  const owned = watch
+    ? items.map((item) => <ItemResult key={item.Id} item={item} />)
+    : shelved.map((s) => <SeriesResult key={seriesKey(s)} series={s} />)
+  const missing = watch
+    ? titles.map((title) => <TitleResult key={titleKey(title)} title={title} />)
+    : mangas.map((m) => <MangaResult key={mangaKey(m)} manga={m} />)
+  const empty = owned.length === 0 && missing.length === 0
+  const fetching = [library, discover, series, manga].some((q) => q.isFetching)
 
   const open = (next: boolean) => {
     onOpenChange(next)
@@ -133,9 +157,11 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
               <MagnifyingGlass size={20} {...stylex.props(styles.fieldIcon)} />
               <Input
                 placeholder={
-                  seerr?.state === 'signedIn'
+                  signedIn
                     ? 'Search your library and everything else'
-                    : 'Search films, series and episodes'
+                    : watch
+                      ? 'Search films, series and episodes'
+                      : 'Search your manga'
                 }
                 autoFocus
                 {...stylex.props(styles.input)}
@@ -146,52 +172,40 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
               renderEmptyState={() =>
                 query ? (
                   <div {...stylex.props(styles.empty)}>
-                    {library.isFetching || discover.isFetching || manga.isFetching
-                      ? 'Searching…'
-                      : `Nothing matches “${query}”`}
+                    {fetching ? 'Searching…' : `Nothing matches “${query}”`}
                   </div>
                 ) : null
               }
               onAction={(key) => {
                 const item = items.find((it) => it.Id === key)
                 const title = titles.find((t) => titleKey(t) === key)
+                const s = shelved.find((x) => seriesKey(x) === key)
                 const m = mangas.find((x) => mangaKey(x) === key)
-                if (!item && !title && !m) return
+                if (!item && !title && !s && !m) return
                 open(false)
-                if (m) void navigate({ to: '/request/manga/$id', params: { id: m.id } })
                 if (item) void navigate(itemLink(item))
                 if (title)
                   void navigate({
-                    to: '/request/$type/$tmdbId',
+                    to: '/watch/request/$type/$tmdbId',
                     params: { type: title.type, tmdbId: title.tmdbId },
                   })
+                if (s) void navigate({ to: '/read/manga/$series', params: { series: s.id } })
+                if (m) void navigate({ to: '/read/request/$id', params: { id: m.id } })
               }}
               {...stylex.props(styles.list, !empty && styles.listOpen)}
             >
-              {items.length > 0 && (
+              {owned.length > 0 && (
                 <ListBoxSection id="library">
-                  {titles.length > 0 && (
+                  {missing.length > 0 && (
                     <Header {...stylex.props(styles.header)}>Your library</Header>
                   )}
-                  {items.map((item) => (
-                    <ItemResult key={item.Id} item={item} />
-                  ))}
+                  {owned}
                 </ListBoxSection>
               )}
-              {titles.length > 0 && (
+              {missing.length > 0 && (
                 <ListBoxSection id="discover">
                   <Header {...stylex.props(styles.header)}>Not in your library</Header>
-                  {titles.map((title) => (
-                    <TitleResult key={titleKey(title)} title={title} />
-                  ))}
-                </ListBoxSection>
-              )}
-              {mangas.length > 0 && (
-                <ListBoxSection id="manga">
-                  <Header {...stylex.props(styles.header)}>Manga</Header>
-                  {mangas.map((m) => (
-                    <MangaResult key={mangaKey(m)} manga={m} />
-                  ))}
+                  {missing}
                 </ListBoxSection>
               )}
             </ListBox>
@@ -249,6 +263,27 @@ function TitleResult({ title }: { title: Title }) {
   )
 }
 
+function SeriesResult({ series: s }: { series: komga.Series }) {
+  return (
+    <ListBoxItem id={seriesKey(s)} textValue={s.name} {...stylex.props(styles.item)}>
+      <BlurImage
+        src={komga.seriesCover(s.id)}
+        alt=""
+        loading="eager"
+        style={[styles.thumb, styles.thumbPoster]}
+      />
+      <span {...stylex.props(styles.copy)}>
+        <Text slot="label" {...stylex.props(text.ellipsis, styles.name)}>
+          {s.name}
+        </Text>
+        <Text slot="description" {...stylex.props(text.ellipsis, styles.meta)}>
+          {chapters(s.booksCount)}
+        </Text>
+      </span>
+    </ListBoxItem>
+  )
+}
+
 function MangaResult({ manga: m }: { manga: Manga }) {
   return (
     <ListBoxItem id={mangaKey(m)} textValue={m.title} {...stylex.props(styles.item)}>
@@ -263,7 +298,7 @@ function MangaResult({ manga: m }: { manga: Manga }) {
           {m.title}
         </Text>
         <Text slot="description" {...stylex.props(text.ellipsis, styles.meta)}>
-          {['Manga', m.source, m.inLibrary && 'Requested'].filter(Boolean).join(' · ')}
+          {[m.source, m.inLibrary && 'Requested'].filter(Boolean).join(' · ')}
         </Text>
       </span>
     </ListBoxItem>

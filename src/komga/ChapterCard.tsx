@@ -10,7 +10,7 @@ export function ChapterCard({ book, width }: { book: komga.Book; width?: number 
     book.progress && !book.progress.completed ? book.progress.page / book.pagesCount : 0
   return (
     <Card
-      link={{ to: '/read/$book', params: { book: book.id } }}
+      link={{ to: '/reader/$book', params: { book: book.id } }}
       image={{ url: komga.seriesCover(book.seriesId) }}
       name={book.seriesTitle}
       subtitle={book.title}

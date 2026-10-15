@@ -7,9 +7,8 @@ import { titleHead } from '@/brand'
 import { DetailHero } from '@/components/DetailHero'
 import { FactSheet } from '@/components/FactSheet'
 import { Notice } from '@/components/Notice'
-import { Gate } from '@/komga/Gate'
 import * as komga from '@/komga/api'
-import { komgaQueries, useKomga } from '@/komga/queries'
+import { komgaQueries } from '@/komga/queries'
 import { compact, links, list } from '@/lib/facts'
 import { languageName } from '@/lib/format'
 import { fadeUp, stagger } from '@/lib/motion'
@@ -43,7 +42,7 @@ function seriesFacts(s: komga.Series) {
   ])
 }
 
-export const Route = createFileRoute('/_app/manga_/$series')({
+export const Route = createFileRoute('/_app/read/manga_/$series')({
   loader: ({ context: { queryClient }, params }) =>
     queryClient.ensureQueryData(komgaQueries.seriesById(params.series)).catch(() => null),
   head: ({ loaderData }) => titleHead(loaderData?.name),
@@ -51,13 +50,6 @@ export const Route = createFileRoute('/_app/manga_/$series')({
 })
 
 function SeriesPage() {
-  const state = useKomga()
-  if (!state) return null
-  if (state.state !== 'signedIn') return <Gate state={state.state} />
-  return <SeriesDetail />
-}
-
-function SeriesDetail() {
   const { series: id } = Route.useParams()
   const series = useQuery(komgaQueries.seriesById(id))
   const books = useQuery(komgaQueries.books(id))
@@ -96,7 +88,7 @@ function SeriesDetail() {
       >
         {resume && (
           <Link
-            to="/read/$book"
+            to="/reader/$book"
             params={{ book: resume.id }}
             {...stylex.props(focus.ring, playPill.base)}
           >
@@ -140,7 +132,7 @@ function ChapterRow({ book }: { book: komga.Book }) {
   return (
     <m.li variants={fadeUp}>
       <Link
-        to="/read/$book"
+        to="/reader/$book"
         params={{ book: book.id }}
         {...stylex.props(focus.ring, styles.row, done && styles.rowRead)}
       >
