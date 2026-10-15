@@ -159,14 +159,12 @@ function Reader({ book, direction, pages }: ReaderProps) {
             onClick={() => step(rtl ? -1 : 1)}
             {...stylex.props(styles.zone, styles.zoneRight)}
           />
-          {!chrome && (
-            <div {...stylex.props(media.progressTrack)}>
-              <div
-                {...stylex.props(media.progressBar)}
-                style={{ width: `${(page / count) * 100}%` }}
-              />
-            </div>
-          )}
+          <div {...stylex.props(media.progressTrack)}>
+            <div
+              {...stylex.props(media.progressBar)}
+              style={{ width: `${(page / count) * 100}%` }}
+            />
+          </div>
         </div>
       )}
 
@@ -200,36 +198,6 @@ function Reader({ book, direction, pages }: ReaderProps) {
                 {!rtl && <CaretRight size={14} weight="bold" />}
               </Button>
             )}
-          </m.div>
-        )}
-        {chrome && !strip && (
-          <m.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={vanish}
-            {...stylex.props(glass.surface, styles.bar, styles.barBottom)}
-          >
-            <div
-              role="group"
-              aria-label="Pages"
-              {...stylex.props(styles.ticks, rtl && styles.ticksRtl)}
-            >
-              {Array.from({ length: count }, (_, i) => i + 1).map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-label={`Page ${n}`}
-                  aria-current={n === page ? 'page' : undefined}
-                  onClick={() => setPage(n)}
-                  {...stylex.props(
-                    focus.ring,
-                    styles.tick,
-                    n <= page && styles.tickRead,
-                    n === page && styles.tickCurrent,
-                  )}
-                />
-              ))}
-            </div>
           </m.div>
         )}
       </AnimatePresence>
@@ -349,48 +317,6 @@ const styles = stylex.create({
     height: `calc(${BAR_HEIGHT} + env(safe-area-inset-top))`,
     paddingTop: 'env(safe-area-inset-top)',
     paddingInline: space.md,
-  },
-  barBottom: {
-    top: 'auto',
-    bottom: 0,
-    height: `calc(${BAR_HEIGHT} + env(safe-area-inset-bottom))`,
-    paddingTop: 0,
-    paddingBottom: 'env(safe-area-inset-bottom)',
-    paddingInline: space.lg,
-  },
-  ticks: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 2,
-    width: '100%',
-    height: '100%',
-  },
-  ticksRtl: {
-    flexDirection: 'row-reverse',
-  },
-  tick: {
-    flex: 1,
-    minWidth: 0,
-    height: 24,
-    padding: 0,
-    borderStyle: 'none',
-    borderRadius: 2,
-    backgroundColor: 'transparent',
-    backgroundImage: `linear-gradient(${colors.scrim}, ${colors.scrim})`,
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '100% 3px',
-    backgroundPosition: 'center',
-    cursor: 'pointer',
-    transitionProperty: 'background-size',
-    transitionDuration: '120ms',
-    ':hover': { backgroundSize: '100% 6px' },
-  },
-  tickRead: {
-    backgroundImage: `linear-gradient(${colors.progress}, ${colors.progress})`,
-  },
-  tickCurrent: {
-    backgroundImage: `linear-gradient(${colors.text}, ${colors.text})`,
-    backgroundSize: '100% 8px',
   },
   barButton: {
     display: 'grid',
