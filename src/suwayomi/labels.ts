@@ -1,6 +1,16 @@
 import type { RequestGroup } from '@/seerr/api'
 import type { Progress } from '@/seerr/labels'
-import type { MangaRequest } from './api'
+import type { MangaRequest, MangaStatus } from './api'
+
+export const MANGA_STATUS_LABEL: Record<MangaStatus, string | null> = {
+  UNKNOWN: null,
+  ONGOING: 'Ongoing',
+  COMPLETED: 'Completed',
+  LICENSED: 'Licensed',
+  PUBLISHING_FINISHED: 'Finished',
+  CANCELLED: 'Cancelled',
+  ON_HIATUS: 'On hiatus',
+}
 
 /** Where a requested title sits among the Requests page's groups, by its chapters. */
 export function mangaGroup(m: MangaRequest): RequestGroup {

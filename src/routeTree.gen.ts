@@ -21,6 +21,7 @@ import { Route as WebIndexDothtmlRouteImport } from './routes/web/index[.]html'
 import { Route as AppLibraryLibraryRouteImport } from './routes/_app/library/$library'
 import { Route as AppMangaSeriesRouteImport } from './routes/_app/manga_.$series'
 import { Route as AppRequestTypeTmdbIdRouteImport } from './routes/_app/request/$type.$tmdbId'
+import { Route as AppRequestMangaIdRouteImport } from './routes/_app/request/manga.$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -81,6 +82,11 @@ const AppRequestTypeTmdbIdRoute = AppRequestTypeTmdbIdRouteImport.update({
   path: '/request/$type/$tmdbId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRequestMangaIdRoute = AppRequestMangaIdRouteImport.update({
+  id: '/request/manga/$id',
+  path: '/request/manga/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/library/$library': typeof AppLibraryLibraryRoute
   '/manga/$series': typeof AppMangaSeriesRoute
   '/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
+  '/request/manga/$id': typeof AppRequestMangaIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/library/$library': typeof AppLibraryLibraryRoute
   '/manga/$series': typeof AppMangaSeriesRoute
   '/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
+  '/request/manga/$id': typeof AppRequestMangaIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_app/library/$library': typeof AppLibraryLibraryRoute
   '/_app/manga_/$series': typeof AppMangaSeriesRoute
   '/_app/request/$type/$tmdbId': typeof AppRequestTypeTmdbIdRoute
+  '/_app/request/manga/$id': typeof AppRequestMangaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/library/$library'
     | '/manga/$series'
     | '/request/$type/$tmdbId'
+    | '/request/manga/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/library/$library'
     | '/manga/$series'
     | '/request/$type/$tmdbId'
+    | '/request/manga/$id'
   id:
     | '__root__'
     | '/_app'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/_app/library/$library'
     | '/_app/manga_/$series'
     | '/_app/request/$type/$tmdbId'
+    | '/_app/request/manga/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -260,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRequestTypeTmdbIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/request/manga/$id': {
+      id: '/_app/request/manga/$id'
+      path: '/request/manga/$id'
+      fullPath: '/request/manga/$id'
+      preLoaderRoute: typeof AppRequestMangaIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -271,6 +290,7 @@ interface AppRouteChildren {
   AppLibraryLibraryRoute: typeof AppLibraryLibraryRoute
   AppMangaSeriesRoute: typeof AppMangaSeriesRoute
   AppRequestTypeTmdbIdRoute: typeof AppRequestTypeTmdbIdRoute
+  AppRequestMangaIdRoute: typeof AppRequestMangaIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -281,6 +301,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLibraryLibraryRoute: AppLibraryLibraryRoute,
   AppMangaSeriesRoute: AppMangaSeriesRoute,
   AppRequestTypeTmdbIdRoute: AppRequestTypeTmdbIdRoute,
+  AppRequestMangaIdRoute: AppRequestMangaIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

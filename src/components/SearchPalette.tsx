@@ -25,7 +25,7 @@ import type { Title } from '@/seerr/api'
 import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL } from '@/seerr/labels'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
 import { thumbnail, type Manga } from '@/suwayomi/api'
-import { requestManga, suwayomiQueries } from '@/suwayomi/queries'
+import { suwayomiQueries } from '@/suwayomi/queries'
 import { glass, overlay } from '@/theme/glass'
 import { text } from '@/theme/text'
 import { colors, radii, space } from '@/theme/tokens.stylex'
@@ -76,7 +76,7 @@ const mangaKey = (m: Manga) => `manga/${m.id}`
  * the item; with Seerr signed in, titles the library lacks follow in a second section and
  * open their request page. Seerr titles already matched to a library item are left to the
  * library results, whose series page carries the missing seasons. Manga from the request
- * service's sources come last; choosing one requests it and opens the Requests page.
+ * service's sources come last and open their own request page.
  */
 export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPaletteProps) {
   const navigate = useNavigate()
@@ -104,7 +104,6 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
     enabled: isOpen && mangaQuery.length > 0 && mangaConfigured.data === true,
     placeholderData: keepPreviousData,
   })
-  const [requesting, setRequesting] = useState<{ id: number; failed: boolean } | null>(null)
 
   const items = query ? rank(library.data?.Items ?? [], query) : []
   const titles = query
@@ -117,20 +116,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
 
   const open = (next: boolean) => {
     onOpenChange(next)
-    if (!next) {
-      setTerm('')
-      setRequesting(null)
-    }
-  }
-
-  const request = (m: Manga) => {
-    const done = () => {
-      open(false)
-      void navigate({ to: '/requests', search: { from: undefined, sort: undefined } })
-    }
-    if (m.inLibrary) return done()
-    setRequesting({ id: m.id, failed: false })
-    requestManga(m.id).then(done, () => setRequesting({ id: m.id, failed: true }))
+    if (!next) setTerm('')
   }
 
   return (
@@ -170,9 +156,9 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
                 const item = items.find((it) => it.Id === key)
                 const title = titles.find((t) => titleKey(t) === key)
                 const m = mangas.find((x) => mangaKey(x) === key)
-                if (m) return requesting?.failed === false ? undefined : request(m)
-                if (!item && !title) return
+                if (!item && !title && !m) return
                 open(false)
+                if (m) void navigate({ to: '/request/manga/$id', params: { id: m.id } })
                 if (item) void navigate(itemLink(item))
                 if (title)
                   void navigate({
@@ -204,11 +190,7 @@ export function SearchPalette({ userId, isOpen, onOpenChange }: SearchPalettePro
                 <ListBoxSection id="manga">
                   <Header {...stylex.props(styles.header)}>Manga</Header>
                   {mangas.map((m) => (
-                    <MangaResult
-                      key={mangaKey(m)}
-                      manga={m}
-                      state={requesting?.id === m.id ? requesting : null}
-                    />
+                    <MangaResult key={mangaKey(m)} manga={m} />
                   ))}
                 </ListBoxSection>
               )}
@@ -267,14 +249,7 @@ function TitleResult({ title }: { title: Title }) {
   )
 }
 
-function MangaResult({ manga: m, state }: { manga: Manga; state: { failed: boolean } | null }) {
-  const status = state
-    ? state.failed
-      ? 'Couldn’t request it'
-      : 'Requesting…'
-    : m.inLibrary
-      ? 'Requested'
-      : null
+function MangaResult({ manga: m }: { manga: Manga }) {
   return (
     <ListBoxItem id={mangaKey(m)} textValue={m.title} {...stylex.props(styles.item)}>
       <BlurImage
@@ -288,7 +263,7 @@ function MangaResult({ manga: m, state }: { manga: Manga; state: { failed: boole
           {m.title}
         </Text>
         <Text slot="description" {...stylex.props(text.ellipsis, styles.meta)}>
-          {['Manga', m.source, status].filter(Boolean).join(' · ')}
+          {['Manga', m.source, m.inLibrary && 'Requested'].filter(Boolean).join(' · ')}
         </Text>
       </span>
     </ListBoxItem>

@@ -2,24 +2,20 @@ import * as stylex from '@stylexjs/stylex'
 import { Plus } from '@phosphor-icons/react'
 import { useMutation } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { Button, type ButtonSize } from '@/components/Button'
-import type { Title } from './api'
-import { requestTitle } from './queries'
 import { colors, radii, space } from '@/theme/tokens.stylex'
+import { Button, type ButtonSize } from './Button'
 
-/** Files one request for a title (a film, or the given seasons of a series). */
+/** Files a request (a film, seasons of a series, a manga) with its pending and error states. */
 export function RequestButton({
-  title,
-  seasons,
+  request: send,
   size,
   children,
 }: {
-  title: Title
-  seasons: number[]
+  request: () => Promise<unknown>
   size?: ButtonSize
   children: ReactNode
 }) {
-  const request = useMutation({ mutationFn: () => requestTitle(title, seasons) })
+  const request = useMutation({ mutationFn: send })
   return (
     <div {...stylex.props(styles.root)}>
       <Button

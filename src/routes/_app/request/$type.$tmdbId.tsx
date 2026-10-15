@@ -6,6 +6,7 @@ import { motion as m } from 'motion/react'
 import { useState } from 'react'
 import { titleHead } from '@/brand'
 import { DetailHero } from '@/components/DetailHero'
+import { RequestButton } from '@/components/RequestButton'
 import { Notice } from '@/components/Notice'
 import { SeasonTabs } from '@/components/SeasonTabs'
 import { titleLink } from '@/lib/item-link'
@@ -16,8 +17,7 @@ import { Gate } from '@/seerr/Gate'
 import { AVAILABILITY_LABEL, MEDIA_TYPE_LABEL, progress, releaseNames } from '@/seerr/labels'
 import { MissingSeason } from '@/seerr/MissingSeason'
 import { Progress } from '@/seerr/Progress'
-import { seerrQueries, useSeerr } from '@/seerr/queries'
-import { RequestButton } from '@/seerr/RequestButton'
+import { requestTitle, seerrQueries, useSeerr } from '@/seerr/queries'
 import { detail } from '@/theme/detail'
 import { playPill } from '@/theme/media'
 import { space } from '@/theme/tokens.stylex'
@@ -118,16 +118,16 @@ function RequestPage() {
  */
 function HeroAction({ title }: { title: seerr.MovieDetails | seerr.TvDetails }) {
   if (title.type === 'tv') {
-    const open = seerr.openSeasons(title)
+    const open = seerr.openSeasons(title).map((s) => s.number)
     return open.length > 1 ? (
-      <RequestButton title={title} seasons={open.map((s) => s.number)} size="lg">
+      <RequestButton request={() => requestTitle(title, open)} size="lg">
         Request all {open.length} seasons
       </RequestButton>
     ) : null
   }
   if (seerr.requestable(title.availability)) {
     return (
-      <RequestButton title={title} seasons={[]} size="lg">
+      <RequestButton request={() => requestTitle(title, [])} size="lg">
         Request
       </RequestButton>
     )
