@@ -33,8 +33,7 @@ import { QuickConnectDialog } from '@/components/QuickConnectDialog'
 import { SearchPalette } from '@/components/SearchPalette'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
 import { logout } from '@/lib/auth'
-import { imageUrl } from '@/lib/images'
-import { itemLink, libraryLink, type ItemLink } from '@/lib/item-link'
+import { libraryLink, type ItemLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { requireSession, useSession, type Session } from '@/lib/session'
@@ -80,7 +79,6 @@ function isTypingTarget(target: EventTarget | null): boolean {
 function SideNav({ session }: { session: Session }) {
   const navigate = useNavigate()
   const views = useQuery(queries.views(session.userId))
-  const favorites = useQuery(queries.favorites(session.userId)).data?.Items ?? []
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
   const [searchOpen, setSearchOpen] = useState(false)
   const [quickConnectOpen, setQuickConnectOpen] = useState(false)
@@ -124,25 +122,6 @@ function SideNav({ session }: { session: Session }) {
           Manga
         </NavLink>
       )}
-      {favorites.length > 0 && <h2 {...stylex.props(styles.section)}>Pinned</h2>}
-      {favorites.map((item) => (
-        <NavLink
-          key={item.Id}
-          {...itemLink(item)}
-          icon={
-            <img
-              alt=""
-              src={imageUrl(item.Id ?? '', {
-                tag: item.ImageTags?.Primary ?? undefined,
-                width: 48,
-              })}
-              {...stylex.props(styles.cover)}
-            />
-          }
-        >
-          {item.Name}
-        </NavLink>
-      ))}
     </nav>
   )
 
@@ -400,14 +379,6 @@ const styles = stylex.create({
     inset: 0,
     borderRadius: ROW_RADIUS,
     backgroundColor: colors.surfaceHover,
-  },
-  cover: {
-    display: 'block',
-    width: 24,
-    height: 36,
-    objectFit: 'cover',
-    borderRadius: radii.xs,
-    backgroundColor: colors.surface,
   },
   iconSlot: {
     width: 24,
