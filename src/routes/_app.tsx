@@ -170,7 +170,10 @@ function SideNav({ session }: { session: Session }) {
   const search = (
     <AriaButton
       aria-label="Search"
-      onPress={() => setSearchOpen(true)}
+      onPress={() => {
+        setDrawerOpen(false)
+        setSearchOpen(true)
+      }}
       {...stylex.props(focus.ring, styles.search)}
     >
       <MagnifyingGlass size={18} />
@@ -344,6 +347,8 @@ const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.xxs,
+    minHeight: 0,
+    overflowY: 'auto',
   },
   link: {
     position: 'relative',
