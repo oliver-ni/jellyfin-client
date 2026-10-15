@@ -78,6 +78,10 @@ function MangaRequestPage() {
             <Check size={16} weight="bold" />
             Requested
           </span>
+        ) : t.chapters === 0 ? (
+          <span {...stylex.props(playPill.base, playPill.secondary)}>
+            No chapters on {t.source}
+          </span>
         ) : (
           <RequestButton request={() => requestManga(t.id)} size="lg">
             Request
