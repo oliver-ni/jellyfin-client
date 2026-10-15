@@ -284,6 +284,9 @@ function Strip({ book, pages, start, onPage, onTap }: StripProps) {
   )
 }
 
+/** Slim edge strips, not floating pills: the page keeps the room. */
+const BAR_HEIGHT = '44px'
+
 const styles = stylex.create({
   root: {
     position: 'fixed',
@@ -339,23 +342,21 @@ const styles = stylex.create({
   },
   bar: {
     position: 'absolute',
-    top: `calc(${space.md} + env(safe-area-inset-top))`,
-    insetInline: space.md,
-    marginInline: 'auto',
-    width: 'fit-content',
-    maxWidth: `calc(100% - 2 * ${space.md})`,
+    top: 0,
+    insetInline: 0,
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
-    height: sizes.navHeight,
-    paddingInlineStart: space.md,
-    paddingInlineEnd: space.lg,
-    borderRadius: radii.full,
+    height: `calc(${BAR_HEIGHT} + env(safe-area-inset-top))`,
+    paddingTop: 'env(safe-area-inset-top)',
+    paddingInline: space.md,
   },
   barBottom: {
     top: 'auto',
-    bottom: `calc(${space.md} + env(safe-area-inset-bottom))`,
-    width: 'min(480px, 100%)',
+    bottom: 0,
+    height: `calc(${BAR_HEIGHT} + env(safe-area-inset-bottom))`,
+    paddingTop: 0,
+    paddingBottom: 'env(safe-area-inset-bottom)',
     paddingInline: space.lg,
   },
   slider: {
@@ -422,6 +423,7 @@ const styles = stylex.create({
     fontWeight: 600,
   },
   barCount: {
+    marginInlineStart: 'auto',
     fontSize: 13,
     fontVariantNumeric: 'tabular-nums',
     color: colors.textMuted,
