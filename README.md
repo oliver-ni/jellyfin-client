@@ -50,11 +50,11 @@ or as Docker `--build-arg`s); leave them unset for a generic build:
   the hand-off works is in `src/lib/sso.ts`.
 
 Manga comes from a [Komga](https://komga.org) server named at build time with
-`VITE_KOMGA_URL=https://manga.example.com`, which adds a Manga tab: the library, continue reading, series
+`VITE_KOMGA_URL=https://komga.example.com`, which adds a Manga tab: the library, continue reading, series
 pages and a reader (paged, right-to-left for manga; one strip for webtoons) that keeps bookmarks in
 Komga. The browser talks to Komga directly, so Komga must allow the client's origin in
 `komga.cors.allowed-origins`, and the two should be the same site (for example `ochazuke.org` and
-`manga.ochazuke.org`) so its session cookie travels. Signing in is Komga's own, opened in a popup the
+`komga.ochazuke.org`) so its session cookie travels. Signing in is Komga's own, opened in a popup the
 first time: its OIDC flow named by `VITE_SSO_PROVIDER` when set (register the provider under that
 name in Komga too), otherwise its login page. How that works is in `src/komga/queries.ts`.
 

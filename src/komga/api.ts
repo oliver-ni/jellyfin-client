@@ -40,7 +40,6 @@ export interface Series {
   booksCount: number
   booksReadCount: number
   booksUnreadCount: number
-  booksInProgressCount: number
   readingDirection: ReadingDirection | null
 }
 
@@ -83,7 +82,6 @@ interface SeriesDto {
   booksCount: number
   booksReadCount: number
   booksUnreadCount: number
-  booksInProgressCount: number
   metadata: {
     title: string
     summary: string
@@ -133,7 +131,6 @@ const toSeries = (s: SeriesDto): Series => ({
   booksCount: s.booksCount,
   booksReadCount: s.booksReadCount,
   booksUnreadCount: s.booksUnreadCount,
-  booksInProgressCount: s.booksInProgressCount,
   readingDirection: DIRECTIONS[s.metadata.readingDirection] ?? null,
 })
 

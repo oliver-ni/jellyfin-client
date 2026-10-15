@@ -13,6 +13,7 @@ import { vanish } from '@/lib/motion'
 import { requireSession } from '@/lib/session'
 import { glass } from '@/theme/glass'
 import { focus } from '@/theme/focus'
+import { text } from '@/theme/text'
 import { colors, fonts, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/read/$book')({
@@ -174,8 +175,8 @@ function Reader({ book, direction, pages }: ReaderProps) {
               <ArrowLeft size={18} />
             </Link>
             <div {...stylex.props(styles.barTitle)}>
-              <span {...stylex.props(styles.barSeries)}>{book.seriesTitle}</span>
-              <span {...stylex.props(styles.barChapter)}>{book.title}</span>
+              <span {...stylex.props(text.ellipsis, styles.barSeries)}>{book.seriesTitle}</span>
+              <span {...stylex.props(text.ellipsis, styles.barChapter)}>{book.title}</span>
             </div>
             <span {...stylex.props(styles.barCount)}>
               {page} / {count}
@@ -304,8 +305,8 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: space.md,
     height: sizes.navHeight,
-    paddingInline: space.md,
-    paddingRight: space.lg,
+    paddingInlineStart: space.md,
+    paddingInlineEnd: space.lg,
     borderRadius: radii.full,
   },
   barButton: {
@@ -325,16 +326,10 @@ const styles = stylex.create({
   barSeries: {
     fontSize: 11,
     color: colors.textMuted,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
   },
   barChapter: {
     fontSize: 14,
     fontWeight: 600,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
   },
   barCount: {
     fontSize: 13,
