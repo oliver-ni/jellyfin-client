@@ -69,6 +69,12 @@ API key on the way and admits only a handful of GETs, so the key never reaches t
 `SONARR_URL=https://sonarr.example.com SONARR_API_KEY=… npm run dev`. The Docker image does the same
 from the same variables (see `docker/proxies.sh`); behind another server, copy its `/sonarr/` block.
 
+Manga can be requested too when the server runs the manga request service next to Suwayomi (in
+[oliver-ni/nix](https://github.com/oliver-ni/nix), `modules/nixos/manga/requests.py`): search finds
+titles on its sources and Requests lists their chapters as they download. The client reaches it at
+`/suwayomi`, which the server should open only to requests carrying a Seerr session; in
+development, `SUWAYOMI_REQUESTS_URL=http://localhost:4568 npm run dev`.
+
 ### Throwaway Jellyfin + Seerr + Sonarr
 
 `dev/seed.sh` brings up all three in Docker (needs `docker compose`, `ffmpeg`, `jq`), generates a
