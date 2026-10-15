@@ -4,6 +4,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { AnimatePresence, motion as m } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Slider, SliderThumb, SliderTrack } from 'react-aria-components'
 import { titleHead } from '@/brand'
 import { Button } from '@/components/Button'
 import { Notice } from '@/components/Notice'
@@ -12,6 +13,7 @@ import { invalidateProgress, komgaQueries } from '@/komga/queries'
 import { vanish } from '@/lib/motion'
 import { requireSession } from '@/lib/session'
 import { glass } from '@/theme/glass'
+import { media } from '@/theme/media'
 import { focus } from '@/theme/focus'
 import { text } from '@/theme/text'
 import { colors, fonts, radii, sizes, space } from '@/theme/tokens.stylex'
@@ -113,11 +115,11 @@ function Reader({ book, direction, pages }: ReaderProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [strip, rtl, step, navigate, book.seriesId])
 
-  // The next two pages decode while this one is read.
+  // The neighbouring pages decode while this one is read, so a turn swaps in a ready bitmap.
   useEffect(() => {
     if (strip) return
-    for (const n of [page + 1, page + 2]) {
-      if (n <= count) new Image().src = komga.pageImage(book.id, n)
+    for (const n of [page + 1, page + 2, page - 1]) {
+      if (n >= 1 && n <= count) new Image().src = komga.pageImage(book.id, n)
     }
   }, [strip, page, count, book.id])
 
@@ -136,7 +138,6 @@ function Reader({ book, direction, pages }: ReaderProps) {
       ) : (
         <div {...stylex.props(styles.stage)}>
           <img
-            key={page}
             src={komga.pageImage(book.id, page)}
             alt={`Page ${page}`}
             {...stylex.props(styles.pageImage)}
@@ -159,6 +160,14 @@ function Reader({ book, direction, pages }: ReaderProps) {
             onClick={() => step(rtl ? -1 : 1)}
             {...stylex.props(styles.zone, styles.zoneRight)}
           />
+          {!chrome && (
+            <div {...stylex.props(media.progressTrack)}>
+              <div
+                {...stylex.props(media.progressBar)}
+                style={{ width: `${(page / count) * 100}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -192,6 +201,36 @@ function Reader({ book, direction, pages }: ReaderProps) {
                 {!rtl && <CaretRight size={14} weight="bold" />}
               </Button>
             )}
+          </m.div>
+        )}
+        {chrome && !strip && (
+          <m.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={vanish}
+            {...stylex.props(glass.surface, styles.bar, styles.barBottom)}
+          >
+            <Slider
+              aria-label="Page"
+              value={page}
+              minValue={1}
+              maxValue={count}
+              step={1}
+              onChange={(v) => setPage(Array.isArray(v) ? v[0] : v)}
+              {...stylex.props(styles.slider)}
+            >
+              <SliderTrack {...stylex.props(styles.track)}>
+                {({ state }) => (
+                  <>
+                    <div
+                      {...stylex.props(styles.fill)}
+                      style={{ width: `${state.getThumbPercent(0) * 100}%` }}
+                    />
+                    <SliderThumb {...stylex.props(styles.thumb)} />
+                  </>
+                )}
+              </SliderTrack>
+            </Slider>
           </m.div>
         )}
       </AnimatePresence>
@@ -300,7 +339,7 @@ const styles = stylex.create({
   },
   bar: {
     position: 'absolute',
-    top: space.md,
+    top: `calc(${space.md} + env(safe-area-inset-top))`,
     insetInline: space.md,
     marginInline: 'auto',
     width: 'fit-content',
@@ -312,6 +351,53 @@ const styles = stylex.create({
     paddingInlineStart: space.md,
     paddingInlineEnd: space.lg,
     borderRadius: radii.full,
+  },
+  barBottom: {
+    top: 'auto',
+    bottom: `calc(${space.md} + env(safe-area-inset-bottom))`,
+    width: 'min(480px, 100%)',
+    paddingInline: space.lg,
+  },
+  slider: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+    height: 40,
+    touchAction: 'none',
+  },
+  track: {
+    position: 'relative',
+    width: '100%',
+    height: 20,
+    display: 'flex',
+    alignItems: 'center',
+    '::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: colors.scrim,
+    },
+  },
+  fill: {
+    position: 'absolute',
+    left: 0,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.progress,
+  },
+  thumb: {
+    top: '50%',
+    width: 14,
+    height: 14,
+    borderRadius: '50%',
+    backgroundColor: colors.text,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+    outlineStyle: { default: 'none', '[data-focus-visible]': 'solid' },
+    outlineColor: colors.progress,
+    outlineOffset: 2,
   },
   barButton: {
     display: 'grid',
