@@ -192,7 +192,9 @@ function SideNav({ session }: { session: Session }) {
       }}
       {...stylex.props(focus.ring, styles.search)}
     >
-      <MagnifyingGlass size={18} />
+      <span {...stylex.props(styles.iconSlot)}>
+        <MagnifyingGlass size={18} />
+      </span>
       <span {...stylex.props(styles.searchLabel)}>Search</span>
       <kbd {...stylex.props(styles.kbd)}>/</kbd>
     </AriaButton>
@@ -290,7 +292,11 @@ function NavLink({ children, icon, ...target }: NavLinkProps) {
               {...stylex.props(styles.linkActive)}
             />
           )}
-          <span {...stylex.props(styles.linkIcon, isActive && styles.linkLabelActive)}>{icon}</span>
+          <span
+            {...stylex.props(styles.iconSlot, styles.linkIcon, isActive && styles.linkLabelActive)}
+          >
+            {icon}
+          </span>
           <span {...stylex.props(styles.linkLabel, isActive && styles.linkLabelActive)}>
             {children}
           </span>
@@ -404,11 +410,14 @@ const styles = stylex.create({
     borderRadius: radii.xs,
     backgroundColor: colors.surface,
   },
-  linkIcon: {
-    position: 'relative',
+  iconSlot: {
     width: 24,
+    flexShrink: 0,
     display: 'grid',
     placeItems: 'center',
+  },
+  linkIcon: {
+    position: 'relative',
     color: colors.textMuted,
   },
   linkLabel: {
@@ -462,13 +471,7 @@ const styles = stylex.create({
   kbd: {
     fontFamily: 'inherit',
     fontSize: 12,
-    lineHeight: 1,
-    color: colors.textMuted,
-    minWidth: 20,
-    paddingBlock: 3,
-    textAlign: 'center',
-    borderRadius: radii.xs,
-    boxShadow: `inset 0 0 0 1px ${colors.glassRim}`,
+    color: colors.textFaint,
   },
   account: {
     display: 'flex',
