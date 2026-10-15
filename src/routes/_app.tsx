@@ -530,6 +530,7 @@ const styles = stylex.create({
     left: space.sm,
     width: `min(${SIDEBAR_W}px, calc(100vw - 2 * ${space.lg}))`,
     borderRadius: radii.xl,
+    backgroundColor: colors.bgElevated,
     animationName: { default: 'none', '[data-entering]': slideIn, '[data-exiting]': slideOut },
     animationDuration: { default: motion.slow, '[data-exiting]': motion.base },
     animationTimingFunction: motion.ease,
