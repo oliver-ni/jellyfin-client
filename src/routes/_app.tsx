@@ -411,6 +411,7 @@ const styles = stylex.create({
   },
   linkIcon: {
     position: 'relative',
+    width: 24,
     display: 'grid',
     placeItems: 'center',
     color: colors.textMuted,
