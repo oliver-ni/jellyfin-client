@@ -12,6 +12,7 @@ import { invalidateProgress, komgaQueries } from '@/komga/queries'
 import { vanish } from '@/lib/motion'
 import { requireSession } from '@/lib/session'
 import { glass } from '@/theme/glass'
+import { media } from '@/theme/media'
 import { focus } from '@/theme/focus'
 import { text } from '@/theme/text'
 import { colors, fonts, radii, sizes, space } from '@/theme/tokens.stylex'
@@ -113,11 +114,11 @@ function Reader({ book, direction, pages }: ReaderProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [strip, rtl, step, navigate, book.seriesId])
 
-  // The next two pages decode while this one is read.
+  // The neighbouring pages decode while this one is read, so a turn swaps in a ready bitmap.
   useEffect(() => {
     if (strip) return
-    for (const n of [page + 1, page + 2]) {
-      if (n <= count) new Image().src = komga.pageImage(book.id, n)
+    for (const n of [page + 1, page + 2, page - 1]) {
+      if (n >= 1 && n <= count) new Image().src = komga.pageImage(book.id, n)
     }
   }, [strip, page, count, book.id])
 
@@ -136,7 +137,6 @@ function Reader({ book, direction, pages }: ReaderProps) {
       ) : (
         <div {...stylex.props(styles.stage)}>
           <img
-            key={page}
             src={komga.pageImage(book.id, page)}
             alt={`Page ${page}`}
             {...stylex.props(styles.pageImage)}
@@ -159,6 +159,12 @@ function Reader({ book, direction, pages }: ReaderProps) {
             onClick={() => step(rtl ? -1 : 1)}
             {...stylex.props(styles.zone, styles.zoneRight)}
           />
+          <div {...stylex.props(media.progressTrack)}>
+            <div
+              {...stylex.props(media.progressBar)}
+              style={{ width: `${(page / count) * 100}%` }}
+            />
+          </div>
         </div>
       )}
 
@@ -245,6 +251,9 @@ function Strip({ book, pages, start, onPage, onTap }: StripProps) {
   )
 }
 
+/** Slim edge strips, not floating pills: the page keeps the room. */
+const BAR_HEIGHT = '44px'
+
 const styles = stylex.create({
   root: {
     position: 'fixed',
@@ -300,18 +309,14 @@ const styles = stylex.create({
   },
   bar: {
     position: 'absolute',
-    top: space.md,
-    insetInline: space.md,
-    marginInline: 'auto',
-    width: 'fit-content',
-    maxWidth: `calc(100% - 2 * ${space.md})`,
+    top: 0,
+    insetInline: 0,
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
-    height: sizes.navHeight,
-    paddingInlineStart: space.md,
-    paddingInlineEnd: space.lg,
-    borderRadius: radii.full,
+    height: `calc(${BAR_HEIGHT} + env(safe-area-inset-top))`,
+    paddingTop: 'env(safe-area-inset-top)',
+    paddingInline: space.md,
   },
   barButton: {
     display: 'grid',
@@ -336,6 +341,7 @@ const styles = stylex.create({
     fontWeight: 600,
   },
   barCount: {
+    marginInlineStart: 'auto',
     fontSize: 13,
     fontVariantNumeric: 'tabular-nums',
     color: colors.textMuted,
