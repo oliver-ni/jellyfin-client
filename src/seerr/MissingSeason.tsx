@@ -2,12 +2,12 @@ import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
 import { motion as m } from 'motion/react'
 import { BlurImage } from '@/components/BlurImage'
+import { RequestButton } from '@/components/RequestButton'
 import { Notice } from '@/components/Notice'
 import { formatDate } from '@/lib/format'
 import { fadeUp, stagger } from '@/lib/motion'
 import type { Episode, Season, TvDetails } from './api'
-import { seerrQueries } from './queries'
-import { RequestButton } from './RequestButton'
+import { requestTitle, seerrQueries } from './queries'
 import { SeasonHeader } from './SeasonHeader'
 import { episode as ep } from '@/theme/episode'
 import { media } from '@/theme/media'
@@ -26,7 +26,7 @@ export function MissingSeason({ title, season }: { title: TvDetails; season: Sea
         season={season}
         sonarrId={title.sonarrId}
         request={
-          <RequestButton title={title} seasons={[season.number]} size="sm">
+          <RequestButton request={() => requestTitle(title, [season.number])} size="sm">
             Request
           </RequestButton>
         }
