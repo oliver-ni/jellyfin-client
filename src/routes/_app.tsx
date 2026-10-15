@@ -319,6 +319,8 @@ const fadeOut = stylex.keyframes({ from: { opacity: 1 }, to: { opacity: 0 } })
 
 const HIDE_SIDEBAR = '@media (max-width: 1024px)'
 const SIDEBAR_W = 240
+/** Concentric with the panel: its 20px corner minus the 8px padding. */
+const ROW_RADIUS = 12
 
 const styles = stylex.create({
   shell: {
@@ -356,7 +358,7 @@ const styles = stylex.create({
     height: 44,
     paddingInline: space.md,
     marginBottom: space.xs,
-    borderRadius: radii.md,
+    borderRadius: ROW_RADIUS,
     color: colors.text,
     textDecoration: 'none',
   },
@@ -389,7 +391,7 @@ const styles = stylex.create({
     minHeight: 36,
     paddingInline: space.md,
     paddingBlock: space.xs,
-    borderRadius: radii.md,
+    borderRadius: ROW_RADIUS,
     whiteSpace: 'nowrap',
     textDecoration: 'none',
     outlineOffset: -2,
@@ -397,9 +399,8 @@ const styles = stylex.create({
   linkActive: {
     position: 'absolute',
     inset: 0,
-    borderRadius: radii.md,
+    borderRadius: ROW_RADIUS,
     backgroundColor: colors.surfaceHover,
-    boxShadow: `inset 0 1px 0 ${colors.glassHighlight}`,
   },
   cover: {
     display: 'block',
@@ -454,7 +455,7 @@ const styles = stylex.create({
       default: colors.surface,
       '[data-hovered]': colors.surfaceHover,
     },
-    borderRadius: radii.md,
+    borderRadius: ROW_RADIUS,
     fontSize: 14,
     fontWeight: 500,
     transitionProperty: 'color, background-color',
@@ -481,7 +482,7 @@ const styles = stylex.create({
     gap: space.md,
     paddingInline: space.sm,
     paddingBlock: space.sm,
-    borderRadius: radii.md,
+    borderRadius: ROW_RADIUS,
     textAlign: 'left',
     backgroundColor: {
       default: 'transparent',
