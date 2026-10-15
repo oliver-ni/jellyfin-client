@@ -15,8 +15,7 @@ export const detail = stylex.create({
   },
   /** Content column under the hero. */
   body: {
-    paddingInlineStart: sizes.gutterStart,
-    paddingInlineEnd: sizes.pageGutter,
+    paddingInline: sizes.pageGutter,
     maxWidth: sizes.maxContent,
     marginInline: 'auto',
     width: '100%',

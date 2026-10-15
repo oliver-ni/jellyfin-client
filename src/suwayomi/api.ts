@@ -19,8 +19,6 @@ export interface Manga {
 
 /** A requested title and how much of it is downloaded. */
 export interface MangaRequest extends Manga {
-  /** Unix seconds. */
-  requestedAt: number
   chapters: number
   downloaded: number
   /** Chapters waiting in Suwayomi's download queue. */

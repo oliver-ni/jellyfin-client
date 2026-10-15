@@ -304,7 +304,7 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
-    height: 64,
+    height: sizes.navHeight,
     paddingInlineStart: space.md,
     paddingInlineEnd: space.lg,
     borderRadius: radii.full,
