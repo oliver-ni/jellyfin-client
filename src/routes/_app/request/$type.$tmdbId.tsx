@@ -118,12 +118,9 @@ function RequestPage() {
  */
 function HeroAction({ title }: { title: seerr.MovieDetails | seerr.TvDetails }) {
   if (title.type === 'tv') {
-    const open = seerr.openSeasons(title)
+    const open = seerr.openSeasons(title).map((s) => s.number)
     return open.length > 1 ? (
-      <RequestButton
-        request={() => requestTitle(title, open.map((s) => s.number))}
-        size="lg"
-      >
+      <RequestButton request={() => requestTitle(title, open)} size="lg">
         Request all {open.length} seasons
       </RequestButton>
     ) : null
