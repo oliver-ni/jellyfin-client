@@ -33,7 +33,8 @@ import { QuickConnectDialog } from '@/components/QuickConnectDialog'
 import { SearchPalette } from '@/components/SearchPalette'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
 import { logout } from '@/lib/auth'
-import { libraryLink } from '@/lib/item-link'
+import { imageUrl } from '@/lib/images'
+import { itemLink, libraryLink, type ItemLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { requireSession, useSession, type Session } from '@/lib/session'
@@ -78,6 +79,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 function SideNav({ session }: { session: Session }) {
   const navigate = useNavigate()
   const views = useQuery(queries.views(session.userId))
+  const favorites = useQuery(queries.favorites(session.userId)).data?.Items ?? []
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
   const [searchOpen, setSearchOpen] = useState(false)
   const [quickConnectOpen, setQuickConnectOpen] = useState(false)
@@ -121,6 +123,25 @@ function SideNav({ session }: { session: Session }) {
           Manga
         </NavLink>
       )}
+      {favorites.length > 0 && <h2 {...stylex.props(styles.section)}>Pinned</h2>}
+      {favorites.map((item) => (
+        <NavLink
+          key={item.Id}
+          {...itemLink(item)}
+          icon={
+            <img
+              alt=""
+              src={imageUrl(item.Id ?? '', {
+                tag: item.ImageTags?.Primary ?? undefined,
+                width: 48,
+              })}
+              {...stylex.props(styles.cover)}
+            />
+          }
+        >
+          {item.Name}
+        </NavLink>
+      ))}
     </nav>
   )
 
@@ -257,6 +278,7 @@ function libraryIcon(type: BaseItemDto['CollectionType']) {
 type NavLinkProps = { children: ReactNode; icon: ReactNode } & (
   | { to: '/' | '/requests' | '/manga'; params?: undefined }
   | ReturnType<typeof libraryLink>
+  | ItemLink
 )
 
 function NavLink({ children, icon, ...target }: NavLinkProps) {
@@ -364,8 +386,9 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
-    height: 36,
+    minHeight: 36,
     paddingInline: space.md,
+    paddingBlock: space.xs,
     borderRadius: radii.md,
     whiteSpace: 'nowrap',
     textDecoration: 'none',
@@ -378,6 +401,14 @@ const styles = stylex.create({
     backgroundColor: colors.surfaceHover,
     boxShadow: `inset 0 1px 0 ${colors.glassHighlight}`,
   },
+  cover: {
+    display: 'block',
+    width: 24,
+    height: 36,
+    objectFit: 'cover',
+    borderRadius: radii.xs,
+    backgroundColor: colors.surface,
+  },
   linkIcon: {
     position: 'relative',
     display: 'grid',
@@ -386,6 +417,9 @@ const styles = stylex.create({
   },
   linkLabel: {
     position: 'relative',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
     fontSize: 14,
     fontWeight: 500,
     color: {
