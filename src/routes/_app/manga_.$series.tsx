@@ -4,7 +4,6 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { BookOpen, Check } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { titleHead } from '@/brand'
-import { BlurImage } from '@/components/BlurImage'
 import { DetailHero } from '@/components/DetailHero'
 import { Notice } from '@/components/Notice'
 import { Gate } from '@/komga/Gate'
@@ -15,9 +14,8 @@ import { detail } from '@/theme/detail'
 import { episode as ep } from '@/theme/episode'
 import { focus } from '@/theme/focus'
 import { media, playPill } from '@/theme/media'
-import { colors, motion, space } from '@/theme/tokens.stylex'
-
-const THUMB_W = 88
+import { text } from '@/theme/text'
+import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
 const STATUS: Record<string, string> = {
   ONGOING: 'Ongoing',
@@ -119,39 +117,31 @@ function ChapterRow({ book }: { book: komga.Book }) {
   const done = book.progress?.completed ?? false
   const page = !done && book.progress ? book.progress.page : 0
   return (
-    <m.li variants={fadeUp} {...stylex.props(ep.row, styles.row)}>
+    <m.li variants={fadeUp}>
       <Link
         to="/read/$book"
         params={{ book: book.id }}
-        {...stylex.props(focus.ring, styles.link, stylex.defaultMarker())}
+        {...stylex.props(focus.ring, styles.row, done && styles.rowRead)}
       >
-        <div {...stylex.props(ep.still, styles.thumb)}>
-          <BlurImage src={komga.bookCover(book.id)} alt="" style={media.fill} />
-          {done && (
-            <div {...stylex.props(media.cornerBadge)}>
-              <Check size={12} weight="bold" />
-            </div>
+        <span {...stylex.props(ep.number)}>{book.number}</span>
+        <span {...stylex.props(text.ellipsis, styles.title)}>{book.title}</span>
+        <span {...stylex.props(ep.sub, styles.status)}>
+          {done ? (
+            <Check size={14} weight="bold" aria-label="Read" />
+          ) : page > 0 ? (
+            `Page ${page} of ${book.pagesCount}`
+          ) : (
+            `${book.pagesCount} pages`
           )}
-          {page > 0 && (
-            <div {...stylex.props(media.progressTrack)}>
-              <div
-                {...stylex.props(media.progressBar)}
-                style={{ width: `${(page / book.pagesCount) * 100}%` }}
-              />
-            </div>
-          )}
-        </div>
-        <span {...stylex.props(ep.body)}>
-          <span {...stylex.props(ep.heading)}>
-            <span {...stylex.props(ep.number)}>{book.number}</span>
-            <span {...stylex.props(ep.title, styles.title, done && styles.titleRead)}>
-              {book.title}
-            </span>
-          </span>
-          <span {...stylex.props(ep.sub)}>
-            {page > 0 ? `Page ${page} of ${book.pagesCount}` : `${book.pagesCount} pages`}
-          </span>
         </span>
+        {page > 0 && (
+          <span {...stylex.props(media.progressTrack, styles.track)}>
+            <span
+              {...stylex.props(media.progressBar, styles.bar)}
+              style={{ width: `${(page / book.pagesCount) * 100}%` }}
+            />
+          </span>
+        )}
       </Link>
     </m.li>
   )
@@ -164,8 +154,17 @@ const styles = stylex.create({
     gap: space.xxl,
   },
   row: {
-    display: 'block',
-    paddingBlock: space.sm,
+    position: 'relative',
+    display: 'grid',
+    gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+    alignItems: 'center',
+    gap: space.lg,
+    paddingBlock: space.md,
+    paddingInline: space.md,
+    marginInline: `calc(-1 * ${space.md})`,
+    borderRadius: radii.md,
+    color: colors.text,
+    textDecoration: 'none',
     backgroundColor: {
       default: 'transparent',
       ':hover': colors.surface,
@@ -173,26 +172,25 @@ const styles = stylex.create({
     transitionProperty: 'background-color',
     transitionDuration: motion.fast,
   },
-  link: {
-    display: 'grid',
-    gridTemplateColumns: `${THUMB_W}px minmax(0, 1fr)`,
-    gap: space.lg,
-    alignItems: 'center',
-    color: colors.text,
-    textDecoration: 'none',
-  },
-  thumb: {
-    aspectRatio: '2 / 3',
+  rowRead: {
+    color: colors.textMuted,
   },
   title: {
-    textDecoration: {
-      default: 'none',
-      [stylex.when.ancestor(':hover')]: 'underline',
-    },
-    textUnderlineOffset: 3,
-    textDecorationColor: colors.borderStrong,
+    fontSize: 16,
+    fontWeight: 600,
+    letterSpacing: '-0.01em',
   },
-  titleRead: {
-    color: colors.textMuted,
+  status: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  track: {
+    left: space.md,
+    right: space.md,
+    height: 2,
+  },
+  bar: {
+    display: 'block',
   },
 })
