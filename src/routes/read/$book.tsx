@@ -299,6 +299,7 @@ const styles = stylex.create({
     insetInline: space.md,
     marginInline: 'auto',
     width: 'fit-content',
+    maxWidth: `calc(100% - 2 * ${space.md})`,
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
