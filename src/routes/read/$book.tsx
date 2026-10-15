@@ -17,7 +17,10 @@ import { colors, fonts, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/read/$book')({
   beforeLoad: requireSession,
-  // Always refetched: the reader opens on the bookmark, which this browser may just have moved.
+  // The reader opens on the bookmark, which this browser may just have moved, so the book is
+  // fetched afresh on every entry; without `gcTime: 0` the router would show the cached match
+  // (and so the stale bookmark) while that fetch ran.
+  gcTime: 0,
   loader: ({ context: { queryClient }, params }) =>
     queryClient.fetchQuery({ ...komgaQueries.book(params.book), staleTime: 0 }).catch(() => null),
   head: ({ loaderData }) =>
