@@ -13,7 +13,7 @@ import { fadeUp, stagger } from '@/lib/motion'
 import { detail } from '@/theme/detail'
 import { episode as ep } from '@/theme/episode'
 import { focus } from '@/theme/focus'
-import { media, playPill } from '@/theme/media'
+import { playPill } from '@/theme/media'
 import { text } from '@/theme/text'
 import { colors, motion, radii, space } from '@/theme/tokens.stylex'
 
@@ -125,7 +125,7 @@ function ChapterRow({ book }: { book: komga.Book }) {
       >
         <span {...stylex.props(ep.number)}>{book.number}</span>
         <span {...stylex.props(text.ellipsis, styles.title)}>{book.title}</span>
-        <span {...stylex.props(ep.sub, styles.status)}>
+        <span {...stylex.props(ep.sub, styles.status, page > 0 && styles.statusCurrent)}>
           {done ? (
             <Check size={14} weight="bold" aria-label="Read" />
           ) : page > 0 ? (
@@ -134,14 +134,6 @@ function ChapterRow({ book }: { book: komga.Book }) {
             `${book.pagesCount} pages`
           )}
         </span>
-        {page > 0 && (
-          <span {...stylex.props(media.progressTrack, styles.track)}>
-            <span
-              {...stylex.props(media.progressBar, styles.bar)}
-              style={{ width: `${(page / book.pagesCount) * 100}%` }}
-            />
-          </span>
-        )}
       </Link>
     </m.li>
   )
@@ -154,7 +146,6 @@ const styles = stylex.create({
     gap: space.xxl,
   },
   row: {
-    position: 'relative',
     display: 'grid',
     gridTemplateColumns: 'auto minmax(0, 1fr) auto',
     alignItems: 'center',
@@ -185,12 +176,7 @@ const styles = stylex.create({
     alignItems: 'center',
     fontVariantNumeric: 'tabular-nums',
   },
-  track: {
-    left: space.md,
-    right: space.md,
-    height: 2,
-  },
-  bar: {
-    display: 'block',
+  statusCurrent: {
+    color: colors.text,
   },
 })
