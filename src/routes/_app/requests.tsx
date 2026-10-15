@@ -37,6 +37,9 @@ import { Progress } from '@/seerr/Progress'
 import { seerrQueries, useSeerr } from '@/seerr/queries'
 import { DOWNLOADING, holdup } from '@/sonarr/api'
 import { sonarrQueries } from '@/sonarr/queries'
+import { thumbnail, type MangaRequest } from '@/suwayomi/api'
+import { chapters, mangaGroup, mangaProgress } from '@/suwayomi/labels'
+import { suwayomiQueries } from '@/suwayomi/queries'
 import { focus } from '@/theme/focus'
 import { list } from '@/theme/list'
 import { text } from '@/theme/text'
@@ -121,12 +124,21 @@ function RequestList({ user }: { user: SeerrUser }) {
     const why = holdups.get(titleKey(row.r)) ?? null
     return { ...row, holdup: why, group: why === DOWNLOADING ? 'downloading' : row.group }
   })
+  // Manga requests have no requester or approval; they sit in the same groups by their chapters.
+  const mangaConfigured = useQuery(suwayomiQueries.configured())
+  const manga = useQuery({
+    ...suwayomiQueries.requests(),
+    enabled: mangaConfigured.data === true,
+    select: (ms) => ms.map((m) => ({ m, group: mangaGroup(m) })),
+  })
+  const mangaRows = manga.data ?? []
+  const total = requests.data && requests.data.length + mangaRows.length
 
   return (
     <div {...stylex.props(list.page, styles.page)}>
       <header {...stylex.props(list.head)}>
         <h1 {...stylex.props(list.title)}>Requests</h1>
-        {requests.data && <span {...stylex.props(list.faint)}>{requests.data.length}</span>}
+        {total !== undefined && <span {...stylex.props(list.faint)}>{total}</span>}
       </header>
       <div {...stylex.props(styles.toolbar)}>
         {canViewAll && (
@@ -151,7 +163,7 @@ function RequestList({ user }: { user: SeerrUser }) {
           text="Seerr may be signed out or offline."
           onRetry={() => void requests.refetch()}
         />
-      ) : requests.data?.length === 0 ? (
+      ) : total === 0 ? (
         <Notice
           title="Nothing requested yet"
           text="Search with / for something the library is missing and request it."
@@ -166,12 +178,15 @@ function RequestList({ user }: { user: SeerrUser }) {
         >
           {REQUEST_GROUPS.map((g) => {
             const members = rows.filter((x) => x.group === g)
-            if (members.length === 0) return null
+            const mangaMembers = mangaRows.filter((x) => x.group === g).map((x) => x.m)
+            if (members.length + mangaMembers.length === 0) return null
             return (
               <section key={g} {...stylex.props(styles.group)}>
                 <h2 {...stylex.props(list.faint)}>
                   {REQUEST_GROUP_LABEL[g]}
-                  <span {...stylex.props(styles.count)}>{members.length}</span>
+                  <span {...stylex.props(styles.count)}>
+                    {members.length + mangaMembers.length}
+                  </span>
                 </h2>
                 <ul {...stylex.props(styles.list, g === 'done' && styles.grid)}>
                   {members.map(({ r, title, c, holdup }) =>
@@ -193,6 +208,20 @@ function RequestList({ user }: { user: SeerrUser }) {
                         holdup={holdup}
                         requester={everyone ? r.requestedBy : null}
                       />
+                    ),
+                  )}
+                  {mangaMembers.map((m) =>
+                    g === 'done' ? (
+                      <li key={`manga/${m.id}`}>
+                        <Card
+                          link={MANGA_LINK}
+                          image={{ url: thumbnail(m.id) }}
+                          name={m.title}
+                          subtitle={chapters(m.chapters)}
+                        />
+                      </li>
+                    ) : (
+                      <MangaRow key={`manga/${m.id}`} manga={m} />
                     ),
                   )}
                 </ul>
@@ -261,6 +290,29 @@ function RequestRow({
           <Progress value={bar} title={releaseNames(r.downloads)} />
         ) : (
           holdup && <span {...stylex.props(styles.meta)}>{holdup}</span>
+        )}
+      </Link>
+    </li>
+  )
+}
+
+// Requested manga is read in the Manga tab as its chapters arrive.
+const MANGA_LINK = { to: '/manga' } as const
+
+function MangaRow({ manga: m }: { manga: MangaRequest }) {
+  const bar = mangaProgress(m)
+  return (
+    <li>
+      <Link {...MANGA_LINK} {...stylex.props(focus.ring, styles.row)}>
+        <BlurImage src={thumbnail(m.id)} alt="" style={styles.poster} />
+        <span {...stylex.props(styles.copy)}>
+          <span {...stylex.props(text.ellipsis, styles.name)}>{m.title}</span>
+          <span {...stylex.props(text.ellipsis, styles.meta)}>Manga · {m.source}</span>
+        </span>
+        {bar ? (
+          <Progress value={bar} />
+        ) : (
+          <span {...stylex.props(styles.meta)}>Finding chapters</span>
         )}
       </Link>
     </li>
