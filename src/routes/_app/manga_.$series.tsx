@@ -125,22 +125,22 @@ function ChapterRow({ book }: { book: komga.Book }) {
         params={{ book: book.id }}
         {...stylex.props(focus.ring, styles.link, stylex.defaultMarker())}
       >
-        <span {...stylex.props(ep.still, styles.thumb)}>
+        <div {...stylex.props(ep.still, styles.thumb)}>
           <BlurImage src={komga.bookCover(book.id)} alt="" style={media.fill} />
           {done && (
-            <span {...stylex.props(media.cornerBadge)}>
+            <div {...stylex.props(media.cornerBadge)}>
               <Check size={12} weight="bold" />
-            </span>
+            </div>
           )}
           {page > 0 && (
-            <span {...stylex.props(media.progressTrack)}>
-              <span
+            <div {...stylex.props(media.progressTrack)}>
+              <div
                 {...stylex.props(media.progressBar)}
                 style={{ width: `${(page / book.pagesCount) * 100}%` }}
               />
-            </span>
+            </div>
           )}
-        </span>
+        </div>
         <span {...stylex.props(ep.body)}>
           <span {...stylex.props(ep.heading)}>
             <span {...stylex.props(ep.number)}>{book.number}</span>
