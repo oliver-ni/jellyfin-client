@@ -296,8 +296,9 @@ const styles = stylex.create({
   bar: {
     position: 'absolute',
     top: space.md,
-    left: '50%',
-    transform: 'translateX(-50%)',
+    insetInline: space.md,
+    marginInline: 'auto',
+    width: 'fit-content',
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
@@ -305,7 +306,6 @@ const styles = stylex.create({
     paddingInline: space.md,
     paddingRight: space.lg,
     borderRadius: radii.full,
-    maxWidth: 'calc(100% - 32px)',
   },
   barButton: {
     display: 'grid',
