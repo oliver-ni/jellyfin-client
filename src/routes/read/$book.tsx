@@ -17,8 +17,9 @@ import { colors, fonts, radii, sizes, space } from '@/theme/tokens.stylex'
 
 export const Route = createFileRoute('/read/$book')({
   beforeLoad: requireSession,
+  // Always refetched: the reader opens on the bookmark, which this browser may just have moved.
   loader: ({ context: { queryClient }, params }) =>
-    queryClient.ensureQueryData(komgaQueries.book(params.book)).catch(() => null),
+    queryClient.fetchQuery({ ...komgaQueries.book(params.book), staleTime: 0 }).catch(() => null),
   head: ({ loaderData }) =>
     titleHead(loaderData ? `${loaderData.title} · ${loaderData.seriesTitle}` : null),
   component: ReaderPage,
