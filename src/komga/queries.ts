@@ -25,13 +25,17 @@ function setUser(user: komga.User | null) {
 }
 
 export const komgaQueries = {
-  /** Cached like the rest so the tab renders signed-in at once; a 401 anywhere corrects it. */
+  /**
+   * Asked once per page load and never persisted: sign-in and sign-out set it directly, which the
+   * persister doesn't see, so a stored answer would outlive the session it described.
+   */
   me: () =>
     queryOptions({
       queryKey: ['komga', 'me'],
       queryFn: komga.me,
-      staleTime: 5 * 60_000,
+      staleTime: Infinity,
       retry: false,
+      persister: undefined,
     }),
   series: () =>
     infiniteQueryOptions({
