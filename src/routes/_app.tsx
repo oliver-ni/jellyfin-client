@@ -427,6 +427,7 @@ const styles = stylex.create({
     },
   },
   account: {
+    width: '100%',
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
