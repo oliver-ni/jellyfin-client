@@ -164,8 +164,7 @@ const styles = stylex.create({
     gap: space.md,
     width: '100%',
     maxWidth: 640,
-    paddingInlineStart: sizes.gutterStart,
-    paddingInlineEnd: sizes.pageGutter,
+    paddingInline: sizes.pageGutter,
     paddingBottom: space.xxxl,
   },
   footer: {
