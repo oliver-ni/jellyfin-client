@@ -12,4 +12,9 @@ interface ImportMetaEnv {
    * offers it first. Needs `/sso/*` on this origin proxied to the server (see src/lib/sso.ts).
    */
   readonly VITE_SSO_PROVIDER?: string
+  /**
+   * Komga server behind the Manga tab, called directly from the browser; it must allow this
+   * origin in `komga.cors.allowed-origins`. Sign-in is Komga's own, in a popup (see src/komga).
+   */
+  readonly VITE_KOMGA_URL?: string
 }

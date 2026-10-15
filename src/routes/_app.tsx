@@ -14,6 +14,8 @@ import { libraryLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { requireSession, useSession, type Session } from '@/lib/session'
+import { KOMGA_URL } from '@/komga/api'
+import { signOut as komgaSignOut } from '@/komga/queries'
 import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
 import { glass, overlay } from '@/theme/glass'
 import { menu } from '@/theme/menu'
@@ -93,6 +95,7 @@ function TopNav({ session }: { session: Session }) {
           </NavLink>
         ))}
         {seerr && seerr.state !== 'unavailable' && <NavLink to="/requests">Requests</NavLink>}
+        {KOMGA_URL && <NavLink to="/manga">Manga</NavLink>}
       </nav>
       <div {...stylex.props(styles.right)}>
         <AriaButton
@@ -129,7 +132,7 @@ function TopNav({ session }: { session: Session }) {
               onAction={async (key) => {
                 if (key === 'quick-connect') setQuickConnectOpen(true)
                 if (key === 'logout') {
-                  await Promise.all([logout(), seerrSignOut()])
+                  await Promise.all([logout(), seerrSignOut(), komgaSignOut()])
                   await navigate({ to: '/login', replace: true })
                 }
               }}
@@ -155,7 +158,7 @@ function TopNav({ session }: { session: Session }) {
 }
 
 type NavLinkProps = { children: ReactNode } & (
-  | { to: '/' | '/requests'; params?: undefined }
+  | { to: '/' | '/requests' | '/manga'; params?: undefined }
   | ReturnType<typeof libraryLink>
 )
 
