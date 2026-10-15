@@ -196,7 +196,14 @@ interface CredentialsStepProps extends StepProps {
   footer: ReactNode
 }
 
-function CredentialsStep({ serverUrl, ready, busy, error, onSubmit, footer }: CredentialsStepProps) {
+function CredentialsStep({
+  serverUrl,
+  ready,
+  busy,
+  error,
+  onSubmit,
+  footer,
+}: CredentialsStepProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const submit = (e: FormEvent) => {
@@ -221,10 +228,7 @@ function CredentialsStep({ serverUrl, ready, busy, error, onSubmit, footer }: Cr
           onChange={setPassword}
           autoComplete="current-password"
         />
-        <Submit
-          label={busy ? 'Signing in…' : 'Sign in'}
-          isDisabled={busy || !ready || !username}
-        />
+        <Submit label={busy ? 'Signing in…' : 'Sign in'} isDisabled={busy || !ready || !username} />
       </Form>
     </Step>
   )
