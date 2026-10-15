@@ -5,11 +5,14 @@ import { motion as m } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { titleHead } from '@/brand'
 import { Notice } from '@/components/Notice'
-import { SeriesCard, SERIES_W } from '@/komga/SeriesCard'
+import { SeriesCard } from '@/komga/SeriesCard'
 import { komgaQueries } from '@/komga/queries'
 import { stagger } from '@/lib/motion'
 import { list } from '@/theme/list'
 import { sizes, space } from '@/theme/tokens.stylex'
+
+// Literal rather than SeriesCard's SERIES_W: StyleX only compiles values it can see.
+const POSTER_W = 150
 
 export const Route = createFileRoute('/_app/read/manga')({
   head: () => titleHead('Manga'),
@@ -66,7 +69,7 @@ const styles = stylex.create({
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: `repeat(auto-fill, minmax(${SERIES_W}px, 1fr))`,
+    gridTemplateColumns: `repeat(auto-fill, minmax(${POSTER_W}px, 1fr))`,
     gap: space.lg,
   },
 })
