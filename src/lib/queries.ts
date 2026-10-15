@@ -91,19 +91,6 @@ export const queries = {
         imageTypeLimit: 1,
       },
     }),
-  favorites: (userId: string) =>
-    getItemsOptions({
-      query: {
-        userId,
-        filters: ['IsFavorite'],
-        recursive: true,
-        includeItemTypes: ['Movie', 'Series'],
-        sortBy: ['SortName'],
-        fields: CARD_FIELDS,
-        enableImageTypes: CARD_IMAGES,
-        imageTypeLimit: 1,
-      },
-    }),
   similar: (userId: string, itemId: string) =>
     getSimilarItemsOptions({ path: { itemId }, query: { userId, limit: 16, fields: CARD_FIELDS } }),
 }
