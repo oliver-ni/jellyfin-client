@@ -183,32 +183,26 @@ function SideNav({ session }: { session: Session }) {
     </MenuTrigger>
   )
 
-  const search = (
-    <AriaButton
-      aria-label="Search"
-      onPress={() => {
-        setDrawerOpen(false)
-        setSearchOpen(true)
-      }}
-      {...stylex.props(focus.ring, styles.search)}
-    >
-      <span {...stylex.props(styles.iconSlot)}>
-        <MagnifyingGlass size={18} />
-      </span>
-      <span {...stylex.props(styles.searchLabel)}>Search</span>
-      <kbd {...stylex.props(styles.kbd)}>/</kbd>
-    </AriaButton>
-  )
-
   const panel = (
     <>
-      <Link to="/" aria-label={session.serverName} {...stylex.props(focus.ring, styles.brand)}>
-        <span {...stylex.props(styles.iconSlot)}>
-          <BrandMark size={20} />
-        </span>
-        <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
-      </Link>
-      {search}
+      <div {...stylex.props(styles.brandRow)}>
+        <Link to="/" aria-label={session.serverName} {...stylex.props(focus.ring, styles.brand)}>
+          <span {...stylex.props(styles.iconSlot)}>
+            <BrandMark size={20} />
+          </span>
+          <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
+        </Link>
+        <AriaButton
+          aria-label="Search"
+          onPress={() => {
+            setDrawerOpen(false)
+            setSearchOpen(true)
+          }}
+          {...stylex.props(focus.ring, styles.searchButton)}
+        >
+          <MagnifyingGlass size={18} />
+        </AriaButton>
+      </div>
       {links}
       <div {...stylex.props(styles.panelFoot)}>{account}</div>
     </>
@@ -353,13 +347,19 @@ const styles = stylex.create({
     gap: space.xs,
     height: '100%',
   },
+  brandRow: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: space.xs,
+  },
   brand: {
+    flex: 1,
+    minWidth: 0,
     display: 'flex',
     alignItems: 'center',
     gap: space.md,
     height: 44,
     paddingInline: space.md,
-    marginBottom: space.xs,
     borderRadius: ROW_RADIUS,
     color: colors.text,
     textDecoration: 'none',
@@ -446,34 +446,22 @@ const styles = stylex.create({
     flexDirection: 'column',
     gap: space.xs,
   },
-  search: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: space.md,
-    height: 36,
-    paddingInline: space.md,
+  searchButton: {
+    flexShrink: 0,
+    width: 32,
+    height: 32,
+    marginInlineEnd: 6,
+    display: 'grid',
+    placeItems: 'center',
+    borderRadius: 999,
     color: {
       default: colors.textMuted,
       '[data-hovered]': colors.text,
     },
     backgroundColor: {
-      default: colors.surface,
+      default: 'transparent',
       '[data-hovered]': colors.surfaceHover,
     },
-    borderRadius: ROW_RADIUS,
-    fontSize: 14,
-    fontWeight: 500,
-    transitionProperty: 'color, background-color',
-    transitionDuration: motion.fast,
-  },
-  searchLabel: {
-    flex: 1,
-    textAlign: 'left',
-  },
-  kbd: {
-    fontFamily: 'inherit',
-    fontSize: 12,
-    color: colors.textFaint,
   },
   account: {
     display: 'flex',
