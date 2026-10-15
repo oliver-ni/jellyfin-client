@@ -83,6 +83,7 @@ function SeriesDetail() {
     <article {...stylex.props(detail.page)}>
       <DetailHero
         backdrop={cover}
+        blurBackdrop
         tile={cover}
         title={s.name}
         meta={[

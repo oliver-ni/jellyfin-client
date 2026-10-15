@@ -14,6 +14,8 @@ const TILE_W = 190
 
 export interface DetailHeroProps {
   backdrop?: ResolvedImage | null
+  /** Blur the backdrop: for portrait covers that would otherwise show as a giant crop. */
+  blurBackdrop?: boolean
   tile?: ResolvedImage | null
   /** Item whose poster card the tile morphs from and back to. */
   morphId?: string
@@ -32,6 +34,7 @@ export interface DetailHeroProps {
 /** Full-bleed artwork with a poster tile and title block; the top of every detail page. */
 export function DetailHero({
   backdrop,
+  blurBackdrop,
   tile,
   morphId = '',
   logo,
@@ -55,7 +58,7 @@ export function DetailHero({
           alt=""
           loading="eager"
           fetchPriority="high"
-          style={media.fill}
+          style={[media.fill, blurBackdrop && styles.blurredArt]}
         />
         <div {...stylex.props(styles.fadeBottom)} />
         <div {...stylex.props(styles.fadeLeft)} />
@@ -141,6 +144,10 @@ const styles = stylex.create({
     position: 'absolute',
     inset: 0,
     overflow: 'hidden',
+  },
+  blurredArt: {
+    filter: 'blur(48px) saturate(1.4)',
+    transform: 'scale(1.2)',
   },
   fadeBottom: {
     position: 'absolute',
