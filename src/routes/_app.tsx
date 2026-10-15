@@ -203,7 +203,9 @@ function SideNav({ session }: { session: Session }) {
   const panel = (
     <>
       <Link to="/" aria-label={session.serverName} {...stylex.props(focus.ring, styles.brand)}>
-        <BrandMark size={20} />
+        <span {...stylex.props(styles.iconSlot)}>
+          <BrandMark size={20} />
+        </span>
         <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
       </Link>
       {search}
