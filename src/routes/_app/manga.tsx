@@ -56,20 +56,22 @@ function Library() {
         {total !== undefined && <span {...stylex.props(list.faint)}>{total}</span>}
       </header>
 
-      {inProgress.data && inProgress.data.length > 0 && (
-        <Rail title="Continue reading">
-          {inProgress.data.map((book) => (
-            <ChapterCard key={book.id} book={book} width={POSTER_W} />
-          ))}
-        </Rail>
-      )}
-      {onDeck.data && onDeck.data.length > 0 && (
-        <Rail title="Up next">
-          {onDeck.data.map((book) => (
-            <ChapterCard key={book.id} book={book} width={POSTER_W} />
-          ))}
-        </Rail>
-      )}
+      <div {...stylex.props(styles.rails)}>
+        {inProgress.data && inProgress.data.length > 0 && (
+          <Rail title="Continue reading">
+            {inProgress.data.map((book) => (
+              <ChapterCard key={book.id} book={book} width={POSTER_W} />
+            ))}
+          </Rail>
+        )}
+        {onDeck.data && onDeck.data.length > 0 && (
+          <Rail title="Up next">
+            {onDeck.data.map((book) => (
+              <ChapterCard key={book.id} book={book} width={POSTER_W} />
+            ))}
+          </Rail>
+        )}
+      </div>
 
       {series.isError ? (
         <Notice title="Couldn’t load the library" onRetry={() => void series.refetch()} />
@@ -110,6 +112,13 @@ function Library() {
 const styles = stylex.create({
   page: {
     maxWidth: sizes.maxContent,
+  },
+  // Rails bring their own page gutter so the scroller can bleed to the edge; undo the page's.
+  rails: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: space.lg,
+    marginInline: `calc(-1 * ${sizes.pageGutter})`,
   },
   grid: {
     display: 'grid',
