@@ -16,6 +16,7 @@ import { useSettled } from '@/hooks/useSettled'
 import { plainText } from '@/lib/format'
 import { idFromHandle } from '@/lib/handle'
 import { itemLink } from '@/lib/item-link'
+import { itemFacts } from '@/lib/facts'
 import { fadeUp, stagger } from '@/lib/motion'
 import { queries } from '@/lib/queries'
 import { defaultSeason, newsFor, seasonEntries } from '@/lib/seasons'
@@ -106,14 +107,14 @@ function ItemDetail({ item, userId }: { item: BaseItemDto; userId: string }) {
         initial="hidden"
         animate="show"
         variants={stagger(0.03, 0.1)}
-        {...stylex.props(detail.body, styles.body, sidebar && styles.bodySplit)}
+        {...stylex.props(detail.body, detail.columns, sidebar && detail.split)}
       >
-        <m.div variants={fadeUp} {...stylex.props(styles.main)}>
+        <m.div variants={fadeUp} {...stylex.props(detail.main)}>
           {overview && <p {...stylex.props(detail.overview)}>{overview}</p>}
           {sidebar && <SeriesSeasons series={item} userId={userId} />}
         </m.div>
-        <m.aside variants={fadeUp} {...stylex.props(sidebar && styles.aside)}>
-          <FactSheet item={item} layout={sidebar ? 'column' : 'grid'} />
+        <m.aside variants={fadeUp} {...stylex.props(sidebar && detail.aside)}>
+          <FactSheet rows={itemFacts(item)} layout={sidebar ? 'column' : 'grid'} />
         </m.aside>
       </m.div>
 
@@ -210,32 +211,6 @@ function Episodes({
 }
 
 const styles = stylex.create({
-  body: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr)',
-    columnGap: space.xxxl,
-    rowGap: space.xl,
-    alignItems: 'start',
-  },
-  bodySplit: {
-    gridTemplateColumns: {
-      default: 'minmax(0, 1fr) 300px',
-      '@media (max-width: 1024px)': 'minmax(0, 1fr)',
-    },
-  },
-  main: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xxl,
-    minWidth: 0,
-  },
-  aside: {
-    position: {
-      default: 'sticky',
-      '@media (max-width: 1024px)': 'static',
-    },
-    top: `calc(${sizes.navHeight} + ${space.lg})`,
-  },
   season: {
     display: 'flex',
     flexDirection: 'column',

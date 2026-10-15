@@ -5,10 +5,13 @@ import { BookOpen, Check } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { titleHead } from '@/brand'
 import { DetailHero } from '@/components/DetailHero'
+import { FactSheet } from '@/components/FactSheet'
 import { Notice } from '@/components/Notice'
 import { Gate } from '@/komga/Gate'
 import * as komga from '@/komga/api'
 import { komgaQueries, useKomga } from '@/komga/queries'
+import { compact, links, list } from '@/lib/facts'
+import { languageName } from '@/lib/format'
 import { fadeUp, stagger } from '@/lib/motion'
 import { detail } from '@/theme/detail'
 import { episode as ep } from '@/theme/episode'
@@ -22,6 +25,22 @@ const STATUS: Record<string, string> = {
   ENDED: 'Completed',
   HIATUS: 'On hiatus',
   ABANDONED: 'Abandoned',
+}
+
+/** Credits by ComicInfo role, with story and art merged when the same people did both. */
+function seriesFacts(s: komga.Series) {
+  const by = (role: string) => s.authors.filter((a) => a.role === role).map((a) => a.name)
+  const story = by('writer')
+  const art = by('penciller')
+  const sameHands = story.length > 0 && story.join() === art.join()
+  return compact([
+    sameHands ? list('Story & art', story) : list('Story', story),
+    sameHands ? null : list('Art', art),
+    list('Translation', by('translator')),
+    list('Publisher', [s.publisher]),
+    list('Language', [languageName(s.language)]),
+    links(s.links),
+  ])
 }
 
 export const Route = createFileRoute('/_app/manga_/$series')({
@@ -90,24 +109,25 @@ function SeriesDetail() {
         initial="hidden"
         animate="show"
         variants={stagger(0.03, 0.1)}
-        {...stylex.props(detail.body, styles.body)}
+        {...stylex.props(detail.body, detail.columns, detail.split)}
       >
-        {s.summary && (
-          <m.p variants={fadeUp} {...stylex.props(detail.overview)}>
-            {s.summary}
-          </m.p>
-        )}
-        {books.isError ? (
-          <Notice title="Couldn’t load chapters" onRetry={() => void books.refetch()} />
-        ) : books.isPending ? (
-          <div {...stylex.props(ep.skeleton)} />
-        ) : (
-          <m.ol variants={stagger()} {...stylex.props(ep.list)}>
-            {chapters.map((b) => (
-              <ChapterRow key={b.id} book={b} />
-            ))}
-          </m.ol>
-        )}
+        <m.div variants={fadeUp} {...stylex.props(detail.main)}>
+          {s.summary && <p {...stylex.props(detail.overview)}>{s.summary}</p>}
+          {books.isError ? (
+            <Notice title="Couldn’t load chapters" onRetry={() => void books.refetch()} />
+          ) : books.isPending ? (
+            <div {...stylex.props(ep.skeleton)} />
+          ) : (
+            <m.ol variants={stagger()} {...stylex.props(ep.list, styles.chapters)}>
+              {chapters.map((b) => (
+                <ChapterRow key={b.id} book={b} />
+              ))}
+            </m.ol>
+          )}
+        </m.div>
+        <m.aside variants={fadeUp} {...stylex.props(detail.aside)}>
+          <FactSheet rows={seriesFacts(s)} />
+        </m.aside>
       </m.div>
     </article>
   )
@@ -117,7 +137,7 @@ function ChapterRow({ book }: { book: komga.Book }) {
   const done = book.progress?.completed ?? false
   const page = !done && book.progress ? book.progress.page : 0
   return (
-    <m.li variants={fadeUp}>
+    <m.li variants={fadeUp} {...stylex.props(styles.item)}>
       <Link
         to="/read/$book"
         params={{ book: book.id }}
@@ -140,10 +160,14 @@ function ChapterRow({ book }: { book: komga.Book }) {
 }
 
 const styles = stylex.create({
-  body: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xxl,
+  // Chapters read down the first column, then the second, once a column would still be wide.
+  chapters: {
+    display: 'block',
+    columnCount: {
+      default: 2,
+      '@media (max-width: 1280px)': 1,
+    },
+    columnGap: space.xxxl,
   },
   row: {
     display: 'grid',
@@ -165,6 +189,9 @@ const styles = stylex.create({
   },
   rowRead: {
     color: colors.textMuted,
+  },
+  item: {
+    breakInside: 'avoid',
   },
   title: {
     fontSize: 16,

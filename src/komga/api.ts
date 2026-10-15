@@ -22,12 +22,21 @@ export interface User {
 
 export type ReadingDirection = 'ltr' | 'rtl' | 'vertical' | 'webtoon'
 
+export interface Author {
+  name: string
+  role: string
+}
+
 export interface Series {
   id: string
   name: string
   summary: string
   status: string
   genres: string[]
+  authors: Author[]
+  publisher: string
+  language: string
+  links: { label: string; url: string }[]
   booksCount: number
   booksReadCount: number
   booksUnreadCount: number
@@ -81,7 +90,11 @@ interface SeriesDto {
     status: string
     genres: string[]
     readingDirection: string
+    publisher: string
+    language: string
+    links: { label: string; url: string }[]
   }
+  booksMetadata: { authors: Author[] }
 }
 
 interface BookDto {
@@ -113,6 +126,10 @@ const toSeries = (s: SeriesDto): Series => ({
   summary: s.metadata.summary,
   status: s.metadata.status,
   genres: s.metadata.genres,
+  authors: s.booksMetadata.authors,
+  publisher: s.metadata.publisher,
+  language: s.metadata.language,
+  links: s.metadata.links,
   booksCount: s.booksCount,
   booksReadCount: s.booksReadCount,
   booksUnreadCount: s.booksUnreadCount,
