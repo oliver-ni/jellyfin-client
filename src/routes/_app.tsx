@@ -123,7 +123,12 @@ function SideNav({ session }: { session: Session }) {
           Manga
         </NavLink>
       )}
-      {favorites.length > 0 && <h2 {...stylex.props(styles.section)}>Pinned</h2>}
+    </nav>
+  )
+
+  const pinned = favorites.length > 0 && (
+    <nav aria-label="Pinned" onClick={() => setDrawerOpen(false)} {...stylex.props(styles.links)}>
+      <h2 {...stylex.props(styles.section, styles.sectionFirst)}>Pinned</h2>
       {favorites.map((item) => (
         <NavLink
           key={item.Id}
@@ -204,15 +209,19 @@ function SideNav({ session }: { session: Session }) {
     </AriaButton>
   )
 
-  const panel = (
+  /** The sidebar as a stack of separate glass cards; `surface` sets the cards' material. */
+  const panel = (surface: stylex.StyleXStyles) => (
     <>
-      <Link to="/" aria-label={session.serverName} {...stylex.props(focus.ring, styles.brand)}>
-        <BrandMark size={20} />
-        <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
-      </Link>
-      {search}
-      {links}
-      <div {...stylex.props(styles.panelFoot)}>{account}</div>
+      <div {...stylex.props(surface, styles.card)}>
+        <Link to="/" aria-label={session.serverName} {...stylex.props(focus.ring, styles.brand)}>
+          <BrandMark size={20} />
+          <span {...stylex.props(styles.brandName)}>{session.serverName}</span>
+        </Link>
+        {search}
+      </div>
+      <div {...stylex.props(surface, styles.card)}>{links}</div>
+      {pinned && <div {...stylex.props(surface, styles.card, styles.scrollCard)}>{pinned}</div>}
+      <div {...stylex.props(surface, styles.card, styles.footCard)}>{account}</div>
     </>
   )
 
@@ -224,7 +233,7 @@ function SideNav({ session }: { session: Session }) {
         isOpen={quickConnectOpen}
         onOpenChange={setQuickConnectOpen}
       />
-      <aside {...stylex.props(glass.panel, styles.sidebar)}>{panel}</aside>
+      <aside {...stylex.props(styles.sidebar)}>{panel(glass.panel)}</aside>
 
       <header {...stylex.props(styles.topBar)}>
         <AriaButton
@@ -250,9 +259,9 @@ function SideNav({ session }: { session: Session }) {
         isDismissable
         {...stylex.props(styles.drawerScrim)}
       >
-        <Modal {...stylex.props(glass.panel, styles.drawer)}>
-          <Dialog aria-label="Menu" {...stylex.props(styles.drawerPanel)}>
-            <div {...stylex.props(styles.panel)}>{panel}</div>
+        <Modal {...stylex.props(styles.drawer)}>
+          <Dialog aria-label="Menu" {...stylex.props(styles.panel)}>
+            {panel([glass.panel, styles.solidCard])}
           </Dialog>
         </Modal>
       </ModalOverlay>
@@ -319,7 +328,7 @@ const fadeOut = stylex.keyframes({ from: { opacity: 1 }, to: { opacity: 0 } })
 
 const HIDE_SIDEBAR = '@media (max-width: 1024px)'
 const SIDEBAR_W = 240
-/** Concentric with the panel: its 20px corner minus the 8px padding. */
+/** Concentric with the cards: their 20px corner minus the 8px padding. */
 const ROW_RADIUS = 12
 
 const styles = stylex.create({
@@ -341,15 +350,32 @@ const styles = stylex.create({
       [HIDE_SIDEBAR]: 'none',
     },
     flexDirection: 'column',
-    gap: space.xs,
-    padding: space.sm,
-    borderRadius: radii.xl,
+    gap: space.sm,
   },
   panel: {
     display: 'flex',
     flexDirection: 'column',
-    gap: space.xs,
+    gap: space.sm,
     height: '100%',
+    outline: 'none',
+  },
+  card: {
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: space.xs,
+    padding: space.sm,
+    borderRadius: radii.xl,
+  },
+  scrollCard: {
+    flexShrink: 1,
+    minHeight: 0,
+  },
+  footCard: {
+    marginTop: 'auto',
+  },
+  solidCard: {
+    backgroundColor: colors.bgElevated,
   },
   brand: {
     display: 'flex',
@@ -373,6 +399,7 @@ const styles = stylex.create({
     gap: space.xxs,
     minHeight: 0,
     overflowY: 'auto',
+    overscrollBehavior: 'contain',
     scrollbarWidth: 'none',
   },
   section: {
@@ -382,6 +409,9 @@ const styles = stylex.create({
     fontSize: 12,
     fontWeight: 600,
     color: colors.textFaint,
+  },
+  sectionFirst: {
+    paddingTop: space.xs,
   },
   link: {
     position: 'relative',
@@ -434,12 +464,6 @@ const styles = stylex.create({
   },
   linkLabelActive: {
     color: colors.text,
-  },
-  panelFoot: {
-    marginTop: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: space.xs,
   },
   search: {
     display: 'flex',
@@ -565,17 +589,10 @@ const styles = stylex.create({
     bottom: space.sm,
     left: space.sm,
     width: `min(${SIDEBAR_W}px, calc(100vw - 2 * ${space.lg}))`,
-    borderRadius: radii.xl,
-    backgroundColor: colors.bgElevated,
     animationName: { default: 'none', '[data-entering]': slideIn, '[data-exiting]': slideOut },
     animationDuration: { default: motion.slow, '[data-exiting]': motion.base },
     animationTimingFunction: motion.ease,
     animationFillMode: 'both',
-  },
-  drawerPanel: {
-    height: '100%',
-    padding: space.sm,
-    outline: 'none',
   },
   main: {
     flex: 1,
