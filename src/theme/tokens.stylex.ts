@@ -69,11 +69,16 @@ export const space = stylex.defineVars({
 })
 
 export const sizes = stylex.defineVars({
-  navHeight: '64px',
+  /** The top bar; only exists where the sidebar is hidden. */
+  navHeight: { default: '0px', '@media (max-width: 1024px)': '64px' },
   navControl: '40px',
   pageGutter: { default: '48px', '@media (max-width: 720px)': '16px' },
-  /** Leading page gutter, kept separate so a leading nav can widen it. */
-  gutterStart: { default: '48px', '@media (max-width: 720px)': '16px' },
+  /** Leading gutter: clears the floating sidebar (12px inset + 240px) plus a 24px gap. */
+  gutterStart: {
+    default: '276px',
+    '@media (max-width: 1024px)': '48px',
+    '@media (max-width: 720px)': '16px',
+  },
   maxContent: '1720px',
 })
 
