@@ -9,6 +9,9 @@
   ssoProvider ? null,
   # Emoji or short glyph for the header mark and favicon; null uses a neutral icon.
   brandMark ? null,
+  # Komga server for the Manga tab, called from the browser; it must allow the client's origin
+  # in `komga.cors.allowed-origins` (see src/komga/api.ts).
+  komgaUrl ? null,
 }:
 
 buildNpmPackage {
@@ -35,7 +38,8 @@ buildNpmPackage {
   env =
     lib.optionalAttrs (jellyfinUrl != null) { VITE_JELLYFIN_URL = jellyfinUrl; }
     // lib.optionalAttrs (ssoProvider != null) { VITE_SSO_PROVIDER = ssoProvider; }
-    // lib.optionalAttrs (brandMark != null) { VITE_BRAND_MARK = brandMark; };
+    // lib.optionalAttrs (brandMark != null) { VITE_BRAND_MARK = brandMark; }
+    // lib.optionalAttrs (komgaUrl != null) { VITE_KOMGA_URL = komgaUrl; };
 
   installPhase = ''
     runHook preInstall
