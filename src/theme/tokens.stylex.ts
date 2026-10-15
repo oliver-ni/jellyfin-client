@@ -72,6 +72,8 @@ export const sizes = stylex.defineVars({
   navHeight: '64px',
   navControl: '40px',
   pageGutter: { default: '48px', '@media (max-width: 720px)': '16px' },
+  /** Leading page gutter, kept separate so a leading nav can widen it. */
+  gutterStart: { default: '48px', '@media (max-width: 720px)': '16px' },
   maxContent: '1720px',
 })
 
