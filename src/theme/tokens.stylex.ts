@@ -73,9 +73,9 @@ export const sizes = stylex.defineVars({
   navHeight: { default: '0px', '@media (max-width: 1024px)': '64px' },
   navControl: '40px',
   pageGutter: { default: '48px', '@media (max-width: 720px)': '16px' },
-  /** Leading gutter: clears the floating sidebar (12px inset + 240px) where it shows. */
+  /** Leading gutter: clears the floating sidebar (12px inset + 240px) plus a 24px gap. */
   gutterStart: {
-    default: '300px',
+    default: '276px',
     '@media (max-width: 1024px)': '48px',
     '@media (max-width: 720px)': '16px',
   },
