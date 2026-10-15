@@ -118,7 +118,7 @@ function SeriesDetail() {
           ) : books.isPending ? (
             <div {...stylex.props(ep.skeleton)} />
           ) : (
-            <m.ol variants={stagger()} {...stylex.props(ep.list, styles.chapters)}>
+            <m.ol variants={stagger()} {...stylex.props(ep.list)}>
               {chapters.map((b) => (
                 <ChapterRow key={b.id} book={b} />
               ))}
@@ -137,7 +137,7 @@ function ChapterRow({ book }: { book: komga.Book }) {
   const done = book.progress?.completed ?? false
   const page = !done && book.progress ? book.progress.page : 0
   return (
-    <m.li variants={fadeUp} {...stylex.props(styles.item)}>
+    <m.li variants={fadeUp}>
       <Link
         to="/read/$book"
         params={{ book: book.id }}
@@ -160,15 +160,6 @@ function ChapterRow({ book }: { book: komga.Book }) {
 }
 
 const styles = stylex.create({
-  // Chapters read down the first column, then the second, once a column would still be wide.
-  chapters: {
-    display: 'block',
-    columnCount: {
-      default: 2,
-      '@media (max-width: 1280px)': 1,
-    },
-    columnGap: space.xxxl,
-  },
   row: {
     display: 'grid',
     gridTemplateColumns: 'auto minmax(0, 1fr) auto',
@@ -189,9 +180,6 @@ const styles = stylex.create({
   },
   rowRead: {
     color: colors.textMuted,
-  },
-  item: {
-    breakInside: 'avoid',
   },
   title: {
     fontSize: 16,
