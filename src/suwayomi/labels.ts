@@ -1,5 +1,5 @@
-import type { RequestGroup } from '@/seerr/api'
-import type { Progress } from '@/seerr/labels'
+import type { ProgressValue } from '@/components/Progress'
+import type { RequestGroup } from '@/lib/request-groups'
 import type { MangaRequest, MangaStatus } from './api'
 
 export const MANGA_STATUS_LABEL: Record<MangaStatus, string | null> = {
@@ -22,7 +22,7 @@ export function mangaGroup(m: MangaRequest): RequestGroup {
 export const chapters = (n: number) => `${n} chapter${n === 1 ? '' : 's'}`
 
 /** `12 of 40 chapters` over what's queued or missing. */
-export function mangaProgress(m: MangaRequest): Progress | null {
+export function mangaProgress(m: MangaRequest): ProgressValue | null {
   if (m.chapters === 0) return null
   return {
     state: m.queued > 0 ? 'downloading' : null,

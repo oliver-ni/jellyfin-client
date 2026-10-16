@@ -194,6 +194,17 @@ export const series = (page: number) =>
     `/api/v1/series?page=${page}&size=${PAGE_SIZE}&sort=metadata.titleSort,asc`,
   ).then((p) => toPaged(p, page, toSeries))
 
+/** Series most recently added to the library. */
+export const latestSeries = () =>
+  request<PageOf<SeriesDto>>('/api/v1/series?sort=createdDate,desc&size=20').then((p) =>
+    p.content.map(toSeries),
+  )
+
+export const searchSeries = (query: string) =>
+  request<PageOf<SeriesDto>>(
+    `/api/v1/series?search=${encodeURIComponent(query)}&size=${PAGE_SIZE}`,
+  ).then((p) => p.content.map(toSeries))
+
 export const seriesById = (id: string) => request<SeriesDto>(`/api/v1/series/${id}`).then(toSeries)
 
 /** Every chapter of a series, in reading order. */

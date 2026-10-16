@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { useQuery } from '@tanstack/react-query'
-import { Link, Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, useLocation, useNavigate } from '@tanstack/react-router'
 import { Devices, MagnifyingGlass, SignOut } from '@phosphor-icons/react'
 import { motion as m } from 'motion/react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -13,8 +13,8 @@ import { logout } from '@/lib/auth'
 import { libraryLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
+import { sectionOf } from '@/lib/section'
 import { requireSession, useSession, type Session } from '@/lib/session'
-import { KOMGA_URL } from '@/komga/api'
 import { signOut as komgaSignOut } from '@/komga/queries'
 import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
 import { glass, overlay } from '@/theme/glass'
@@ -54,6 +54,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 function TopNav({ session }: { session: Session }) {
   const navigate = useNavigate()
+  const section = useLocation({ select: (l) => sectionOf(l.pathname) })
   const views = useQuery(queries.views(session.userId))
   const libraries = views.data?.Items?.filter((v) => v.CollectionType !== 'playlists') ?? []
   const [searchOpen, setSearchOpen] = useState(false)
@@ -74,7 +75,12 @@ function TopNav({ session }: { session: Session }) {
 
   return (
     <header {...stylex.props(styles.nav)}>
-      <SearchPalette userId={session.userId} isOpen={searchOpen} onOpenChange={setSearchOpen} />
+      <SearchPalette
+        userId={session.userId}
+        section={section}
+        isOpen={searchOpen}
+        onOpenChange={setSearchOpen}
+      />
       <QuickConnectDialog
         userName={session.userName}
         isOpen={quickConnectOpen}
@@ -88,14 +94,26 @@ function TopNav({ session }: { session: Session }) {
         <BrandMark />
       </Link>
       <nav aria-label="Libraries" {...stylex.props(glass.surface, styles.links)}>
-        <NavLink to="/">Home</NavLink>
-        {libraries.map((lib) => (
-          <NavLink key={lib.Id} {...libraryLink(lib)}>
-            {lib.Name}
+        {section === 'watch' ? (
+          <>
+            <NavLink to="/watch">Home</NavLink>
+            {libraries.map((lib) => (
+              <NavLink key={lib.Id} {...libraryLink(lib)}>
+                {lib.Name}
+              </NavLink>
+            ))}
+          </>
+        ) : (
+          <>
+            <NavLink to="/read">Home</NavLink>
+            <NavLink to="/read/manga">Manga</NavLink>
+          </>
+        )}
+        {seerr && seerr.state !== 'unavailable' && (
+          <NavLink to={section === 'watch' ? '/watch/requests' : '/read/requests'}>
+            Requests
           </NavLink>
-        ))}
-        {seerr && seerr.state !== 'unavailable' && <NavLink to="/requests">Requests</NavLink>}
-        {KOMGA_URL && <NavLink to="/manga">Manga</NavLink>}
+        )}
       </nav>
       <div {...stylex.props(styles.right)}>
         <AriaButton
@@ -158,7 +176,10 @@ function TopNav({ session }: { session: Session }) {
 }
 
 type NavLinkProps = { children: ReactNode } & (
-  | { to: '/' | '/requests' | '/manga'; params?: undefined }
+  | {
+      to: '/watch' | '/watch/requests' | '/read' | '/read/manga' | '/read/requests'
+      params?: undefined
+    }
   | ReturnType<typeof libraryLink>
 )
 

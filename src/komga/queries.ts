@@ -44,6 +44,16 @@ export const komgaQueries = {
       initialPageParam: 0,
       getNextPageParam: (last) => last.nextPage,
     }),
+  latestSeries: () =>
+    queryOptions({
+      queryKey: ['komga', 'series', 'latest'],
+      queryFn: () => withSession(komga.latestSeries),
+    }),
+  searchSeries: (query: string) =>
+    queryOptions({
+      queryKey: ['komga', 'series', 'search', query],
+      queryFn: () => withSession(() => komga.searchSeries(query)),
+    }),
   seriesById: (id: string) =>
     queryOptions({
       queryKey: ['komga', 'series', id],

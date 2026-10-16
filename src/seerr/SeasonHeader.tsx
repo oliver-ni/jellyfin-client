@@ -8,7 +8,7 @@ import {
   releaseNames,
   seasonLabel,
 } from './labels'
-import { Progress } from './Progress'
+import { Progress } from '@/components/Progress'
 import { useHoldup } from '@/sonarr/queries'
 import { statusPill } from '@/theme/status'
 import { colors, space } from '@/theme/tokens.stylex'

@@ -7,9 +7,9 @@ import {
   type DownloadState,
   type MediaType,
   type Request,
-  type RequestGroup,
   type Season,
 } from './api'
+import type { ProgressValue } from '@/components/Progress'
 
 export const MEDIA_TYPE_LABEL: Record<MediaType, string> = { movie: 'Film', tv: 'Series' }
 
@@ -105,16 +105,8 @@ function named(downloads: Download[]): number | null {
 /** Tooltip for a set of downloads: their release names, one per line. */
 export const releaseNames = (downloads: Download[]) => downloads.map((d) => d.title).join('\n')
 
-export interface Progress {
-  /** The liveliest download's state, or `null` when nothing is moving. */
+export interface Progress extends ProgressValue {
   state: DownloadState | null
-  fraction: number
-  /** Share of the bar drawn fainter after `fraction`, for what is on its way but not here. */
-  coming?: number
-  /** What's happening to what: `Downloading episodes 3–5`. */
-  label: string
-  /** How far along: `42% · 12m left`. */
-  detail: string
 }
 
 /**
@@ -144,15 +136,6 @@ export function progress(
       .filter(Boolean)
       .join(' · '),
   }
-}
-
-export const REQUEST_GROUP_LABEL: Record<RequestGroup, string> = {
-  downloading: 'Downloading now',
-  partial: 'Partially downloaded',
-  waiting: 'Not downloading',
-  pending: 'Awaiting approval',
-  done: 'In your library',
-  closed: 'Declined',
 }
 
 /**

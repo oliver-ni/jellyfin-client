@@ -33,7 +33,7 @@ import { list } from '@/theme/list'
 import { toolbarControl } from '@/theme/toolbar'
 import { colors, radii, sizes, space } from '@/theme/tokens.stylex'
 
-export const Route = createFileRoute('/_app/library/$library')({
+export const Route = createFileRoute('/_app/watch/library/$library')({
   validateSearch: validateLibrarySearch,
   loader: async ({ context: { queryClient }, params }) => {
     const id = idFromHandle(params.library)

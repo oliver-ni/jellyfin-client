@@ -19,7 +19,7 @@ import { detail } from '@/theme/detail'
 import { playPill } from '@/theme/media'
 
 /** A manga on one of the request service's sources, with a request for the whole series. */
-export const Route = createFileRoute('/_app/request/manga/$id')({
+export const Route = createFileRoute('/_app/read/request/$id')({
   params: {
     parse: ({ id }): { id: number } => {
       const n = Number(id)
