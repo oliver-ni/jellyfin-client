@@ -12,6 +12,8 @@ export interface SegmentedProps<K extends Key> {
   options: readonly { key: K; label: string }[]
   selected: K
   onChange: (key: K) => void
+  /** Overrides for the capsule, e.g. a height to match the controls beside it. */
+  style?: stylex.StyleXStyles
 }
 
 /** Glass capsule picking one of a few options; one tab stop, arrow keys move between them. */
@@ -20,6 +22,7 @@ export function Segmented<K extends Key>({
   options,
   selected,
   onChange,
+  style,
 }: SegmentedProps<K>) {
   const pill = useId()
   return (
@@ -32,7 +35,7 @@ export function Segmented<K extends Key>({
         const next = options.find((o) => keys.has(o.key))
         if (next) onChange(next.key)
       }}
-      {...stylex.props(glass.surface, styles.group)}
+      {...stylex.props(glass.surface, styles.group, style)}
     >
       {options.map((o) => (
         <ToggleButton
@@ -58,6 +61,7 @@ export function Segmented<K extends Key>({
 const styles = stylex.create({
   group: {
     display: 'inline-flex',
+    height: 36,
     padding: 3,
     borderRadius: radii.full,
   },
@@ -65,7 +69,7 @@ const styles = stylex.create({
     position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
-    height: 30,
+    height: '100%',
     paddingInline: space.md,
     fontSize: 13,
     fontWeight: 500,

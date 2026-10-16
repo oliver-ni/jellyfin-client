@@ -8,12 +8,14 @@ import { Menu, MenuItem, MenuTrigger, Popover, Button as AriaButton } from 'reac
 import { BrandMark } from '@/components/BrandMark'
 import { QuickConnectDialog } from '@/components/QuickConnectDialog'
 import { SearchPalette } from '@/components/SearchPalette'
+import { Segmented } from '@/components/Segmented'
 import { useRouteGhost } from '@/hooks/useRouteGhost'
 import { logout } from '@/lib/auth'
 import { libraryLink } from '@/lib/item-link'
 import { springs } from '@/lib/motion'
 import { queries } from '@/lib/queries'
-import { sectionOf } from '@/lib/section'
+import { SECTIONS, sectionOf } from '@/lib/section'
+import { KOMGA_URL } from '@/komga/api'
 import { requireSession, useSession, type Session } from '@/lib/session'
 import { signOut as komgaSignOut } from '@/komga/queries'
 import { signOut as seerrSignOut, useSeerr } from '@/seerr/queries'
@@ -93,6 +95,17 @@ function TopNav({ session }: { session: Session }) {
       >
         <BrandMark />
       </Link>
+      {KOMGA_URL && (
+        <div {...stylex.props(styles.section)}>
+          <Segmented
+            label="Section"
+            options={SECTIONS}
+            selected={section}
+            onChange={(next) => void navigate({ to: next === 'read' ? '/read' : '/watch' })}
+            style={styles.switch}
+          />
+        </div>
+      )}
       <nav aria-label="Libraries" {...stylex.props(glass.surface, styles.links)}>
         {section === 'watch' ? (
           <>
@@ -237,6 +250,13 @@ const styles = stylex.create({
     fontSize: 18,
     lineHeight: 1,
     borderRadius: radii.full,
+  },
+  section: {
+    pointerEvents: 'auto',
+    display: 'flex',
+  },
+  switch: {
+    height: sizes.navControl,
   },
   links: {
     pointerEvents: 'auto',
